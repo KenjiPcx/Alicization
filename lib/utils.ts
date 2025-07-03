@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { useEffect, useState } from "react"
 import type { ErrorCode } from "./errors";
 import { ChatSDKError } from "./errors";
 import type { CoreAssistantMessage, CoreToolMessage, UIMessage } from "ai";
@@ -116,3 +117,44 @@ export const artificiallyStreamText = function* (text: string) {
     yield chunk;
   }
 };
+
+// For Zustand stores that need SSR-safe localStorage
+export function createSSRSafeStorage() {
+  return {
+    getItem: (name: string): string | null => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem(name);
+      }
+      return null;
+    },
+    setItem: (name: string, value: string): void => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(name, value);
+      }
+    },
+    removeItem: (name: string): void => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(name);
+      }
+    },
+  };
+}
+
+// Hook for hydration-safe Zustand store usage
+export function useHydratedStore<T>(
+  storeHook: () => T & { _hasHydrated: boolean },
+  selector?: (state: T) => any
+): [boolean, T | null] {
+  const store = storeHook();
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(store._hasHydrated);
+  }, [store._hasHydrated]);
+
+  if (!hasHydrated) {
+    return [false, null];
+  }
+
+  return [true, selector ? selector(store) : store];
+}

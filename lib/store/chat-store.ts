@@ -1,6 +1,7 @@
 "use client";
 
 import { create, type StateCreator } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 type ScrollFlag = ScrollBehavior | false;
 
@@ -38,43 +39,49 @@ interface ChatState {
   setIsSidebarCollapsed: (isSidebarCollapsed: boolean) => void;
 }
 
-export const useChatStore = create<ChatState>(((set) => ({
-  threadId: null,
-  setThreadId: (id: string | null) => set({ threadId: id }),
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set) => ({
+      threadId: null,
+      setThreadId: (id: string | null) => set({ threadId: id }),
 
-  sidebarOpen: true,
-  setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
+      sidebarOpen: true,
+      setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
 
-  fileViewerOpen: false,
-  setFileViewerOpen: (open: boolean) => set({ fileViewerOpen: open }),
-  fileViewerUrl: '',
-  setFileViewerUrl: (url: string) => set({ fileViewerUrl: url }),
-  fileViewerTitle: '',
-  setFileViewerTitle: (title: string) => set({ fileViewerTitle: title }),
+      fileViewerOpen: false,
+      setFileViewerOpen: (open: boolean) => set({ fileViewerOpen: open }),
+      fileViewerUrl: '',
+      setFileViewerUrl: (url: string) => set({ fileViewerUrl: url }),
+      fileViewerTitle: '',
+      setFileViewerTitle: (title: string) => set({ fileViewerTitle: title }),
 
-  currentMode: 'Chat',
-  setCurrentMode: (mode: 'Chat' | 'Files' | 'Config') => set({ currentMode: mode }),
+      currentMode: 'Chat',
+      setCurrentMode: (mode: 'Chat' | 'Files' | 'Config') => set({ currentMode: mode }),
 
-  // Scroll state
-  isAtBottom: false,
-  setIsAtBottom: (isAtBottom: boolean) => set({ isAtBottom }),
-  scrollBehavior: false,
-  setScrollBehavior: (behavior: ScrollFlag) => set({ scrollBehavior: behavior }),
+      // Scroll state
+      isAtBottom: false,
+      setIsAtBottom: (isAtBottom: boolean) => set({ isAtBottom }),
+      scrollBehavior: false,
+      setScrollBehavior: (behavior: ScrollFlag) => set({ scrollBehavior: behavior }),
 
-  // Chat settings
-  modelId: localStorage.getItem('modelId') || 'chat-model',
-  initialVisibilityType: localStorage.getItem('initialVisibilityType') || 'private',
-  isSidebarCollapsed: localStorage.getItem('isSidebarCollapsed') === 'true' || false,
-  setModelId: (modelId) => {
-    localStorage.setItem('modelId', modelId);
-    set({ modelId });
-  },
-  setInitialVisibilityType: (initialVisibilityType) => {
-    localStorage.setItem('initialVisibilityType', initialVisibilityType);
-    set({ initialVisibilityType });
-  },
-  setIsSidebarCollapsed: (isSidebarCollapsed) => {
-    localStorage.setItem('isSidebarCollapsed', isSidebarCollapsed.toString());
-    set({ isSidebarCollapsed });
-  },
-})) as StateCreator<ChatState>);
+      // Chat settings (with defaults)
+      modelId: 'chat-model',
+      initialVisibilityType: 'private',
+      isSidebarCollapsed: false,
+      setModelId: (modelId) => set({ modelId }),
+      setInitialVisibilityType: (initialVisibilityType) => set({ initialVisibilityType }),
+      setIsSidebarCollapsed: (isSidebarCollapsed) => set({ isSidebarCollapsed }),
+    }),
+    {
+      name: 'chat-store', // localStorage key
+      // Only persist settings that should survive page reloads
+      partialize: (state) => ({
+        modelId: state.modelId,
+        initialVisibilityType: state.initialVisibilityType,
+        isSidebarCollapsed: state.isSidebarCollapsed,
+        sidebarOpen: state.sidebarOpen,
+        currentMode: state.currentMode,
+      }),
+    }
+  )
+);

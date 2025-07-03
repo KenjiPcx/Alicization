@@ -31,7 +31,7 @@ export const applicationTables = {
   // Store extra metadata for a chat beyond the thread managed by the agent package
   chats: defineTable({
     userId: v.id("users"), // User can see all their AI owned chats
-    chatOwnerId: v.optional(v.union(v.id("employees"), v.id("users"))), // Owner of the chat, if user talks to an employee, user will be the owner, if an employee talks to another employee, the employee will be the owner
+    chatOwnerId: v.optional(v.union(v.id("employees"), v.id("users"), v.string())), // Owner of the chat, if user talks to an employee, user will be the owner, if an employee talks to another employee, the employee will be the owner
     chatOwnerType: v.optional(v.union(
       v.literal("employee"),
       v.literal("user"),
@@ -68,6 +68,8 @@ export const applicationTables = {
     userId: v.id("users"), // User can see all their AI owned teams
     name: v.string(),
     description: v.string(),
+    // TODO: Add desk layout details
+
   }),
 
   // Employees are the users of the application
@@ -81,6 +83,9 @@ export const applicationTables = {
     background: v.string(), // The backstory
     personality: v.string(), // Affects how they respond to the user
     // TODO: Add style configs for the employee appearance
+    status: v.string(),
+    statusMessage: v.string(),
+    isCEO: v.boolean(), // If the employee is the CEO of the company
   }).index("by_teamId", ["teamId"]),
 
   // Employees can have tools assigned to them
@@ -297,7 +302,7 @@ export type UserType = Doc<"usersMetadata">["type"];
 // Compound types
 export type FullEmployee = Employee & {
   tools: Tool[];
-  team: Team;
+  team: Team | string; // TODO: Remove this once we have a proper team type
 };
 
 export type ArtifactKind = "text" | "sheet" | "code" | "image" | "video" | "music";

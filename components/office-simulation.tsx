@@ -58,6 +58,7 @@ export default function OfficeSimulation() {
         [setActiveParticipant, setIsChatModalOpen, getLatestThreadId],
     );
 
+    // TODO: Maybe team clicks should show team tasks? or show the chat with the main supervisor
     const handleTeamClick = useCallback(
         async (team: TeamData) => {
             setActiveParticipant({ type: 'team', data: team });

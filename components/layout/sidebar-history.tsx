@@ -94,7 +94,7 @@ export function SidebarHistory() {
         loadMore,
     } = usePaginatedQuery(
         api.chat.getChatHistory,
-        { mainParticipantId: activeParticipant?.data.id ?? "" },
+        activeParticipant?.data.id ? { chatOwnerId: activeParticipant?.data.id } : "skip",
         { initialNumItems: PAGE_SIZE }
     );
 

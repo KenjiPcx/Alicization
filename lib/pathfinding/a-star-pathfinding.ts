@@ -184,7 +184,7 @@ export function gridToWorld(gridX: number, gridZ: number): THREE.Vector3 {
  */
 export function findPathAStar(startWorldPos: THREE.Vector3, endWorldPos: THREE.Vector3): THREE.Vector3[] | null {
     if (!walkableGrid.length) {
-        console.error("A* grid not initialized.");
+        console.log("A* grid not initialized.");
         return null;
     }
 

@@ -4,13 +4,13 @@ import { components, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
 import type { FullEmployee } from "../../types";
 import { anthropicProviderOptions, embeddingModel, model } from "../model";
-// import { executorTools } from "../tools/executorTools/index";
-// import { supervisorTools } from "../tools/supervisorTools";
+import { executorTools } from "../tools/executor-tools/index";
+import { supervisorTools } from "../tools/supervisor-tools";
 
 
 export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools }: FullEmployee) => dedent(`
     # High Level Background
-    You are an AI employee, working as a ${jobTitle} at ${team.name}.
+    You are an AI employee, working as a ${jobTitle}.
     Your role is summarized as follows: ${jobDescription}.
 
     # Personal Information

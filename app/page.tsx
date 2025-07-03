@@ -4,18 +4,20 @@ import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import OfficeSimulation from "@/components/office-simulation";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Home() {
   return (
-    <>
-      <header className="sticky top-0 z-10 bg-background p-4 border-b-2 border-slate-200 dark:border-slate-800 flex flex-row justify-between items-center">
-        Convex + Next.js + Convex Auth
+    <main className="w-[100dvw] h-[100dvh]">
+      <div className="absolute top-0 right-0 p-4 z-10">
         <SignOutButton />
-      </header>
-      <main className="p-8 flex flex-col gap-8">
-        <OfficeSimulation />
-      </main>
-    </>
+      </div>
+      <SidebarProvider defaultOpen={false}>
+        <SidebarInset>
+          <OfficeSimulation />
+        </SidebarInset>
+      </SidebarProvider>
+    </main>
   );
 }
 

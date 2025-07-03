@@ -12,10 +12,11 @@ import dedent from "dedent";
 
 export const createThread = mutation({
     args: {
-        chatOwnerId: v.optional(v.id("employees")),
+        chatOwnerId: v.optional(v.union(v.id("employees"), v.string())), // TODO: Remove string once we have a proper employee type
         chatType: v.union(v.literal("employee"), v.literal("team")),
+        visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
     },
-    handler: async (ctx, { chatOwnerId, chatType }): Promise<{ threadId: string }> => {
+    handler: async (ctx, { chatOwnerId, chatType, visibility }): Promise<{ threadId: string }> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -26,7 +27,8 @@ export const createThread = mutation({
             userId: userId,
             threadId,
             chatOwnerId,
-            chatType
+            chatType,
+            visibility: visibility ?? "private",
         });
 
         return { threadId };
@@ -93,7 +95,7 @@ export const streamMessage = internalAction({
         const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
         const result = await thread.streamText(
             { promptMessageId, providerOptions: anthropicProviderOptions, maxSteps: 20 },
-            { saveStreamDeltas: { chunking: "line", throttleMs: 1000 } },
+            { saveStreamDeltas: { chunking: "line", throttleMs: 500 } },
         );
         await result.consumeStream();
     },
@@ -330,7 +332,10 @@ export const getChatByThreadId = query({
 });
 
 export const getChatHistory = query({
-    args: { chatOwnerId: v.union(v.id("employees"), v.id("users")), paginationOpts: paginationOptsValidator },
+    args: {
+        chatOwnerId: v.union(v.id("employees"), v.id("users"), v.string()), // TODO: Remove string once we have a proper employee type
+        paginationOpts: paginationOptsValidator,
+    },
     handler: async (ctx, { chatOwnerId, paginationOpts }) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");

@@ -8,6 +8,7 @@ import {
   // SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarProvider,
   useSidebar, // Provides the 'open' state
 } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -89,8 +90,10 @@ export function ChatSidebar() {
                   className="p-2 h-fit"
                   onClick={async () => {
                     setOpenMobile(false);
+                    if (!activeParticipant?.data.id) return;
                     const { threadId } = await createThread({
-                      mainParticipantId: activeParticipant?.data.id ?? "",
+                      chatOwnerId: activeParticipant?.data.id,
+                      chatType: "employee",
                       visibility: initialVisibilityType,
                     });
                     setThreadId(threadId);

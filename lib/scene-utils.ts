@@ -2,6 +2,7 @@ import { CEO_DESK_POS, CYLINDER_HEIGHT, DESK_DEPTH, DESK_WIDTH, EMPLOYEE_RADIUS,
 import type { DeskLayoutData, EmployeeData, TeamData } from "@/lib/types";
 import * as THREE from 'three';
 
+// TODO: Move this to backend, we should run this when we create new teams and we need to restructure the office layout
 export function generateTeamsWithDesks(): { teams: TeamData[], desks: DeskLayoutData[] } {
     console.log("Generating teams with desks...");
     const teams: TeamData[] = [];
