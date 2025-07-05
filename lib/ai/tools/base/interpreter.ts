@@ -1,6 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { internal } from "../../../_generated/api";
+import { internal } from "@/convex/_generated/api";
 
 // Lightweight python interpreter environment for codeAct
 // Useful for executing tasks directly using python as a catch all for any other tool that is not supported
@@ -21,7 +21,7 @@ export const useInterpreter = createTool({
             throw new Error("Thread ID is required");
         }
 
-        const execution = await ctx.runAction(internal.nodeInterpreter.e2bInterpreter, {
+        const execution = await ctx.runAction(internal.interpreter.e2bInterpreter, {
             threadId,
             code,
         });

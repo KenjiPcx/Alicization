@@ -1,10 +1,8 @@
-"use node"
-
 // Private knowledge can contain internal company documentation, company information, etc.
 
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { internal } from "../../../_generated/api";
+import { internal } from "@/convex/_generated/api";
 
 // A subagent will handle the different needs
 export const privateKnowledgeSearch = createTool({

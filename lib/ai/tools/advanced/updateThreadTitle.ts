@@ -1,4 +1,4 @@
-import { components } from "../../../_generated/api";
+import { components } from "@/convex/_generated/api";
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 

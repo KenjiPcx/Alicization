@@ -218,13 +218,16 @@ export const applicationTables = {
 
   // Each complex task in a thread are represented as a task
   // Each thread could have multiple complex tasks
-  plans: defineTable({
+  tasks: defineTable({
     threadId: v.string(),
     title: v.string(),
     description: v.string(),
-    plan: v.optional(v.string()),
-    pendingTodos: v.array(v.string()),
-    completedTodos: v.array(v.string()),
+    plan: v.array(v.string()),
+    todos: v.array(v.object({
+      title: v.string(),
+      status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed")),
+    })),
+    done: v.boolean(),
   }).index("by_threadId", ["threadId"]),
 
   // Feedback and learning
@@ -240,19 +243,25 @@ export const applicationTables = {
     key: v.string(),
     value: v.string(),
     scope: v.union(
-      v.literal("thread"), // Tied to a specific chat, employeeId might also be relevant
-      v.literal("employee"), // employeeId is key, for employee preferences
-      v.literal("team"), // teamId is key, for team preferences
-      v.literal("user") // userId is key, for general preferences
+      v.literal("conversation"), // Tied to a specific chat conversation
+      v.literal("personal"), // Private to the creating employee
+      v.literal("team"), // Accessible to all team members
+      v.literal("user") // Global user preferences
     ),
-    threadId: v.string(),
-    employeeId: v.optional(v.id("employees")),
+    threadId: v.string(), // Representing chatId
+    employeeId: v.optional(v.id("employees")), // Creator of the memory
     teamId: v.optional(v.id("teams")),
     userId: v.id("users"),
+    embedding: v.array(v.float64()), // For semantic search
   }).index("by_threadId", ["threadId"])
     .index("by_userId", ["userId"])
     .index("by_employeeId", ["employeeId"])
-    .index("by_teamId", ["teamId"]),
+    .index("by_teamId", ["teamId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["scope", "employeeId", "teamId", "userId", "threadId"],
+    }),
 
   // If you want to track usage on a granular level, you could do something like this:
   rawUsage: defineTable({

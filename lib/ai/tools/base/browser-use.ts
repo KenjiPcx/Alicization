@@ -1,5 +1,3 @@
-"use node"
-
 // TODO: Implement this with browserbase or something
 
 import { createTool } from "@convex-dev/agent";
