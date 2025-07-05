@@ -11,14 +11,17 @@ import { optimisticallySendMessage, toUIMessages, useThreadMessages } from '@con
 import { useChatStore } from '@/lib/store/chat-store';
 import type { MessageDoc } from '@convex-dev/agent';
 import { Artifact } from '../artifact/artifact';
+import type { Id } from '@/convex/_generated/dataModel';
 
 const PureChat = ({
   threadId,
   mainParticipantId,
+  teamId,
   isReadonly,
 }: {
   threadId: string;
-  mainParticipantId: string;
+  mainParticipantId: Id<"employees">;
+  teamId?: Id<"teams">;
   isReadonly: boolean;
 }) => {
 
@@ -36,9 +39,9 @@ const PureChat = ({
   const [status, setStatus] = useState<"ready" | "submitted" | MessageDoc["status"]>('ready');
   const handleSubmit = useCallback(async () => {
     setStatus('submitted');
-    await sendMessage({ threadId, prompt })
+    await sendMessage({ threadId, prompt, employeeId: mainParticipantId, teamId })
     setPrompt('');
-  }, [threadId, prompt, sendMessage]);
+  }, [threadId, prompt, sendMessage, mainParticipantId, teamId]);
 
   const votes = useQuery(api.votes.getVotesByThreadId, {
     threadId,
@@ -136,6 +139,7 @@ export const Chat = memo(PureChat, (prevProps, nextProps) => {
   if (prevProps.threadId !== nextProps.threadId) return false;
   if (prevProps.isReadonly !== nextProps.isReadonly) return false;
   if (prevProps.mainParticipantId !== nextProps.mainParticipantId) return false;
+  if (prevProps.teamId !== nextProps.teamId) return false;
 
   return true;
 });

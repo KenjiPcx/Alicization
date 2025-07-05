@@ -39,7 +39,7 @@ export function generateTeamsWithDesks(): { teams: TeamData[], desks: DeskLayout
 
         // Create TeamData object
         teams.push({
-            id: teamInfo.id,
+            _id: teamInfo.id,
             name: teamInfo.name,
             description: `${teamInfo.name} - A dynamic team working on various projects`,
             employees: [] // Will be populated when employees are generated
@@ -56,7 +56,7 @@ export function generateTeamsWithDesks(): { teams: TeamData[], desks: DeskLayout
 
     // Add Management team
     teams.push({
-        id: 'team-management',
+        _id: 'team-management',
         name: 'Management',
         description: 'Executive leadership team',
         employees: []
@@ -83,7 +83,7 @@ export function generateEmployees(desks: ReadonlyArray<DeskLayoutData>): Employe
     const ceoForward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), ceoDesk.rotationY);
     const ceoOffset = ceoForward.multiplyScalar(DESK_DEPTH / 2 + EMPLOYEE_RADIUS + 0.2);
     const ceoPosition: [number, number, number] = [ceoDesk.position[0] + ceoOffset.x, CYLINDER_HEIGHT / 2, ceoDesk.position[2] + ceoOffset.z];
-    employeeData.push({ id: 'ceo-0', initialPosition: ceoPosition, isBusy: true, isCEO: true, name: "The Boss", team: "Management", deskId: ceoDesk.id });
+    employeeData.push({ _id: 'ceo-0', initialPosition: ceoPosition, isBusy: true, isCEO: true, name: "The Boss", team: "Management", deskId: ceoDesk.id });
 
     let employeeIdCounter = 1;
     const numRegularEmployees = Math.min(NUM_EMPLOYEES - 1, availableDesks.length);
@@ -105,7 +105,7 @@ export function generateEmployees(desks: ReadonlyArray<DeskLayoutData>): Employe
             do { x = Math.random() * FLOOR_SIZE - FLOOR_SIZE / 2; z = Math.random() * FLOOR_SIZE - FLOOR_SIZE / 2; } while (Math.abs(x) > HALF_FLOOR || Math.abs(z) > HALF_FLOOR);
             employeePosition = [x, CYLINDER_HEIGHT / 2, z];
         }
-        employeeData.push({ id: `emp-${employeeIdCounter++}`, initialPosition: employeePosition, isBusy: assignedDesk !== null, isCEO: false, name: `Employee ${employeeIdCounter - 1}`, team: assignedDesk?.team ?? TEAM_NAMES[i % TEAM_NAMES.length], deskId: assignedDesk?.id });
+        employeeData.push({ _id: `emp-${employeeIdCounter++}`, initialPosition: employeePosition, isBusy: assignedDesk !== null, isCEO: false, name: `Employee ${employeeIdCounter - 1}`, team: assignedDesk?.team ?? TEAM_NAMES[i % TEAM_NAMES.length], deskId: assignedDesk?.id });
     }
     return employeeData;
 }

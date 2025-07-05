@@ -19,30 +19,20 @@ export type {
     UserType,
 } from "@/convex/schema";
 
-// export type EmployeeData = FullEmployee & {
-//     initialPosition: [number, number, number];
-//     deskId?: string;
-//     id: string; // TODO: Remove this once we have a proper employee type
-//     isBusy: boolean;
-// }
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
-export interface EmployeeData {
-    id: string;
+// Frontend-specific employee data that extends the backend model
+export interface EmployeeData extends Doc<"employees"> {
     initialPosition: [number, number, number];
     isBusy: boolean;
-    isCEO?: boolean;
-    name: string;
-    team: string;
     deskId?: string;
-    status?: StatusType;
-    statusMessage?: string;
+    team: string; // Team name for display
 }
 
-export interface TeamData {
-    id: string;
-    name: string;
-    description: string;
-    employees: string[];
+// Frontend-specific team data that extends the backend model
+export interface TeamData extends Doc<"teams"> {
+    employees: Id<"employees">[];
+    supervisorId?: Id<"employees">;
 }
 
 export type DeskLayoutData = {

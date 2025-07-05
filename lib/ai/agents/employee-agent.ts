@@ -4,8 +4,10 @@ import { components, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
 import type { FullEmployee } from "../../types";
 import { anthropicProviderOptions, embeddingModel, model } from "../model";
-import { executorTools } from "../tools/executor-tools/index";
-import { supervisorTools } from "../tools/supervisor-tools";
+import { baseTools } from "../tools/base/index";
+import { advancedTools } from "../tools/advanced";
+import { useMemoryToolsPrompt } from "../tools/advanced/memory";
+import { usePlannerToolsPrompt } from "../tools/advanced/planner";
 
 
 export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools }: FullEmployee) => dedent(`
@@ -33,6 +35,15 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
     # Tools
     More specifically, you have access to the following tools, use them wisely to perform your tasks:
     - ${tools.map((tool) => tool.name).join(", ")}
+
+    ## Here is how you use them
+    <Memory Tools Docs>
+    ${useMemoryToolsPrompt}
+    </Memory Tools Docs>
+
+    <Planner Tools Docs>
+    ${usePlannerToolsPrompt}
+    </Planner Tools Docs>
 `)
 
 const usageHandler: UsageHandler = async (ctx, args) => {
@@ -52,25 +63,12 @@ const usageHandler: UsageHandler = async (ctx, args) => {
     });
 }
 
-export const executorAgent = new Agent(components.agent, {
-    name: "Executor Agent",
-    chat: model,
-    instructions: "You are an executor agent, you will be given a task to execute, you should execute the task and return the result.",
-    // tools: executorTools,
-    textEmbedding: embeddingModel,
-    usageHandler,
-});
-
-// Supervisor Agent
 export const employeeAgent = new Agent(components.agent, {
     name: "Employee Agent",
     chat: model,
     instructions: // Will override the instructions when performing the actual task
         "You are a helpful AI assistant. Respond concisely and accurately to user questions.",
-    tools: {
-        // ...supervisorTools,
-        // ...executorTools,
-    },
+    tools: {}, // Populated in runtime
     textEmbedding: embeddingModel,
     usageHandler,
 });

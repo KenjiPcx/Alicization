@@ -6,8 +6,9 @@ import { useChatStore } from '@/lib/store/chat-store';
 import { ChatSidebar } from '../layout/chat-sidebar';
 import { motion } from 'framer-motion';
 import FileManager from '../file-manager/file-manager';
-import { usePaginatedQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 
 const SIDEBAR_WIDTH_REM = '16rem';
 
@@ -29,14 +30,27 @@ export default function ChatDialog({
   chatWith,
 }: ChatDialogProps) {
 
-  const { threadId, currentMode, modelId, initialVisibilityType } = useChatStore();
+  const { threadId, currentMode } = useChatStore();
   const { open: isSidebarOpen } = useSidebar();
 
-  const messages = usePaginatedQuery(
-    api.chat.getMessages,
-    threadId ? { threadId } : "skip",
-    { initialNumItems: 30 },
+  // Get team supervisor if this is a team chat
+  const teamSupervisor = useQuery(
+    api.teams.getTeamSupervisor,
+    chatWith?.type === 'team' && chatWith.data._id
+      ? { teamId: chatWith.data._id as Id<"teams"> }
+      : 'skip'
   );
+
+  // Determine the main participant ID and team ID
+  const mainParticipantId = chatWith?.type === 'team'
+    ? teamSupervisor?._id
+    : chatWith?.data._id as Id<"employees"> | undefined;
+
+  const teamId = chatWith?.type === 'team'
+    ? chatWith.data._id as Id<"teams">
+    : chatWith?.type === 'employee'
+      ? chatWith.data.teamId as Id<"teams"> | undefined
+      : undefined;
 
   // Always render the Dialog to maintain consistent structure
   return (
@@ -61,10 +75,11 @@ export default function ChatDialog({
                     animate={{ marginLeft: isSidebarOpen ? SIDEBAR_WIDTH_REM : '0rem' }}
                     transition={{ duration: 0.2, ease: 'linear' }}
                   >
-                    {currentMode === 'Chat' ? (
+                    {currentMode === 'Chat' && mainParticipantId ? (
                       <Chat
                         threadId={threadId}
-                        mainParticipantId={chatWith.data.id}
+                        mainParticipantId={mainParticipantId}
+                        teamId={teamId}
                         isReadonly={false}
                       />
                     ) : currentMode === 'Files' ? (

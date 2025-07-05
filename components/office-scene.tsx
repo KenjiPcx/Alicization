@@ -21,7 +21,6 @@ import {
     CEO_OFFICE_WALLS,
     HALF_FLOOR,
 } from '@/constants';
-import { generateDesks, generateEmployees, generateTeamsWithDesks } from '@/lib/scene-utils';
 import { initializeGrid } from '@/lib/pathfinding/a-star-pathfinding';
 import { AStarGridHelper } from './debug/a-star-grid-helper';
 import { DestinationDebugger } from './debug/destination-debugger';
@@ -50,8 +49,8 @@ function assignRandomStatuses(employees: EmployeeData[]): EmployeeData[] {
         if (emp.isCEO) {
             return {
                 ...emp,
-                status: 'info',
-                statusMessage: 'Managing the team',
+                status: 'info' as StatusType,
+                statusMessage: emp.statusMessage || 'Managing the team',
             };
         }
 
@@ -64,15 +63,16 @@ function assignRandomStatuses(employees: EmployeeData[]): EmployeeData[] {
             const shouldHaveMessage = Math.random() < 0.75;
             const randomMessage = shouldHaveMessage
                 ? SAMPLE_MESSAGES[Math.floor(Math.random() * SAMPLE_MESSAGES.length)]
-                : undefined;
+                : emp.statusMessage;
 
             return {
                 ...emp,
-                status: randomStatus,
-                statusMessage: randomMessage,
+                status: randomStatus as StatusType,
+                statusMessage: randomMessage || emp.statusMessage,
             };
         }
 
+        // Return with existing status unchanged
         return emp;
     });
 }
@@ -81,12 +81,18 @@ interface SceneContentsProps {
     handleEmployeeClick: (employee: EmployeeData) => void;
     handleTeamClick: (team: TeamData) => void;
     debugMode: boolean;
+    teams: TeamData[];
+    employees: EmployeeData[];
+    desks: DeskLayoutData[];
 }
 
 function SceneContents({
     handleEmployeeClick,
     handleTeamClick,
     debugMode,
+    teams,
+    employees,
+    desks,
 }: SceneContentsProps) {
     const floorRef = useRef<THREE.Mesh>(null);
     const pantryRef = useRef<THREE.Group>(null);
@@ -94,7 +100,6 @@ function SceneContents({
     const couchRef = useRef<THREE.Group>(null);
     const ceoDeskRef = useRef<THREE.Group>(null);
 
-    const { teams, desks } = useMemo(() => generateTeamsWithDesks(), []);
     const desksByTeam = useMemo(() => {
         const grouped: Record<string, Array<DeskLayoutData>> = {};
         for (const desk of desks) {
@@ -165,7 +170,6 @@ function SceneContents({
         return () => clearInterval(checkRefsInterval);
     }, [desksByTeam]);
 
-    const employees = useMemo(() => generateEmployees(desks), [desks]);
     const employeesForScene = useMemo(() => {
         // Assign random statuses to some employees
         const employeesWithStatus = assignRandomStatuses(employees);
@@ -273,12 +277,12 @@ function SceneContents({
 
             {employeesForScene.map((emp) => (
                 <Employee
-                    key={emp.id}
+                    key={emp._id}
                     {...emp}
                     onClick={handleEmployeeClick}
                     floorSize={FLOOR_SIZE}
                     debugMode={debugMode}
-                    status={emp.status}
+                    status={(emp.status || 'none') as StatusType}
                     statusMessage={emp.statusMessage}
                 />
             ))}

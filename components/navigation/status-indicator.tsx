@@ -89,7 +89,7 @@ const StatusIcons = {
     ),
 
     // Fallback/none (shouldn't be visible)
-    none: ({ color }: { color: string }) => null
+    none: ({ color }: { color: string }) => <group />  // Return empty group instead of null
 };
 
 // Get color for status type
@@ -108,9 +108,17 @@ const getStatusColor = (status: StatusType): string => {
     }
 };
 
-export default function StatusIndicator({ status, message, visible }: StatusIndicatorProps) {
+export default function StatusIndicator({ status = 'none', message, visible }: StatusIndicatorProps) {
     // Skip rendering if not visible
     if (!visible) return null;
+
+    // Validate status type
+    const validStatuses: StatusType[] = ['info', 'success', 'question', 'warning', 'none'];
+    const safeStatus = validStatuses.includes(status) ? status : 'none';
+
+    if (safeStatus !== status) {
+        console.warn(`StatusIndicator: Invalid status type "${status}". Using "none" instead.`);
+    }
 
     // Reference to the indicator group for animations
     const groupRef = useRef<Group>(null);
@@ -168,18 +176,24 @@ export default function StatusIndicator({ status, message, visible }: StatusIndi
     const timeOffset = useMemo(() => Math.random() * Math.PI * 2, []);
 
     // Get color based on status
-    const statusColor = useMemo(() => getStatusColor(status), [status]);
+    const statusColor = useMemo(() => getStatusColor(safeStatus), [safeStatus]);
 
     // Whether to pulse (for warning/question)
     const shouldPulse = useMemo(() =>
-        status === 'warning' || status === 'question',
-        [status]);
+        safeStatus === 'warning' || safeStatus === 'question',
+        [safeStatus]);
 
     // Position higher above the employee's head
     const basePosition: [number, number, number] = [0, 0.65, 0];
 
     // Get the appropriate icon component
-    const IconComponent = StatusIcons[status];
+    const IconComponent = StatusIcons[safeStatus];
+
+    // Safety check
+    if (!IconComponent) {
+        console.warn(`StatusIndicator: No icon found for status "${status}"`);
+        return null;
+    }
 
     // Add floating animation
     useFrame((state) => {
@@ -225,7 +239,7 @@ export default function StatusIndicator({ status, message, visible }: StatusIndi
                             padding: '8px 12px',
                             borderRadius: '12px',
                             maxWidth: '350px',
-                            minWidth:"125px",
+                            minWidth: "125px",
                             fontSize: '11px',
                             color: 'white',
                             fontWeight: 'bold',
@@ -244,10 +258,10 @@ export default function StatusIndicator({ status, message, visible }: StatusIndi
                                 borderRadius: '50%',
                                 flexShrink: 0
                             }}>
-                                {status === 'info' && 'i'}
-                                {status === 'success' && '✓'}
-                                {status === 'question' && '?'}
-                                {status === 'warning' && '!'}
+                                {safeStatus === 'info' && 'i'}
+                                {safeStatus === 'success' && '✓'}
+                                {safeStatus === 'question' && '?'}
+                                {safeStatus === 'warning' && '!'}
                             </div>
                             <div style={{
                                 whiteSpace: 'normal',
@@ -263,7 +277,7 @@ export default function StatusIndicator({ status, message, visible }: StatusIndi
                 <>
                     {/* Clickable icon */}
                     <group onClick={message ? handleIconClick : undefined}>
-                        <IconComponent color={statusColor} />
+                        {IconComponent && <IconComponent color={statusColor} />}
                     </group>
                 </>
             )}

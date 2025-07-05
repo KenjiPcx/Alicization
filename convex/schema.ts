@@ -68,14 +68,14 @@ export const applicationTables = {
     userId: v.id("users"), // User can see all their AI owned teams
     name: v.string(),
     description: v.string(),
-    // TODO: Add desk layout details
+    clusterPosition: v.optional(v.array(v.number())), // [x, y, z] position for team cluster
+    deskCount: v.optional(v.number()), // Number of desks for this team
+  }).index("by_userId", ["userId"]),
 
-  }),
-
-  // Employees are the users of the application
+  // Employees are the AI agents in the office
   employees: defineTable({
     teamId: v.id("teams"), // Employee belongs to a team
-    userId: v.id("users"), // Employee is a user of the application
+    userId: v.id("users"), // The user who owns these AI employees
     name: v.string(),
     jobTitle: v.string(),
     jobDescription: v.string(),
@@ -83,10 +83,13 @@ export const applicationTables = {
     background: v.string(), // The backstory
     personality: v.string(), // Affects how they respond to the user
     // TODO: Add style configs for the employee appearance
-    status: v.string(),
+    status: v.union(v.literal("info"), v.literal("success"), v.literal("question"), v.literal("warning"), v.literal("none")),
     statusMessage: v.string(),
+    isSupervisor: v.boolean(), // If the employee is a supervisor
     isCEO: v.boolean(), // If the employee is the CEO of the company
-  }).index("by_teamId", ["teamId"]),
+    deskIndex: v.optional(v.number()), // Which desk position in their team (0-based)
+  }).index("by_teamId", ["teamId"])
+    .index("by_userId", ["userId"]),
 
   // Employees can have tools assigned to them
   employeeToTools: defineTable({

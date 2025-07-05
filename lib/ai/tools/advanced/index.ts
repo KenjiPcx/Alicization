@@ -18,11 +18,12 @@ export const createAdvancedTools = (
     ctx: ActionCtx,
     threadId: string,
     userId: Id<"users">,
-    employeeId: Id<"employees">
+    employeeId: Id<"employees">,
+    teamId?: Id<"teams">
 ) => {
     return {
         ...advancedTools,
         ...plannerTools,
-        ...createMemoryTools(ctx, threadId, userId, employeeId),
+        ...createMemoryTools(ctx, threadId, userId, employeeId, teamId),
     }
 }

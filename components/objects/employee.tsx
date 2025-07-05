@@ -9,7 +9,7 @@ import {
     BODY_HEIGHT, LEG_HEIGHT, BODY_WIDTH,
     IDLE_DESTINATIONS
 } from "@/constants";
-import type { EmployeeData } from "@/types";
+import type { EmployeeData } from "@/lib/types";
 import type { Group } from "three";
 import * as THREE from 'three';
 import { findPathAStar } from "@/lib/pathfinding/a-star-pathfinding";
@@ -24,21 +24,29 @@ interface EmployeeProps extends Omit<EmployeeData, 'initialPosition'> {
     onClick: (employee: EmployeeData) => void;
     floorSize: number; // Keep floorSize for bounds checks maybe?
     debugMode?: boolean; // Add optional debugMode prop
-    status?: StatusType;
-    statusMessage?: string;
 }
 
 export function Employee({
-    id,
+    _id: id,
+    _creationTime,
+    userId,
+    teamId,
+    name,
+    jobTitle,
+    jobDescription,
+    gender,
+    background,
+    personality,
+    isSupervisor,
+    deskIndex,
     position,
     isBusy,
     isCEO,
-    name,
     team,
     deskId,
     onClick,
     debugMode = false,
-    status = 'none',
+    status = 'none' as StatusType,
     statusMessage
 }: EmployeeProps) {
     const groupRef = useRef<Group>(null);
@@ -229,9 +237,29 @@ export function Employee({
 
     const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
         event.stopPropagation();
-        // Pass Vector3 for initialPosition now
-        onClick({ id, initialPosition: initialPositionRef.current.toArray() as [number, number, number], isBusy, isCEO, name, team, deskId });
-    }, [id, isBusy, isCEO, name, team, deskId, onClick]);
+        // Pass complete EmployeeData object
+        onClick({
+            _id: id,
+            _creationTime,
+            userId,
+            teamId,
+            name,
+            jobTitle,
+            jobDescription,
+            gender,
+            background,
+            personality,
+            status,
+            statusMessage,
+            isSupervisor,
+            isCEO,
+            deskIndex,
+            initialPosition: initialPositionRef.current.toArray() as [number, number, number],
+            isBusy,
+            team,
+            deskId
+        });
+    }, [id, _creationTime, userId, teamId, name, jobTitle, jobDescription, gender, background, personality, status, statusMessage, isSupervisor, isCEO, deskIndex, isBusy, team, deskId, onClick]);
 
     const handlePointerOver = useCallback((event: ThreeEvent<PointerEvent>) => {
         event.stopPropagation();
@@ -267,16 +295,16 @@ export function Employee({
 
     // Generate status based on current state
     const currentStatus = useMemo(() => {
-        // Use provided status if available
-        if (status !== 'none') {
+        // Use provided status if available and valid
+        if (status && status !== 'none') {
             return status;
         }
 
         // Or generate based on state
         if (isBusy) {
-            return 'info';
+            return 'info' as StatusType;
         }
-        return 'none';
+        return 'none' as StatusType;
     }, [status, isBusy]);
 
     const baseY = -TOTAL_HEIGHT / 2;

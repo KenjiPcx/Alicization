@@ -9,6 +9,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
 import dedent from "dedent";
+import { createAdvancedTools } from "@/lib/ai/tools/advanced";
 
 export const createThread = mutation({
     args: {
@@ -28,7 +29,7 @@ export const createThread = mutation({
             threadId,
             chatOwnerId,
             chatType,
-            visibility: visibility ?? "private",
+            visibility: visibility ?? "public",
         });
 
         return { threadId };
@@ -37,18 +38,17 @@ export const createThread = mutation({
 
 export const getLatestThreadByChatOwnerId = action({
     args: { chatOwnerId: v.string() },
-    handler: async (ctx, { chatOwnerId }) => {
+    handler: async (ctx, { chatOwnerId }): Promise<{ threadId: string } | null> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
-        const threads = await ctx.runQuery(
-            components.agent.threads.listThreadsByUserId,
-            { userId: userId, order: "desc" }
-        );
+        // Get the most recent chat for this specific chatOwnerId
+        const latestChat = await ctx.runQuery(api.chat.getLatestChatByChatOwnerId, {
+            chatOwnerId,
+        });
 
-        // Get the most recent thread
-        if (threads.page.length > 0) {
-            return { threadId: threads.page[0]._id };
+        if (latestChat) {
+            return { threadId: latestChat.threadId };
         }
 
         return null;
@@ -59,8 +59,10 @@ export const streamMessageAsync = mutation({
     args: {
         prompt: v.string(),
         threadId: v.string(),
+        employeeId: v.id("employees"),
+        teamId: v.optional(v.id("teams")),
     },
-    handler: async (ctx, { prompt, threadId }) => {
+    handler: async (ctx, { prompt, threadId, employeeId, teamId }) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -80,6 +82,8 @@ export const streamMessageAsync = mutation({
             threadId,
             userId,
             promptMessageId: messageId,
+            employeeId,
+            teamId,
         });
     },
 });
@@ -88,14 +92,25 @@ export const streamMessage = internalAction({
     args: {
         threadId: v.string(),
         promptMessageId: v.string(),
-        userId: v.string(),
+        userId: v.id("users"),
+        employeeId: v.id("employees"),
+        teamId: v.optional(v.id("teams")),
     },
-    handler: async (ctx, { promptMessageId, threadId, userId }) => {
-        await employeeAgent.generateAndSaveEmbeddings(ctx, { messageIds: [promptMessageId] });
+    handler: async (ctx, { promptMessageId, threadId, userId, employeeId, teamId }) => {
+        await employeeAgent.generateAndSaveEmbeddings(ctx, {
+            messageIds: [promptMessageId],
+        });
         const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
         const result = await thread.streamText(
-            { promptMessageId, providerOptions: anthropicProviderOptions, maxSteps: 20 },
-            { saveStreamDeltas: { chunking: "line", throttleMs: 500 } },
+            {
+                promptMessageId,
+                providerOptions: anthropicProviderOptions,
+                tools: createAdvancedTools(ctx, threadId, userId, employeeId, teamId),
+                maxSteps: 20
+            },
+            {
+                saveStreamDeltas: { chunking: "line", throttleMs: 500 },
+            },
         );
         await result.consumeStream();
     },
@@ -328,6 +343,24 @@ export const getChatByThreadId = query({
             .first();
 
         return chat;
+    },
+});
+
+export const getLatestChatByChatOwnerId = query({
+    args: { chatOwnerId: v.string() },
+    handler: async (ctx, { chatOwnerId }) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        const latestChat = await ctx.db
+            .query("chats")
+            .withIndex("by_userId_chatOwnerId", (q) =>
+                q.eq("userId", userId).eq("chatOwnerId", chatOwnerId)
+            )
+            .order("desc")
+            .first();
+
+        return latestChat;
     },
 });
 
