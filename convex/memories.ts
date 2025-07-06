@@ -55,7 +55,6 @@ export const setMemory = internalMutation({
         scope: v.union(
             v.literal("personal"),
             v.literal("team"),
-            v.literal("conversation"),
             v.literal("user")
         ),
         threadId: v.string(),
@@ -79,10 +78,10 @@ export const setMemory = internalMutation({
                 scope === "personal" && employeeId ? q.eq(q.field("employeeId"), employeeId) : true,
                 scope === "team" && teamId ? q.eq(q.field("teamId"), teamId) : true,
                 scope === "user" ? q.eq(q.field("userId"), userId) : true,
-                scope === "conversation" && threadId ? q.eq(q.field("threadId"), threadId) : true
             ))
             .first();
 
+        let memoryIdRef: Id<"memories">;
         if (existingMemory) {
             // Update existing memory
             await ctx.db.patch(existingMemory._id, {
@@ -90,7 +89,7 @@ export const setMemory = internalMutation({
                 threadId,
                 embedding,
             });
-            return existingMemory._id;
+            memoryIdRef = existingMemory._id;
         } else {
             // Create new memory
             const memoryId = await ctx.db.insert("memories", {
@@ -103,8 +102,15 @@ export const setMemory = internalMutation({
                 teamId,
                 embedding,
             });
-            return memoryId;
+            memoryIdRef = memoryId;
         }
+
+        await ctx.scheduler.runAfter(0, internal.memories.embedMemory, {
+            memoryId: memoryIdRef,
+            value: value,
+        });
+
+        return memoryIdRef;
     },
 });
 
@@ -138,7 +144,6 @@ export const searchMemories = internalAction({
         scope: v.optional(v.union(
             v.literal("personal"),
             v.literal("team"),
-            v.literal("conversation"),
             v.literal("user")
         )),
         employeeId: v.optional(v.id("employees")),
@@ -174,10 +179,6 @@ export const searchMemories = internalAction({
 
                     if (teamId) {
                         scopeFilters.push(q.eq("scope", "team"));
-                    }
-
-                    if (threadId) {
-                        scopeFilters.push(q.eq("scope", "conversation"));
                     }
 
                     return q.or(...scopeFilters);

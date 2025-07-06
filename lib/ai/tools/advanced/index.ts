@@ -7,13 +7,6 @@ import { plannerTools } from "./planner";
 import { Id } from "@/convex/_generated/dataModel";
 import { ActionCtx } from "@/convex/_generated/server";
 
-export const advancedTools = {
-    // scheduleTask,
-    // createChat,
-    // raiseMissingToolRequest,
-    // updateThreadTitle,
-}
-
 export const createAdvancedTools = (
     ctx: ActionCtx,
     threadId: string,
@@ -22,8 +15,8 @@ export const createAdvancedTools = (
     teamId?: Id<"teams">
 ) => {
     return {
-        ...advancedTools,
         ...plannerTools,
         ...createMemoryTools(ctx, threadId, userId, employeeId, teamId),
+        updateThreadTitle,
     }
 }

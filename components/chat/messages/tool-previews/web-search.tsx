@@ -18,40 +18,40 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
     const currentProgress = currentStatus?.progress || 0;
 
     return (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700">
+        <div className="border border-hacker-border rounded-lg p-4 bg-gradient-to-r from-hacker-bg to-hacker-bg-secondary shadow-lg shadow-hacker-accent/20">
             <div className="flex items-center gap-2 mb-3">
-                <div className="text-lg">🔍</div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Web Search</h3>
+                <div className="text-lg text-hacker-accent-bright">🔍</div>
+                <h3 className="font-medium text-hacker-text">Web Search</h3>
                 <div className="ml-auto">
                     {currentStatus?.status === "running" && (
-                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-sm">
-                            <div className="animate-spin w-3 h-3 border border-blue-600 dark:border-blue-400 border-t-transparent rounded-full" />
+                        <div className="flex items-center gap-1 text-hacker-progress text-sm">
+                            <div className="animate-spin w-3 h-3 border border-hacker-progress border-t-transparent rounded-full" />
                             {currentProgress}%
                         </div>
                     )}
                     {currentStatus?.status === "completed" && (
-                        <div className="text-green-600 dark:text-green-400 text-sm">✅ Complete</div>
+                        <div className="text-hacker-success text-sm">✅ Complete</div>
                     )}
                     {currentStatus?.status === "failed" && (
-                        <div className="text-red-600 dark:text-red-400 text-sm">❌ Failed</div>
+                        <div className="text-hacker-error text-sm">❌ Failed</div>
                     )}
                 </div>
             </div>
 
             {/* Search query */}
-            <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Searching for: <span className="font-medium text-gray-900 dark:text-gray-100">"{args.query}"</span>
+            <div className="text-sm text-hacker-text-secondary mb-3">
+                Searching for: <span className="font-medium text-hacker-text">"{args.query}"</span>
             </div>
 
             {/* Progress bar */}
             <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-hacker-text-secondary mb-1">
                     <span>Progress</span>
                     <span>{currentProgress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                <div className="w-full bg-hacker-progress/20 rounded-full h-2">
                     <div
-                        className="bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all duration-300 ease-out"
+                        className="bg-gradient-to-r from-hacker-progress to-hacker-progress-bright h-2 rounded-full transition-all duration-300 ease-out shadow-sm shadow-hacker-progress/50"
                         style={{ width: `${currentProgress}%` }}
                     />
                 </div>
@@ -68,12 +68,12 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
                         <div
                             key={`${status.message}-${status.timestamp}`}
                             className={`flex items-center gap-3 p-2 rounded transition-all ${isLatest && status.status === "running"
-                                ? 'bg-blue-100 dark:bg-blue-900/30 border-l-2 border-blue-500 dark:border-blue-400'
+                                ? 'bg-hacker-progress/20 border-l-2 border-hacker-progress shadow-sm shadow-hacker-progress/20'
                                 : isCompleted
-                                    ? 'bg-green-50 dark:bg-green-900/20'
+                                    ? 'bg-hacker-success/10 border-l-2 border-hacker-success/50'
                                     : isFailed
-                                        ? 'bg-red-50 dark:bg-red-900/20'
-                                        : 'bg-gray-50 dark:bg-gray-800'
+                                        ? 'bg-hacker-error/10 border-l-2 border-hacker-error/50'
+                                        : 'bg-hacker-pending/10 border border-hacker-pending/20'
                                 }`}
                         >
                             <div className={`text-sm ${isLatest && status.status === "running" ? 'animate-pulse' : ''}`}>
@@ -83,21 +83,21 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
                             </div>
                             <div className="flex-1">
                                 <div className={`text-sm font-medium ${isLatest && status.status === "running"
-                                    ? 'text-blue-900 dark:text-blue-100'
+                                    ? 'text-hacker-progress-bright'
                                     : isCompleted
-                                        ? 'text-green-900 dark:text-green-100'
+                                        ? 'text-hacker-success'
                                         : isFailed
-                                            ? 'text-red-900 dark:text-red-100'
-                                            : 'text-gray-900 dark:text-gray-100'
+                                            ? 'text-hacker-error'
+                                            : 'text-hacker-text'
                                     }`}>
                                     {status.message}
                                 </div>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-hacker-text-secondary">
                                 {status.progress}%
                             </div>
                             {isLatest && status.status === "running" && (
-                                <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full animate-pulse" />
+                                <div className="w-2 h-2 bg-hacker-progress rounded-full animate-pulse" />
                             )}
                         </div>
                     );

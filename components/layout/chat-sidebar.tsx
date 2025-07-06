@@ -90,9 +90,9 @@ export function ChatSidebar() {
                   className="p-2 h-fit"
                   onClick={async () => {
                     setOpenMobile(false);
-                    if (!activeParticipant?.data.id) return;
+                    if (!activeParticipant?.data._id) return;
                     const { threadId } = await createThread({
-                      chatOwnerId: activeParticipant?.data.id,
+                      chatOwnerId: activeParticipant?.data._id,
                       chatType: "employee",
                       visibility: initialVisibilityType,
                     });

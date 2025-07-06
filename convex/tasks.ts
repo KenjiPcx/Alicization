@@ -1,6 +1,6 @@
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const createTask = internalMutation({
@@ -91,7 +91,7 @@ export const completeTask = internalMutation({
 /**
  * Get the most recent task for the threadId
  */
-export const getLatestTask = internalQuery({
+export const getLatestTask = query({
     args: v.object({
         threadId: v.string(),
     }),
@@ -130,7 +130,13 @@ export const startNextTodo = internalMutation({
         const pendingIndex = todos.findIndex(todo => todo.status === "pending");
 
         if (pendingIndex === -1) {
-            return "No pending todos to start";
+            return {
+                message: "No pending todos to start",
+                task: {
+                    ...task,
+                    todos: todos,
+                }
+            };
         }
 
         todos[pendingIndex] = {
@@ -140,7 +146,13 @@ export const startNextTodo = internalMutation({
 
         await ctx.db.patch(taskId, { todos });
 
-        return `Started todo: "${todos[pendingIndex].title}"`;
+        return {
+            message: `Started todo: "${todos[pendingIndex].title}"`,
+            task: {
+                ...task,
+                todos: todos,
+            }
+        };
     },
 });
 
@@ -200,6 +212,10 @@ export const completeCurrentTodoAndMoveToNextTodo = internalMutation({
             return {
                 isCompleted: true,
                 message: `All todos completed! 🎉 Total: ${completed.length}/${todos.length}`,
+                task: {
+                    ...task,
+                    todos: todos,
+                }
             };
         }
 
@@ -208,6 +224,79 @@ export const completeCurrentTodoAndMoveToNextTodo = internalMutation({
         return {
             isCompleted: false,
             message: `Moved to next todo: "${currentTodo.title}" | Progress: ${completed.length}/${todos.length} completed, ${pending.length} remaining`,
+            task: {
+                ...task,
+                todos: todos,
+            }
         };
+    },
+});
+
+// Public query to fetch a specific task by ID
+export const getTaskById = query({
+    args: v.object({
+        taskId: v.id("tasks"),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId } = args;
+        return await ctx.db.get(taskId);
+    },
+});
+
+// Get the most recent completed task for the threadId
+export const getLastCompletedTask = query({
+    args: v.object({
+        threadId: v.string(),
+    }),
+    handler: async (ctx, args) => {
+        const { threadId } = args;
+
+        const task = await ctx.db
+            .query("tasks")
+            .filter((q) => q.and(
+                q.eq(q.field("threadId"), threadId),
+                q.eq(q.field("done"), true)
+            ))
+            .order("desc")
+            .first();
+
+        return task;
+    },
+});
+
+// Reactivate a completed task and add new todos
+export const reactivateAndUpdateTask = internalMutation({
+    args: v.object({
+        taskId: v.id("tasks"),
+        newPlan: v.string(),
+        newTodos: v.array(v.string()),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId, newPlan, newTodos } = args;
+
+        const existingTask = await ctx.db.get(taskId);
+        if (!existingTask) {
+            throw new Error("Task not found");
+        }
+
+        // Append new plan to the plan array
+        const updatedPlanArray = [...existingTask.plan, newPlan];
+
+        // Add new todos to existing todos
+        const newTodoObjects = newTodos.map((todo) => ({
+            title: todo,
+            status: "pending" as const,
+        }));
+
+        const updatedTodos = [...existingTask.todos, ...newTodoObjects];
+
+        // Reactivate the task by setting done to false
+        await ctx.db.patch(taskId, {
+            plan: updatedPlanArray,
+            todos: updatedTodos,
+            done: false,
+        });
+
+        return await ctx.db.get(taskId) as Doc<"tasks">;
     },
 });

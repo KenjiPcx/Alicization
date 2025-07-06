@@ -4,15 +4,18 @@ import { components, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
 import type { FullEmployee } from "../../types";
 import { anthropicProviderOptions, embeddingModel, model } from "../model";
-import { baseTools } from "../tools/base/index";
-import { advancedTools } from "../tools/advanced";
 import { useMemoryToolsPrompt } from "../tools/advanced/memory";
 import { usePlannerToolsPrompt } from "../tools/advanced/planner";
 
 
-export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools }: FullEmployee) => dedent(`
+export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools }: Partial<FullEmployee>) => {
+    if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !tools) {
+        throw new Error("Missing required fields");
+    }
+
+    return dedent(`
     # High Level Background
-    You are an AI employee, working as a ${jobTitle}.
+    You are an AI employee, working as a ${jobTitle}, part of the ${team?.name} team.
     Your role is summarized as follows: ${jobDescription}.
 
     # Personal Information
@@ -33,18 +36,21 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
     5. At any point in time, you can always reach out to the user for clarification, after getting the user's response, you might need to update your plan or todo list
 
     # Tools
-    More specifically, you have access to the following tools, use them wisely to perform your tasks:
-    - ${tools.map((tool) => tool.name).join(", ")}
-
-    ## Here is how you use them
+    More specifically, you have access to the following tools/toolkits, use them wisely to perform your tasks:
+    
+    ## Here are your base tools
+    <Planner Tools Docs>
+    ${usePlannerToolsPrompt}
+    </Planner Tools Docs>
+    
     <Memory Tools Docs>
     ${useMemoryToolsPrompt}
     </Memory Tools Docs>
 
-    <Planner Tools Docs>
-    ${usePlannerToolsPrompt}
-    </Planner Tools Docs>
+    ## Here are your role specific tools to help you do your work 
+    ${tools.map((tool) => tool.name).join(", ")}
 `)
+}
 
 const usageHandler: UsageHandler = async (ctx, args) => {
     const { userId, agentName, model, provider, usage, providerMetadata } = args;

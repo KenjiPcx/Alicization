@@ -28,7 +28,7 @@ const PureChat = ({
   const messages = useThreadMessages(
     api.chat.listThreadMessages,
     { threadId },
-    { initialNumItems: 10, stream: true },
+    { initialNumItems: 20, stream: true },
   );
   const sendMessage = useMutation(
     api.chat.streamMessageAsync,

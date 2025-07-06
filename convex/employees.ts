@@ -146,7 +146,6 @@ export const createEmployee = mutation({
         gender: v.union(v.literal("male"), v.literal("female")),
         background: v.string(),
         personality: v.string(),
-        status: v.string(),
         statusMessage: v.string(),
         isSupervisor: v.boolean(),
         isCEO: v.boolean(),
@@ -158,6 +157,7 @@ export const createEmployee = mutation({
 
         const employeeId = await ctx.db.insert("employees", {
             ...args,
+            status: "none",
             userId,
         });
 
@@ -208,29 +208,17 @@ export const getEmployeeById = query({
         if (!employee) return null;
 
         const team = await ctx.db.get(employee.teamId);
+        const toolsIds = (await ctx.db.query("employeeToTools").withIndex("by_employeeId", (q) => q.eq("employeeId", employeeId)).collect()).map((tool) => tool.toolId);
+        const tools = await Promise.all(toolsIds.map((toolId) => ctx.db.get(toolId)));
+
+        // Filter null tools
+        const filteredTools = tools.filter((tool) => tool !== null);
+        
         return {
             ...employee,
-            team: team ? { _id: team._id, name: team.name } : null,
+            team: team ? { _id: team._id, name: team.name } : undefined,
+            tools: filteredTools,
         };
-    },
-});
-
-export const clearEmployees = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("Not authenticated");
-
-        const employees = await ctx.db
-            .query("employees")
-            .filter((q) => q.eq(q.field("userId"), userId))
-            .collect();
-
-        for (const employee of employees) {
-            await ctx.db.delete(employee._id);
-        }
-
-        return { count: employees.length };
     },
 });
 

@@ -59,7 +59,7 @@ export default function ChatDialog({
         {chatWith && (
           <>
             <DialogHeader className="p-6 pb-2">
-              <DialogTitle>{`Chat with ${chatWith.type} ${chatWith.data.name}`}</DialogTitle>
+              <DialogTitle>{`Chat with ${chatWith.data.name} ${chatWith.type === "employee" ? `(${chatWith.data.jobTitle})` : "Team"}`}</DialogTitle>
             </DialogHeader>
 
             <div className="flex-1 flex h-full max-h-[77.5dvh] overflow-hidden relative">

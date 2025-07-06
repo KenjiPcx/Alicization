@@ -4,7 +4,7 @@ import { action, httpAction, internalAction, internalMutation, mutation, query }
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
-import { employeeAgent } from "@/lib/ai/agents/employee-agent";
+import { employeeAgent, systemPrompt } from "@/lib/ai/agents/employee-agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
@@ -97,12 +97,17 @@ export const streamMessage = internalAction({
         teamId: v.optional(v.id("teams")),
     },
     handler: async (ctx, { promptMessageId, threadId, userId, employeeId, teamId }) => {
+        // Resolve employee from employeeId
+        const employee = await ctx.runQuery(api.employees.getEmployeeById, {
+            employeeId,
+        });
         await employeeAgent.generateAndSaveEmbeddings(ctx, {
             messageIds: [promptMessageId],
         });
         const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
         const result = await thread.streamText(
             {
+                system: systemPrompt({ ...employee }),
                 promptMessageId,
                 providerOptions: anthropicProviderOptions,
                 tools: createAdvancedTools(ctx, threadId, userId, employeeId, teamId),

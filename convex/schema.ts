@@ -2,7 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 import { vProviderMetadata, vUsage } from "@convex-dev/agent";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 
 export const vArtifactKinds = v.union(
   v.literal("text"),
@@ -19,6 +19,14 @@ export const vBackgroundJobStatuses = v.union(
   v.literal("notify-supervisor"),
   v.literal("completed"),
   v.literal("failed"),
+)
+
+export const vEmployeeStatuses = v.union(
+  v.literal("info"),
+  v.literal("success"),
+  v.literal("question"),
+  v.literal("warning"),
+  v.literal("none"),
 )
 
 export const applicationTables = {
@@ -83,7 +91,7 @@ export const applicationTables = {
     background: v.string(), // The backstory
     personality: v.string(), // Affects how they respond to the user
     // TODO: Add style configs for the employee appearance
-    status: v.union(v.literal("info"), v.literal("success"), v.literal("question"), v.literal("warning"), v.literal("none")),
+    status: vEmployeeStatuses,
     statusMessage: v.string(),
     isSupervisor: v.boolean(), // If the employee is a supervisor
     isCEO: v.boolean(), // If the employee is the CEO of the company
@@ -314,7 +322,10 @@ export type UserType = Doc<"usersMetadata">["type"];
 // Compound types
 export type FullEmployee = Employee & {
   tools: Tool[];
-  team: Team | string; // TODO: Remove this once we have a proper team type
+  team: Team | {
+    _id: Id<"teams">;
+    name: string;
+  }; 
 };
 
 export type ArtifactKind = "text" | "sheet" | "code" | "image" | "video" | "music";

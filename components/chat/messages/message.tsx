@@ -20,6 +20,9 @@ import { SourceCard, type SourceDataType } from '../source-card';
 import { useChatStore } from '@/lib/store/chat-store';
 import { WebSearchPreview } from './tool-previews/web-search';
 import { WebSearchResults } from './tool-previews/web-search-result';
+import { TodoListPreview } from './tool-previews/todo-list';
+import { MemorySetPreview } from './tool-previews/memory-set-preview';
+import { MemorySearchPreview } from './tool-previews/memory-search-preview';
 
 const PurePreviewMessage = ({
   chatId,
@@ -49,7 +52,7 @@ const PurePreviewMessage = ({
     <AnimatePresence>
       <motion.div
         data-testid={`message-${message.role}`}
-        className="w-full mx-auto max-w-3xl px-4 group/message"
+        className="w-full mx-auto max-w-3xl px-4 group/message transform scale-95"
         initial={{ y: 5, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
@@ -96,7 +99,6 @@ const PurePreviewMessage = ({
               const key = `message-${message.id}-part-${index}`;
 
               if (type === 'reasoning') {
-                console.log("Kenji", part.reasoning);
                 return (
                   <MessageReasoning
                     key={key}
@@ -189,65 +191,135 @@ const PurePreviewMessage = ({
                         skeleton: ['getWeather'].includes(toolName),
                       })}
                     >
-                      {toolName === 'createArtifact' ? (
-                        <DocumentPreview isReadonly={isReadonly} args={args} toolCallId={toolCallId} />
-                      ) : toolName === 'updateArtifact' ? (
-                        <DocumentToolCall
-                          type="update"
-                          args={args}
-                          isReadonly={isReadonly}
-                          toolCallId={toolCallId}
-                        />
-                      ) : toolName === "webSearch" ? (
-                        <WebSearchPreview args={args} toolCallId={toolCallId} />
-                      ) : null}
+                      {(() => {
+                        switch (toolName) {
+                          case 'createArtifact':
+                            return <DocumentPreview
+                              isReadonly={isReadonly}
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
+                          case 'updateArtifact':
+                            return (
+                              <DocumentToolCall
+                                type="update"
+                                args={args}
+                                isReadonly={isReadonly}
+                                toolCallId={toolCallId}
+                              />
+                            );
+                          case 'webSearch':
+                            return <WebSearchPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
+                          case 'setPlanAndTodos':
+                          case 'selectNextTodo':
+                          case 'completeCurrentTodoAndMoveToNextTodo':
+                            return <TodoListPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              toolName={toolName}
+                              threadId={chatId}
+                            />;
+                          case 'setMemory':
+                            return <MemorySetPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              threadId={chatId}
+                            />;
+                          case 'searchMemories':
+                            return <MemorySearchPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              threadId={chatId}
+                            />;
+                          default:
+                            return null;
+                        }
+                      })()}
                     </div>
                   );
                 }
 
                 if (state === 'result') {
-                  const { result } = toolInvocation;
+                  const { args, result } = toolInvocation;
 
                   return (
                     <div key={toolCallId}>
-                      {toolName === 'createArtifact' ? (
-                        <DocumentPreview
-                          isReadonly={isReadonly}
-                          result={result}
-                          toolCallId={toolCallId}
-                        />
-                      ) : toolName === 'updateArtifact' ? (
-                        <DocumentToolResult
-                          type="update"
-                          result={result}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'requestSuggestions' ? (
-                        <DocumentToolResult
-                          type="request-suggestions"
-                          result={result}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === "webSearch" ? (
-                        <WebSearchResults results={result} />
-                      ) : toolName === 'searchKnowledgeBase' ? (
-                        <div className="flex flex-col gap-2">
-                          <h3 className="text-sm font-medium">
-                            Search Results
-                          </h3>
-                          {result.map((r: any) => {
+                      {(() => {
+                        switch (toolName) {
+                          case 'createArtifact':
                             return (
-                              <div key={r.id}>
-                                <h4 className="text-sm font-medium">
-                                  {(r.result as any).metadata.sectionSummary}
-                                </h4>
+                              <DocumentPreview
+                                isReadonly={isReadonly}
+                                result={result}
+                                toolCallId={toolCallId}
+                              />
+                            );
+                          case 'updateArtifact':
+                            return (
+                              <DocumentToolResult
+                                type="update"
+                                result={result}
+                                isReadonly={isReadonly}
+                              />
+                            );
+                          case 'requestSuggestions':
+                            return (
+                              <DocumentToolResult
+                                type="request-suggestions"
+                                result={result}
+                                isReadonly={isReadonly}
+                              />
+                            );
+                          case 'webSearch':
+                            return <WebSearchResults results={result} />;
+                          case 'setPlanAndTodos':
+                          case 'selectNextTodo':
+                          case 'completeCurrentTodoAndMoveToNextTodo':
+                            return <TodoListPreview
+                              args={{}}
+                              toolCallId={toolCallId}
+                              toolName={toolName}
+                              threadId={chatId}
+                              result={result}
+                            />;
+                          case 'setMemory':
+                            return <MemorySetPreview
+                              args={{}}
+                              toolCallId={toolCallId}
+                              threadId={chatId}
+                              result={result}
+                            />;
+                          case 'searchMemories':
+                            return <MemorySearchPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              threadId={chatId}
+                              result={result}
+                            />;
+                          case 'searchKnowledgeBase':
+                            return (
+                              <div className="flex flex-col gap-2">
+                                <h3 className="text-sm font-medium">
+                                  Search Results
+                                </h3>
+                                {result.map((r: any) => {
+                                  return (
+                                    <div key={r.id}>
+                                      <h4 className="text-sm font-medium">
+                                        {(r.result as any).metadata.sectionSummary}
+                                      </h4>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             );
-                          })}
-                        </div>
-                      ) : (
-                        <pre>{JSON.stringify(result, null, 2)}</pre>
-                      )}
+                          default:
+                            return <pre>{JSON.stringify(result, null, 2)}</pre>;
+                        }
+                      })()}
                     </div>
                   );
                 }

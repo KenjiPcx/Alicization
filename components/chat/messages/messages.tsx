@@ -5,7 +5,7 @@ import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
-import type { Vote } from '@customTypes';
+import type { Vote } from '@/convex/schema';
 import type { MessageDoc } from '@convex-dev/agent';
 
 interface MessagesProps {

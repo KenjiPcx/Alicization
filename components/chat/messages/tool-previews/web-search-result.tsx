@@ -21,9 +21,9 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
     return (
         <div className="w-full">
             <div className="flex items-center gap-2 mb-3">
-                <div className="text-lg">🔍</div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Search Results</h3>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-lg text-hacker-accent-bright">🔍</div>
+                <h3 className="font-medium text-hacker-text">Search Results</h3>
+                <div className="text-sm text-hacker-text-secondary">
                     {results.length} result{results.length !== 1 ? 's' : ''} found
                 </div>
             </div>
@@ -33,25 +33,25 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
                 {results.map((result, index) => (
                     <div
                         key={`${result.source}-${result.answer.slice(0, 20)}`}
-                        className="flex-shrink-0 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm hover:shadow-md dark:hover:shadow-lg transition-shadow"
+                        className="flex-shrink-0 w-80 bg-gradient-to-r from-hacker-bg to-hacker-bg-secondary border border-hacker-border rounded-lg p-5 shadow-lg shadow-hacker-accent/20 hover:shadow-xl hover:shadow-hacker-accent/30 transition-shadow"
                     >
                         {/* Answer */}
                         <div className="mb-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 line-clamp-5 leading-relaxed">
+                            <div className="text-sm font-medium text-hacker-text mb-2 line-clamp-5 leading-relaxed">
                                 {result.answer}
                             </div>
                         </div>
 
                         {/* Source */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div className="border-t border-hacker-border pt-4">
                             <div className="flex items-center gap-2">
-                                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">SOURCE:</div>
+                                <div className="text-xs text-hacker-text-secondary font-medium whitespace-nowrap">SOURCE:</div>
                                 <div className="flex-1 min-w-0">
                                     <a
                                         href={result.source}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline block truncate"
+                                        className="text-xs text-hacker-accent hover:text-hacker-accent-bright hover:underline block truncate"
                                         title={result.source}
                                     >
                                         {formatSourceUrl(result.source)}
@@ -60,7 +60,7 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
                                 <button
                                     type="button"
                                     onClick={() => window.open(result.source, '_blank')}
-                                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                    className="text-xs text-hacker-text-secondary hover:text-hacker-accent transition-colors flex-shrink-0 p-1 hover:bg-hacker-accent/20 rounded"
                                     title="Open in new tab"
                                 >
                                     ↗
@@ -73,7 +73,7 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
 
             {/* Show more indicator if results are scrollable */}
             {results.length > 1 && (
-                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                <div className="text-xs text-hacker-text-secondary mt-2 text-center">
                     ← Scroll to see more results →
                 </div>
             )}
@@ -95,26 +95,30 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
                 }
                 
                 .modern-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(156, 163, 175, 0.4);
+                    background: var(--hacker-accent);
                     border-radius: 10px;
                     transition: all 0.2s ease;
+                    opacity: 0.4;
                 }
                 
                 .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(156, 163, 175, 0.6);
+                    background: var(--hacker-accent-bright);
+                    opacity: 0.6;
                 }
                 
                 @media (prefers-color-scheme: dark) {
                     .modern-scrollbar {
-                        scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
+                        scrollbar-color: var(--hacker-accent) transparent;
                     }
                     
                     .modern-scrollbar::-webkit-scrollbar-thumb {
-                        background: rgba(107, 114, 128, 0.4);
+                        background: var(--hacker-accent);
+                        opacity: 0.4;
                     }
                     
                     .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-                        background: rgba(107, 114, 128, 0.6);
+                        background: var(--hacker-accent-bright);
+                        opacity: 0.6;
                     }
                 }
                 
