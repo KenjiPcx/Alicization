@@ -21,12 +21,14 @@ import { textArtifact } from '@/artifacts/text/client';
 import { codeArtifact } from '@/artifacts/code/client';
 import { imageArtifact } from '@/artifacts/image/client';
 import { sheetArtifact } from '@/artifacts/sheet/client';
+import { microAppArtifact } from '@/artifacts/micro-app/client';
 
 export const artifactDefinitions = [
   textArtifact,
   codeArtifact,
   imageArtifact,
   sheetArtifact,
+  microAppArtifact,
 ];
 
 interface ArtifactProps {
@@ -214,7 +216,7 @@ export function PureArtifact({
 
           {/* Main content with preserved animations */}
           <motion.div
-            className="relative flex-1 dark:bg-muted bg-background h-full flex flex-col overflow-y-scroll md:border-l dark:border-zinc-700 border-zinc-200"
+            className="relative flex-1 dark:bg-muted bg-background h-full flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
             initial={{
               opacity: 1,
               x: boundingBox.left,
@@ -272,7 +274,7 @@ export function PureArtifact({
             </div>
 
             {/* Content */}
-            <div className="dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center">
+            <div className="dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center custom-scrollbar">
               <artifactDefinition.content
                 title={artifact.title}
                 content={

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc } from "./_generated/dataModel";
+import { api, internal } from "./_generated/api";
 
 // Team configuration with desk counts
 const TEAM_CONFIG = {
@@ -52,16 +53,25 @@ export const seedTeams = mutation({
     },
 });
 
-export const getAllTeams = query({
-    args: {},
-    handler: async (ctx) => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("Not authenticated");
-
+export const getTeams = internalQuery({
+    args: {
+        userId: v.id("users"),
+    },
+    handler: async (ctx, { userId }): Promise<Doc<"teams">[]> => {
         return await ctx.db
             .query("teams")
             .filter((q) => q.eq(q.field("userId"), userId))
             .collect();
+    },
+});
+
+export const getAllTeams = query({
+    args: {},
+    handler: async (ctx): Promise<Doc<"teams">[]> => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        return await ctx.runQuery(internal.teams.getTeams, { userId });
     },
 });
 

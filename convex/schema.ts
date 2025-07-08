@@ -11,6 +11,7 @@ export const vArtifactKinds = v.union(
   v.literal("image"),
   v.literal("video"),
   v.literal("music"),
+  v.literal("micro-app"),
 )
 
 export const vBackgroundJobStatuses = v.union(
@@ -29,12 +30,70 @@ export const vEmployeeStatuses = v.union(
   v.literal("none"),
 )
 
+export const vKpiStatuses = v.union(
+  v.literal("pending"),
+  v.literal("in-progress"),
+  v.literal("completed"),
+  v.literal("failed"),
+)
+
+export const vKpiDirections = v.union(
+  v.literal("increase"),
+  v.literal("decrease"),
+)
+
+export const vKpiScopes = v.union(
+  v.literal("company"),
+  v.literal("team"),
+  v.literal("employee"),
+)
+
+export const vKpiQuarters = v.union(
+  v.literal("Q1"),
+  v.literal("Q2"),
+  v.literal("Q3"),
+  v.literal("Q4"),
+)
+
+export const vKpi = v.object({
+  name: v.string(),
+  description: v.string(),
+  direction: vKpiDirections,
+  unit: v.string(),
+  currentValue: v.optional(v.number()),
+  target: v.optional(v.number()),
+  companyId: v.optional(v.id("company")),
+  teamId: v.optional(v.id("teams")),
+  employeeId: v.optional(v.id("employees")),
+  scope: vKpiScopes,
+  status: vKpiStatuses,
+  quarter: vKpiQuarters,
+  year: v.number(),
+  statusMessage: v.optional(v.string()),
+})
+
 export const applicationTables = {
   // Store extra metadata for a user beyond the user managed by the auth package
   usersMetadata: defineTable({
     userId: v.id("users"),
     type: v.union(v.literal("regular"), v.literal("pro")),
   }).index("by_userId", ["userId"]),
+
+  company: defineTable({
+    name: v.string(),
+    vision: v.string(),
+    mission: v.string(),
+    values: v.array(v.string()),
+    goals: v.array(v.string()),
+    teamId: v.id("teams"),
+    userId: v.id("users"),
+  }).index("by_teamId", ["teamId"])
+    .index("by_userId", ["userId"]),
+
+  kpis: defineTable(vKpi)
+    .index("by_teamId", ["teamId"])
+    .index("by_companyId", ["companyId"])
+    .index("by_employeeId", ["employeeId"]),
 
   // Store extra metadata for a chat beyond the thread managed by the agent package
   chats: defineTable({
@@ -325,7 +384,7 @@ export type FullEmployee = Employee & {
   team: Team | {
     _id: Id<"teams">;
     name: string;
-  }; 
+  };
 };
 
-export type ArtifactKind = "text" | "sheet" | "code" | "image" | "video" | "music";
+export type ArtifactKind = "text" | "sheet" | "code" | "image" | "video" | "music" | "micro-app";

@@ -58,7 +58,7 @@ export function DocumentPreview({
 
   const previewArtifact = artifacts?.[0] || artifact;
 
-  // Auto-open when first progress message arrives
+  // Auto-open when first progress message arrives or when micro-app artifact is ready
   useEffect(() => {
     if (status === "running" && !isVisible && !autoOpened) {
       // Only auto-open once
@@ -76,7 +76,21 @@ export function DocumentPreview({
         });
       }
     }
-  }, [status, isVisible, openArtifact, previewArtifact, autoOpened]);
+
+    // Auto-open micro-apps immediately when they're ready
+    if (previewArtifact?.kind === "micro-app" && !isVisible && !autoOpened) {
+      setAutoOpened(true);
+      const boundingBox = hitboxRef.current?.getBoundingClientRect();
+      if (boundingBox) {
+        openArtifact(toolCallId, {
+          top: boundingBox.y,
+          left: boundingBox.x,
+          width: boundingBox.width,
+          height: boundingBox.height,
+        });
+      }
+    }
+  }, [status, isVisible, openArtifact, previewArtifact, autoOpened, toolCallId]);
 
   // If we have the artifact visible, show the tool result
   if (isVisible && previewArtifact) {
@@ -249,7 +263,7 @@ const DocumentContent = ({ document, isInProgress }: {
   isInProgress: boolean;
 }) => {
   const containerClassName = cn(
-    'h-[257px] overflow-y-scroll border border-gray-200 dark:border-gray-700 rounded-b-2xl dark:bg-muted border-t-0',
+    'h-[257px] overflow-y-scroll border border-gray-200 dark:border-gray-700 rounded-b-2xl dark:bg-muted border-t-0 custom-scrollbar',
     {
       'p-4 sm:px-14 sm:py-16': document.kind === 'text',
       'p-0': document.kind === 'code',

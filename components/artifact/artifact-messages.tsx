@@ -1,10 +1,10 @@
 import { PreviewMessage, ThinkingMessage } from '../chat/messages/message';
-import type { Vote } from '@customTypes';
 import type { UIMessage } from 'ai';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
+import { Vote } from '@/lib/types';
 
 interface ArtifactMessagesProps {
   chatId: string;
@@ -35,7 +35,7 @@ function PureArtifactMessages({
   return (
     <div
       ref={messagesContainerRef}
-      className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20 w-full"
+      className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20 w-full custom-scrollbar"
     >
       {messages.map((message, index) => (
         <PreviewMessage

@@ -159,3 +159,190 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+.skeleton {
+    * {
+        pointer-events: none !important;
+    }
+
+    *[class^="text-"] {
+        color: transparent;
+        @apply rounded-md bg-foreground/20 select-none animate-pulse;
+    }
+
+    .skeleton-bg {
+        @apply bg-foreground/10;
+    }
+
+    .skeleton-div {
+        @apply bg-foreground/20 animate-pulse;
+    }
+}
+
+.ProseMirror {
+    outline: none;
+}
+
+.cm-editor,
+.cm-gutters {
+    background-color: rgb(var(--background)) !important;
+    outline: none !important;
+    selection: rgb(from rgb(161 161 170) r g b / 0.9) !important;
+}
+
+.dark .cm-editor,
+.dark .cm-gutters {
+    background-color: rgb(39 39 42) !important;
+}
+
+.ͼo.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.ͼo.cm-selectionBackground,
+.ͼo.cm-content::selection {
+    background-color: rgb(228 228 231) !important;
+}
+
+.dark .ͼo.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.dark .ͼo.cm-selectionBackground,
+.dark .ͼo.cm-content::selection {
+    background-color: rgb(39 39 42) !important;
+}
+
+.cm-activeLine,
+.cm-activeLineGutter {
+    background-color: transparent !important;
+}
+
+.cm-activeLine {
+    border-top-right-radius: 0.125rem !important;
+    border-bottom-right-radius: 0.125rem !important;
+}
+
+.cm-lineNumbers {
+    @apply min-w-7;
+}
+
+.cm-foldGutter {
+    @apply min-w-3;
+}
+
+.cm-lineNumbers .cm-activeLineGutter {
+    border-top-left-radius: 0.125rem !important;
+    border-bottom-left-radius: 0.125rem !important;
+}
+
+.suggestion-highlight {
+    @apply bg-blue-200 hover:bg-blue-300 dark:hover:bg-blue-400/50 dark:text-blue-50 dark:bg-blue-500/40;
+}
+
+/* Add this at the end of your CSS file */
+.prosemirror-isolated {
+  /* Reset/isolate from global styles */
+  all: revert;
+  
+  /* Restore essential inherited properties */
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+  
+  /* Set a proper base font size instead of inheriting */
+  font-size: 16px;
+  
+  /* Ensure prose styles work */
+  max-width: none;
+}
+
+.prosemirror-isolated * {
+  /* Prevent global styles from affecting ProseMirror content */
+  all: revert;
+}
+
+.prosemirror-isolated .ProseMirror {
+  /* Restore ProseMirror functionality */
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 16px; /* Base font size */
+}
+
+.prosemirror-isolated .ProseMirror h1,
+.prosemirror-isolated .ProseMirror h2,
+.prosemirror-isolated .ProseMirror h3,
+.prosemirror-isolated .ProseMirror h4,
+.prosemirror-isolated .ProseMirror h5,
+.prosemirror-isolated .ProseMirror h6 {
+  /* Restore heading styles */
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.prosemirror-isolated .ProseMirror h1 { font-size: 2em; }
+.prosemirror-isolated .ProseMirror h2 { font-size: 1.5em; }
+.prosemirror-isolated .ProseMirror h3 { font-size: 1.25em; }
+
+.prosemirror-isolated .ProseMirror p {
+  margin: 1em 0;
+  font-size: 16px;
+}
+
+.prosemirror-isolated .ProseMirror strong {
+  font-weight: bold;
+}
+
+.prosemirror-isolated .ProseMirror em {
+  font-style: italic;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar {
+  /* For Webkit browsers (Chrome, Safari, newer Edge) */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Dark mode scrollbar */
+.dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+.dark .custom-scrollbar:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+

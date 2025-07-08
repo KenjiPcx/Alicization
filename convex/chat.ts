@@ -1,5 +1,5 @@
-import { v } from "convex/values";
-import { paginationOptsValidator, } from "convex/server";
+import { GenericId, v } from "convex/values";
+import { GenericActionCtx, paginationOptsValidator, } from "convex/server";
 import { action, httpAction, internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -9,7 +9,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
 import dedent from "dedent";
-import { createAdvancedTools } from "@/lib/ai/tools/advanced";
+// import { createEmployeeTools } from "@/lib/ai/tools/office/employee";
 
 export const createThread = mutation({
     args: {
@@ -78,7 +78,7 @@ export const streamMessageAsync = mutation({
             { threadId }
         );
 
-        await ctx.scheduler.runAfter(0, internal.chat.streamMessage, {
+        await ctx.scheduler.runAfter(0, internal.chatNode.streamMessage, {
             threadId,
             userId,
             promptMessageId: messageId,
@@ -87,39 +87,6 @@ export const streamMessageAsync = mutation({
         });
     },
 });
-
-export const streamMessage = internalAction({
-    args: {
-        threadId: v.string(),
-        promptMessageId: v.string(),
-        userId: v.id("users"),
-        employeeId: v.id("employees"),
-        teamId: v.optional(v.id("teams")),
-    },
-    handler: async (ctx, { promptMessageId, threadId, userId, employeeId, teamId }) => {
-        // Resolve employee from employeeId
-        const employee = await ctx.runQuery(api.employees.getEmployeeById, {
-            employeeId,
-        });
-        await employeeAgent.generateAndSaveEmbeddings(ctx, {
-            messageIds: [promptMessageId],
-        });
-        const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
-        const result = await thread.streamText(
-            {
-                system: systemPrompt({ ...employee }),
-                promptMessageId,
-                providerOptions: anthropicProviderOptions,
-                tools: createAdvancedTools(ctx, threadId, userId, employeeId, teamId),
-                maxSteps: 20
-            },
-            {
-                saveStreamDeltas: { chunking: "line", throttleMs: 500 },
-            },
-        );
-        await result.consumeStream();
-    },
-})
 
 export const continueStreamMessageWithToolResults = internalAction({
     args: {
