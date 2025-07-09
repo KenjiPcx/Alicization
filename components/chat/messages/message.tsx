@@ -1,3 +1,5 @@
+'use client';
+
 import type { UIMessage } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -23,6 +25,7 @@ import { WebSearchResults } from './tool-previews/web-search-result';
 import { TodoListPreview } from './tool-previews/todo-list';
 import { MemorySetPreview } from './tool-previews/memory-set-preview';
 import { MemorySearchPreview } from './tool-previews/memory-search-preview';
+import { MicroAppResult } from './micro-app-result';
 
 const PurePreviewMessage = ({
   chatId,
@@ -193,6 +196,15 @@ const PurePreviewMessage = ({
                     >
                       {(() => {
                         switch (toolName) {
+                          case 'openMicroApp':
+                            return (
+                              <div className="p-4 border rounded-lg">
+                                <p className="text-sm text-muted-foreground">
+                                  Opening {args.name} micro app...
+                                </p>
+                              </div>
+                            );
+
                           case 'createArtifact':
                             return <DocumentPreview
                               isReadonly={isReadonly}
@@ -249,6 +261,14 @@ const PurePreviewMessage = ({
                     <div key={toolCallId}>
                       {(() => {
                         switch (toolName) {
+                          case 'openMicroApp':
+                            return (
+                              <MicroAppResult
+                                result={result}
+                                toolCallId={toolCallId}
+                                isReadonly={isReadonly}
+                              />
+                            );
                           case 'createArtifact':
                             return (
                               <DocumentPreview

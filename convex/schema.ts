@@ -2,7 +2,6 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 import { vProviderMetadata, vUsage } from "@convex-dev/agent";
-import { Doc, Id } from "./_generated/dataModel";
 
 export const vArtifactKinds = v.union(
   v.literal("text"),
@@ -11,7 +10,6 @@ export const vArtifactKinds = v.union(
   v.literal("image"),
   v.literal("video"),
   v.literal("music"),
-  v.literal("micro-app"),
 )
 
 export const vBackgroundJobStatuses = v.union(
@@ -362,29 +360,3 @@ export default defineSchema({
   ...authTables,
   ...applicationTables,
 });
-
-// Base Convex types
-export type User = Doc<"users">;
-export type Employee = Doc<"employees">;
-export type Team = Doc<"teams">;
-export type Tool = Doc<"tools">;
-export type Chat = Doc<"chats">;
-export type BackgroundJobStatus = Doc<"backgroundJobStatuses">;
-export type Artifact = Doc<"artifacts">;
-export type ScheduledJob = Doc<"scheduledJobs">;
-export type CompanyFile = Doc<"companyFiles">;
-export type Vote = Doc<"votes">;
-export type Suggestion = Doc<"suggestions">;
-export type Tag = Doc<"tags">;
-export type UserType = Doc<"usersMetadata">["type"];
-
-// Compound types
-export type FullEmployee = Employee & {
-  tools: Tool[];
-  team: Team | {
-    _id: Id<"teams">;
-    name: string;
-  };
-};
-
-export type ArtifactKind = "text" | "sheet" | "code" | "image" | "video" | "music" | "micro-app";

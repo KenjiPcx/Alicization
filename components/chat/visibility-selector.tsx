@@ -1,3 +1,5 @@
+'use client';
+
 import { type ReactNode, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +15,7 @@ import {
   GlobeIcon,
   LockIcon,
 } from '../icons';
+import { useChatVisibility } from '@/hooks/use-chat-visibility';
 // import { useChatVisibility } from '@/hooks/use-chat-visibility';
 
 export type VisibilityType = 'private' | 'public';
@@ -38,18 +41,18 @@ const visibilities: Array<{
   ];
 
 export function VisibilitySelector({
-  chatId,
+  threadId,
   className,
   selectedVisibilityType,
 }: {
-  chatId: string;
+  threadId: string;
   selectedVisibilityType: VisibilityType;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
   const { visibilityType, setVisibilityType } = useChatVisibility({
-    chatId,
-    initialVisibility: selectedVisibilityType,
+    threadId,
+    initialVisibilityType: selectedVisibilityType,
   });
 
   const selectedVisibility = useMemo(

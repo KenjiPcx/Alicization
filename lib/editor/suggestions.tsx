@@ -7,9 +7,9 @@ import {
 } from 'prosemirror-view';
 import { createRoot } from 'react-dom/client';
 
-import { Suggestion as PreviewSuggestion } from '@/components/artifact/suggestion';
-import type { Suggestion } from '@customTypes';
-import type { ArtifactKind } from '@customTypes';
+import { Suggestion as PreviewSuggestion } from '@/components/micro-apps/artifact/suggestion';
+import type { Suggestion } from '@/lib/types';
+import type { ArtifactKind } from '@/lib/types';
 
 export interface UISuggestion extends Suggestion {
   selectionStart: number;

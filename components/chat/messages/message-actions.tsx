@@ -1,3 +1,5 @@
+'use client';
+
 import type { Message } from 'ai';
 import { useCopyToClipboard } from 'usehooks-ts';
 

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import React, { memo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';

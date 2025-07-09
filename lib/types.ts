@@ -1,25 +1,44 @@
 import type { StatusType } from "@/components/navigation/status-indicator";
-import type { FullEmployee } from "@/convex/schema";
-
-export type {
-    Chat,
-    Employee,
-    FullEmployee,
-    Team,
-    Tool,
-    User,
-    ArtifactKind,
-    Artifact,
-    BackgroundJobStatus,
-    ScheduledJob,
-    CompanyFile,
-    Suggestion,
-    Vote,
-    Tag,
-    UserType,
-} from "@/convex/schema";
-
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+
+// Base Convex types
+export type User = Doc<"users">;
+export type Employee = Doc<"employees">;
+export type Team = Doc<"teams">;
+export type Tool = Doc<"tools">;
+export type Chat = Doc<"chats">;
+export type BackgroundJobStatus = Doc<"backgroundJobStatuses">;
+export type Artifact = Doc<"artifacts">;
+export type ScheduledJob = Doc<"scheduledJobs">;
+export type CompanyFile = Doc<"companyFiles">;
+export type Vote = Doc<"votes">;
+export type Suggestion = Doc<"suggestions">;
+export type Tag = Doc<"tags">;
+export type UserType = Doc<"usersMetadata">["type"];
+export type ScopeAndId = {
+    scope: "company";
+    companyId: Id<"company">;
+} | {
+    scope: "team";
+    teamId: Id<"teams">;
+} | {
+    scope: "employee";
+    employeeId: Id<"employees">;
+};
+export type KPI = Doc<"kpis">;
+
+// Compound types
+export type FullEmployee = Employee & {
+  tools: Tool[];
+  team: Team | {
+    _id: Id<"teams">;
+    name: string;
+  };
+};
+
+export type ArtifactKind = Doc<"artifacts">["kind"];
+
+export type OfficeMicroAppKind = "kpi-dashboard" | "company-config" | "employee-config";
 
 // Frontend-specific employee data that extends the backend model
 export interface EmployeeData extends Doc<"employees"> {

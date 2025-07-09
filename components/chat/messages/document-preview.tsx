@@ -1,3 +1,5 @@
+'use client';
+
 import React, {
   memo,
   type MouseEvent,
@@ -9,15 +11,15 @@ import React, {
 import { FileIcon, FullscreenIcon, ImageIcon, LoaderIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { InlineDocumentSkeleton } from './document-skeleton';
-import { Editor } from '../../artifact/text-editor';
+import { Editor } from '../../micro-apps/artifact/text-editor';
 import { DocumentToolCall, DocumentToolResult } from './document';
-import { CodeEditor } from '../../artifact/code-artifact/code-editor';
-import { useArtifact } from '@/hooks/use-artifact';
-import { SpreadsheetEditor } from '../../artifact/sheet-editor';
-import { ImageEditor } from '../../artifact/text-artifact/image-editor';
+import { CodeEditor } from '../../micro-apps/artifact/code-artifact/code-editor';
+import { SpreadsheetEditor } from '../../micro-apps/artifact/sheet-editor';
+import { ImageEditor } from '../../micro-apps/artifact/text-artifact/image-editor';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { ArtifactKind } from '@/lib/types';
+import { useMicroApp } from '@/hooks/use-micro-app';
 
 interface DocumentPreviewProps {
   isReadonly: boolean;
@@ -35,7 +37,7 @@ export function DocumentPreview({
   args,
   toolCallId,
 }: DocumentPreviewProps) {
-  const { openArtifact, isVisible } = useArtifact();
+  const { openArtifactMicroApp, isVisible } = useMicroApp();
   const [autoOpened, setAutoOpened] = useState(false);
   const hitboxRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +70,7 @@ export function DocumentPreview({
       }, 2500) // Add a delay
       const boundingBox = hitboxRef.current?.getBoundingClientRect();
       if (boundingBox && previewArtifact) {
-        openArtifact(toolCallId, {
+        openArtifactMicroApp(toolCallId, {
           top: boundingBox.y,
           left: boundingBox.x,
           width: boundingBox.width,
@@ -78,11 +80,11 @@ export function DocumentPreview({
     }
 
     // Auto-open micro-apps immediately when they're ready
-    if (previewArtifact?.kind === "micro-app" && !isVisible && !autoOpened) {
+    if (!isVisible && !autoOpened) {
       setAutoOpened(true);
       const boundingBox = hitboxRef.current?.getBoundingClientRect();
       if (boundingBox) {
-        openArtifact(toolCallId, {
+        openArtifactMicroApp(toolCallId, {
           top: boundingBox.y,
           left: boundingBox.x,
           width: boundingBox.width,
@@ -90,7 +92,7 @@ export function DocumentPreview({
         });
       }
     }
-  }, [status, isVisible, openArtifact, previewArtifact, autoOpened, toolCallId]);
+  }, [status, isVisible, openArtifactMicroApp, autoOpened, toolCallId]);
 
   // If we have the artifact visible, show the tool result
   if (isVisible && previewArtifact) {
@@ -186,20 +188,20 @@ const PureHitboxLayer = ({
   hitboxRef: React.RefObject<HTMLDivElement | null>;
   toolCallId: string;
 }) => {
-  const { openArtifact } = useArtifact();
+  const { openArtifactMicroApp } = useMicroApp();
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLElement>) => {
       const boundingBox = event.currentTarget.getBoundingClientRect();
 
-      openArtifact(toolCallId, {
+      openArtifactMicroApp(toolCallId, {
         top: boundingBox.y,
         left: boundingBox.x,
         width: boundingBox.width,
         height: boundingBox.height,
       });
     },
-    [openArtifact, toolCallId],
+    [openArtifactMicroApp, toolCallId],
   );
 
   return (

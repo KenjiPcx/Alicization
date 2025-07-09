@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Search, User, Users, Building, Brain } from "lucide-react";
 

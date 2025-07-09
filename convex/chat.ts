@@ -372,3 +372,24 @@ export const getChatHistory = query({
         };
     },
 });
+
+export const updateChatVisibilityByThreadId = mutation({
+    args: {
+        threadId: v.string(),
+        visibility: v.union(v.literal("public"), v.literal("private")),
+    },
+    handler: async (ctx, { threadId, visibility }) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        const chat = await ctx.db
+            .query("chats")
+            .withIndex("by_threadId", (q) => q.eq("threadId", threadId))
+            .filter((q) => q.eq(q.field("userId"), userId))
+            .first();
+
+        if (!chat) throw new Error("Chat not found");
+
+        await ctx.db.patch(chat._id, { visibility });
+    },
+});

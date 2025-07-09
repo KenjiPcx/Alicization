@@ -1,16 +1,16 @@
+'use client';
+
 import type { Attachment } from 'ai';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages/messages';
-import { useArtifactStore } from '@/hooks/use-artifact';
-// import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { optimisticallySendMessage, toUIMessages, useThreadMessages } from '@convex-dev/agent/react';
 import { useChatStore } from '@/lib/store/chat-store';
 import type { MessageDoc } from '@convex-dev/agent';
-import { Artifact } from '../artifact/artifact';
+import { Artifact } from '../micro-apps/artifact/artifact';
 import type { Id } from '@/convex/_generated/dataModel';
 
 const PureChat = ({
@@ -49,7 +49,6 @@ const PureChat = ({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const { modelId, initialVisibilityType } = useChatStore();
-  const isArtifactVisible = useArtifactStore((state) => state.isVisible);
 
   useEffect(() => {
     const latestStatus = messages.results[messages.results.length - 1]?.status;
@@ -66,7 +65,7 @@ const PureChat = ({
     <>
       <div className="ml-4 flex flex-col min-w-0 bg-background h-full w-full">
         <ChatHeader
-          chatId={threadId}
+          threadId={threadId}
           selectedModelId={modelId}
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
@@ -80,7 +79,6 @@ const PureChat = ({
           // setMessages={setMessages}
           // reload={reload}
           isReadonly={isReadonly}
-          isArtifactVisible={isArtifactVisible}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">

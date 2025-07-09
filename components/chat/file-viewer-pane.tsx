@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { XIcon, AlertTriangleIcon, Loader2Icon } from 'lucide-react';

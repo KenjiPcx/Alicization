@@ -1,3 +1,5 @@
+'use client';
+
 import { useWindowSize } from 'usehooks-ts';
 import { ModelSelector } from '@/components/chat/model-selector';
 import { SidebarToggle } from '@/components/layout/sidebar-toggle';
@@ -11,12 +13,12 @@ import { useChatStore } from '@/lib/store/chat-store';
 import { generateUUID } from '@/lib/utils';
 
 function PureChatHeader({
-  chatId,
+  threadId,
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
 }: {
-  chatId: string;
+  threadId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
@@ -55,17 +57,17 @@ function PureChatHeader({
         />
       )}
 
-      {/* {!isReadonly && (
+      {!isReadonly && (
         <VisibilitySelector
-          chatId={chatId}
+          threadId={threadId}
           selectedVisibilityType={selectedVisibilityType}
           className="order-1 md:order-3"
         />
-      )} */}
+      )}
     </header>
   );
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  return prevProps.selectedModelId === nextProps.selectedModelId;
+  return prevProps.selectedModelId === nextProps.selectedModelId && prevProps.selectedVisibilityType === nextProps.selectedVisibilityType;
 });

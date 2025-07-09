@@ -1,3 +1,5 @@
+'use client';
+
 import { startTransition, useMemo, useOptimistic, useState } from 'react';
 
 import { Button } from '@/components/ui/button';

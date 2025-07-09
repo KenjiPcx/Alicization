@@ -1,11 +1,11 @@
+'use client';
+
 import { memo } from 'react';
 
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from '../../icons';
 import { toast } from 'sonner';
-import { useArtifact } from '@/hooks/use-artifact';
-import type { Artifact } from '@customTypes';
-
-type ArtifactKind = Artifact['kind'];
+import type { ArtifactKind } from '@/lib/types';
+import { useMicroApp } from '@/hooks/use-micro-app';
 
 const getActionText = (
   type: 'create' | 'update' | 'request-suggestions',
@@ -36,7 +36,7 @@ function PureDocumentToolResult({
   result,
   isReadonly,
 }: DocumentToolResultProps) {
-  const { openArtifact } = useArtifact();
+  const { openArtifactMicroApp } = useMicroApp();
 
   return (
     <button
@@ -59,7 +59,7 @@ function PureDocumentToolResult({
           height: rect.height,
         };
 
-        openArtifact(result.toolCallId, boundingBox);
+        openArtifactMicroApp(result.toolCallId, boundingBox);
       }}
     >
       <div className="text-muted-foreground mt-1">
@@ -93,7 +93,7 @@ function PureDocumentToolCall({
   isReadonly,
   toolCallId,
 }: DocumentToolCallProps) {
-  const { openArtifact } = useArtifact();
+  const { openArtifactMicroApp } = useMicroApp();
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (isReadonly) {
@@ -105,7 +105,7 @@ function PureDocumentToolCall({
 
     const rect = event.currentTarget?.getBoundingClientRect();
 
-    openArtifact(toolCallId, {
+    openArtifactMicroApp(toolCallId, {
       top: rect.top,
       left: rect.left,
       width: rect.width,

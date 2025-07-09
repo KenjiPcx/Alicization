@@ -1,3 +1,5 @@
+'use client';
+
 import { motion } from 'framer-motion';
 import { getRandomEmployeeGreeting } from './employee-greetings';
 import { useMemo } from 'react';
