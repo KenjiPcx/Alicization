@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
+import { vEmployeeStatuses } from "./schema";
+import { patchEmployee } from "./utils";
 
 // Helper to generate random names
 const firstNames = {
@@ -79,8 +81,10 @@ function generateEmployeeData(teamName: string, isSupervisor: boolean = false, i
 }
 
 export const seedEmployees = action({
-    args: {},
-    handler: async (ctx): Promise<{ message: string, count: number, employees: Doc<"employees">[] }> => {
+    args: {
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { companyId }): Promise<{ message: string, count: number, employees: Doc<"employees">[] }> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -98,7 +102,9 @@ export const seedEmployees = action({
         // First, ensure teams are seeded
         const teams: Doc<"teams">[] = await ctx.runQuery(api.teams.getAllTeams);
         if (teams.length === 0) {
-            await ctx.runMutation(api.teams.seedTeams);
+            await ctx.runMutation(api.teams.seedTeams, {
+                companyId: companyId,
+            });
             const newTeams = await ctx.runQuery(api.teams.getAllTeams);
             teams.push(...newTeams);
         }
@@ -123,6 +129,7 @@ export const seedEmployees = action({
                     teamId: team._id,
                     ...employeeData,
                     deskIndex, // May be undefined if walking around
+                    companyId: companyId,
                 });
 
                 employees.push(employee);
@@ -150,6 +157,7 @@ export const createEmployee = mutation({
         isSupervisor: v.boolean(),
         isCEO: v.boolean(),
         deskIndex: v.optional(v.number()),
+        companyId: v.optional(v.id("companies")),
     },
     handler: async (ctx, args): Promise<Doc<"employees">> => {
         const userId = await getAuthUserId(ctx);
@@ -160,6 +168,36 @@ export const createEmployee = mutation({
             status: "none",
             userId,
         });
+
+        return await ctx.db.get(employeeId) as Doc<"employees">;
+    },
+});
+
+export const updateEmployee = mutation({
+    args: {
+        employeeId: v.id("employees"),
+        teamId: v.optional(v.id("teams")),
+        name: v.optional(v.string()),
+        jobTitle: v.optional(v.string()),
+        jobDescription: v.optional(v.string()),
+        gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
+        background: v.optional(v.string()),
+        personality: v.optional(v.string()),
+        status: v.optional(vEmployeeStatuses),
+        statusMessage: v.optional(v.string()),
+        isSupervisor: v.optional(v.boolean()),
+        isCEO: v.optional(v.boolean()),
+        deskIndex: v.optional(v.number()),
+        companyId: v.optional(v.id("companies")),
+    },
+    handler: async (ctx, args): Promise<Doc<"employees">> => {
+        const { employeeId, ...updates } = args;
+
+        const employee = await ctx.db.get(employeeId) as Doc<"employees">;
+        if (!employee) throw new Error("Employee not found");
+
+        // Use the type-safe update helper
+        await patchEmployee(ctx, employeeId, updates);
 
         return await ctx.db.get(employeeId) as Doc<"employees">;
     },
@@ -213,7 +251,7 @@ export const getEmployeeById = query({
 
         // Filter null tools
         const filteredTools = tools.filter((tool) => tool !== null);
-        
+
         return {
             ...employee,
             team: team ? { _id: team._id, name: team.name } : undefined,
@@ -229,5 +267,15 @@ export const clearEmployees = mutation({
         for (const employee of employees) {
             await ctx.db.delete(employee._id);
         }
+    },
+});
+
+export const setEmployeeCompanyId = mutation({
+    args: {
+        employeeId: v.id("employees"),
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { employeeId, companyId }) => {
+        await ctx.db.patch(employeeId, { companyId });
     },
 });

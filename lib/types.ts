@@ -17,7 +17,7 @@ export type Tag = Doc<"tags">;
 export type UserType = Doc<"usersMetadata">["type"];
 export type ScopeAndId = {
     scope: "company";
-    companyId: Id<"company">;
+    companyId: Id<"companies">;
 } | {
     scope: "team";
     teamId: Id<"teams">;

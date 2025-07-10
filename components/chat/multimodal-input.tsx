@@ -38,11 +38,11 @@ function PureMultimodalInput({
   attachments,
   setAttachments,
   messages,
-  // setMessages,
   append,
   handleSubmit,
   className,
   selectedVisibilityType,
+  chatMode = 'direct',
 }: {
   chatId: string;
   input: UseChatHelpers['input'];
@@ -52,11 +52,11 @@ function PureMultimodalInput({
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
   messages: Array<UIMessage>;
-  // setMessages: UseChatHelpers['setMessages'];
   append: UseChatHelpers['append'];
   handleSubmit: UseChatHelpers['handleSubmit'];
   className?: string;
   selectedVisibilityType: VisibilityType;
+  chatMode?: 'direct' | 'team';
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -320,6 +320,7 @@ export const MultimodalInput = memo(
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
     if (prevProps.messages.length !== nextProps.messages.length) return false;
+    if (prevProps.chatMode !== nextProps.chatMode) return false;
 
     return true;
   },

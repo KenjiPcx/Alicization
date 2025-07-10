@@ -15,9 +15,8 @@ interface MessagesProps {
   status: "ready" | "submitted" | MessageDoc["status"];
   votes: Array<Vote> | undefined;
   messages: Array<UIMessage>;
-  // setMessages: UseChatHelpers['setMessages'];
-  // reload: UseChatHelpers['reload'];
   isReadonly: boolean;
+  chatMode?: 'direct' | 'team';
 }
 
 function PureMessages({
@@ -25,9 +24,8 @@ function PureMessages({
   status,
   votes,
   messages,
-  // setMessages,
-  // reload,
   isReadonly,
+  chatMode = 'direct',
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -43,7 +41,8 @@ function PureMessages({
   return (
     <div
       ref={messagesContainerRef}
-      className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4 relative"
+      className={`flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4 relative ${chatMode === 'team' ? 'messages-team-mode' : 'messages-direct-mode'
+        }`}
     >
       {messages.length === 0 && <Greeting />}
 
@@ -58,12 +57,11 @@ function PureMessages({
               ? votes.find((vote) => vote.messageId === message.id)
               : undefined
           }
-          // setMessages={setMessages}
-          // reload={reload}
           isReadonly={isReadonly}
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
+          isLatestMessage={index === messages.length - 1}
         />
       ))}
 
@@ -86,6 +84,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (prevProps.chatMode !== nextProps.chatMode) return false;
 
   return true;
 });

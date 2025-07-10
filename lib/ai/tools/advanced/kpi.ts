@@ -2,25 +2,15 @@ import { z } from "zod";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { tool } from "ai";
-import { ActionCtx, MutationCtx } from "@/convex/_generated/server";
-
-type KPIScope = {
-    scope: "company";
-    companyId: Id<"company">;
-} | {
-    scope: "team";
-    teamId: Id<"teams">;
-} | {
-    scope: "employee";
-    employeeId: Id<"employees">;
-};
+import { ActionCtx } from "@/convex/_generated/server";
+import { ScopeAndId } from "@/lib/types";
 
 /**
  * View KPI dashboard - generalized for company/team/employee
  */
 export const createKPIDashboardTool = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => tool({
     description: `View KPI dashboard with summary and progress for the ${scopeAndId.scope}`,
@@ -47,7 +37,7 @@ export const createKPIDashboardTool = (
  */
 export const createKPITool = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => tool({
     description: `Create a new KPI (Key Performance Indicator) for the ${scopeAndId.scope}`,
@@ -91,7 +81,7 @@ export const createKPITool = (
  */
 export const createUpdateKPITool = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => tool({
     description: `Update the progress of a KPI for the ${scopeAndId.scope}`,
@@ -140,7 +130,7 @@ export const createUpdateKPITool = (
  */
 export const createRemoveKPITool = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => tool({
     description: `Remove a KPI that is no longer needed from the ${scopeAndId.scope}`,
@@ -178,7 +168,7 @@ export const createRemoveKPITool = (
  */
 export const createListKPIsTool = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => tool({
     description: `List all KPIs for the ${scopeAndId.scope}`,
@@ -217,7 +207,7 @@ export const createListKPIsTool = (
  */
 export const createKPIToolset = (
     ctx: ActionCtx,
-    scopeAndId: KPIScope,
+    scopeAndId: ScopeAndId,
     userId: Id<"users">
 ) => ({
     viewKPIDashboard: createKPIDashboardTool(ctx, scopeAndId, userId),
@@ -233,7 +223,7 @@ export const createKPIToolset = (
 export const resolveCompanyScope = async (
     ctx: ActionCtx,
     userId: Id<"users">
-): Promise<KPIScope> => {
+): Promise<ScopeAndId> => {
     const company = await ctx.runQuery(api.companies.getCompany, { userId });
     if (!company) {
         throw new Error("No company found. Please create a company first.");
@@ -241,10 +231,10 @@ export const resolveCompanyScope = async (
     return { scope: "company", companyId: company._id };
 };
 
-export const resolveTeamScope = (teamId: Id<"teams">): KPIScope => {
+export const resolveTeamScope = (teamId: Id<"teams">): ScopeAndId => {
     return { scope: "team", teamId };
 };
 
-export const resolveEmployeeScope = (employeeId: Id<"employees">): KPIScope => {
+export const resolveEmployeeScope = (employeeId: Id<"employees">): ScopeAndId => {
     return { scope: "employee", employeeId };
 };

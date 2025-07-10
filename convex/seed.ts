@@ -1,48 +1,67 @@
-// import { action } from "./_generated/server";
-// import { api } from "./_generated/api";
-// import { getAuthUserId } from "@convex-dev/auth/server";
-// import { Doc } from "./_generated/dataModel";
+import { action } from "./_generated/server";
+import { api } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { Doc } from "./_generated/dataModel";
 
-// export const seedAllData = action({
-//     args: {},
-//     handler: async (ctx) => {
-//         const userId = await getAuthUserId(ctx);
-//         if (!userId) throw new Error("Not authenticated");
+export const seedAllData = action({
+    args: {},
+    handler: async (ctx) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
 
-//         console.log("Starting seed process...");
+        console.log("Starting seed process...");
 
-//         // Seed teams first
-//         const teamsResult: { message: string, teams: Doc<"teams">[] } = await ctx.runMutation(api.teams.seedTeams);
-//         console.log("Teams seeded:", teamsResult);
+        // Create company
+        const companyId = await ctx.runMutation(api.companies.createCompany, {
+            name: "Company",
+            description: "Company description",
+            vision: "Company vision",
+            mission: "Company mission",
+        });
 
-//         // Then seed employees (desk assignments happen automatically)
-//         const employeesResult: { message: string, count: number, employees: Doc<"employees">[] } = await ctx.runAction(api.employees.seedEmployees);
-//         console.log("Employees seeded with desk assignments:", employeesResult);
+        // Seed teams first
+        const teamsResult: {
+            message: string,
+            teams: Doc<"teams">[]
+        } = await ctx.runMutation(api.teams.seedTeams, {
+            companyId: companyId,
+        });
+        console.log("Teams seeded:", teamsResult);
 
-//         return {
-//             success: true,
-//             teams: teamsResult.teams,
-//             employees: employeesResult.employees,
-//         };
-//     },
-// }); 
+        // Then seed employees (desk assignments happen automatically)
+        const employeesResult: {
+            message: string,
+            count: number,
+            employees: Doc<"employees">[]
+        } = await ctx.runAction(api.employees.seedEmployees, {
+            companyId: companyId,
+        });
+        console.log("Employees seeded with desk assignments:", employeesResult);
 
-// export const clearSeedData = action({
-//     args: {},
-//     handler: async (ctx) => {
-//         const userId = await getAuthUserId(ctx);
-//         if (!userId) throw new Error("Not authenticated");
+        return {
+            success: true,
+            teams: teamsResult.teams,
+            employees: employeesResult.employees,
+        };
+    },
+});
 
-//         console.log("Clearing seed data...");
+export const clearSeedData = action({
+    args: {},
+    handler: async (ctx) => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
 
-//         // Clear all teams
-//         await ctx.runMutation(api.teams.clearTeams);
+        console.log("Clearing seed data...");
 
-//         // Clear all employees
-//         await ctx.runMutation(api.employees.clearEmployees);
+        // Clear all teams
+        await ctx.runMutation(api.teams.clearTeams);
 
-//         return {
-//             success: true,
-//         };
-//     }
-// })
+        // Clear all employees
+        await ctx.runMutation(api.employees.clearEmployees);
+
+        return {
+            success: true,
+        };
+    }
+})

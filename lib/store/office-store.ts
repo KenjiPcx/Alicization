@@ -2,20 +2,24 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { EmployeeData, TeamData } from '@/lib/types';
+import type { Id } from '@/convex/_generated/dataModel';
 
 interface OfficeState {
   // Hydration state
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 
-  // Current selections (office-specific)
-  activeParticipant: { type: 'employee', data: EmployeeData }
-  | { type: 'team', data: TeamData }
-  | null;
-  setActiveParticipant: (participant: { type: 'employee', data: EmployeeData }
-    | { type: 'team', data: TeamData }
-    | null) => void;
+  // Current selections (office-specific) - store both employee and team IDs
+  activeChatParticipant: {
+    type: 'employee' | 'team';
+    employeeId: Id<"employees">;
+    teamId: Id<"teams">;
+  } | null;
+  setActiveChatParticipant: (participant: {
+    type: 'employee' | 'team';
+    employeeId: Id<"employees">;
+    teamId: Id<"teams">;
+  } | null) => void;
 
   // Office scene state
   debugMode: boolean;
@@ -27,8 +31,8 @@ export const useOfficeStore = create<OfficeState>()(
     _hasHydrated: false,
     setHasHydrated: (hasHydrated) => set({ _hasHydrated: hasHydrated }),
 
-    activeParticipant: null,
-    setActiveParticipant: (participant) => set({ activeParticipant: participant }),
+    activeChatParticipant: null,
+    setActiveChatParticipant: (participant) => set({ activeChatParticipant: participant }),
 
     debugMode: false,
     toggleDebugMode: () => set((state) => ({ debugMode: !state.debugMode })),

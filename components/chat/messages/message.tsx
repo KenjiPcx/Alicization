@@ -5,7 +5,6 @@ import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import type { Vote } from '@/lib/types';
-import { DocumentToolCall, DocumentToolResult } from './document';
 import { PencilEditIcon, SparklesIcon } from '@/components/icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -15,17 +14,21 @@ import { cn, sanitizeText } from '@/lib/utils';
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { MessageEditor } from './message-editor';
-import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { SourceCard, type SourceDataType } from '../source-card';
 import { useChatStore } from '@/lib/store/chat-store';
-import { WebSearchPreview } from './tool-previews/web-search';
-import { WebSearchResults } from './tool-previews/web-search-result';
-import { TodoListPreview } from './tool-previews/todo-list';
-import { MemorySetPreview } from './tool-previews/memory-set-preview';
-import { MemorySearchPreview } from './tool-previews/memory-search-preview';
-import { MicroAppResult } from './micro-app-result';
+import { 
+  DocumentPreview, 
+  DocumentToolCall, 
+  DocumentToolResult, 
+  MemorySearchPreview, 
+  MemorySetPreview, 
+  MicroAppResult, 
+  TodoListPreview, 
+  WebSearchPreview, 
+  WebSearchResults 
+} from './tool-previews';
 
 const PurePreviewMessage = ({
   chatId,
@@ -36,6 +39,7 @@ const PurePreviewMessage = ({
   // reload,
   isReadonly,
   requiresScrollPadding,
+  isLatestMessage
 }: {
   chatId: string;
   message: UIMessage;
@@ -45,6 +49,7 @@ const PurePreviewMessage = ({
   // reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  isLatestMessage: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const { setFileViewerOpen, setFileViewerUrl, setFileViewerTitle } =
@@ -196,11 +201,11 @@ const PurePreviewMessage = ({
                     >
                       {(() => {
                         switch (toolName) {
-                          case 'openMicroApp':
+                          case 'openOfficeMicroApp':
                             return (
                               <div className="p-4 border rounded-lg">
                                 <p className="text-sm text-muted-foreground">
-                                  Opening {args.name} micro app...
+                                  Opening {args.name}...
                                 </p>
                               </div>
                             );
@@ -261,12 +266,13 @@ const PurePreviewMessage = ({
                     <div key={toolCallId}>
                       {(() => {
                         switch (toolName) {
-                          case 'openMicroApp':
+                          case 'openOfficeMicroApp':
                             return (
                               <MicroAppResult
                                 result={result}
                                 toolCallId={toolCallId}
                                 isReadonly={isReadonly}
+                                autoOpen={isLatestMessage}
                               />
                             );
                           case 'createArtifact':

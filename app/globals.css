@@ -346,3 +346,29 @@
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
+/* Chat Mode Styling */
+.chat-mode-team {
+  /* Slightly different background for team chats */
+  @apply bg-blue-50/30 dark:bg-blue-950/20;
+}
+
+.chat-mode-direct {
+  /* Default styling for direct chats */
+  @apply bg-background;
+}
+
+.messages-direct-mode {
+  /* Direct mode messages with default spacing */
+  @apply gap-6;
+}
+
+.messages-team-mode {
+  /* Team mode messages could have different spacing */
+  @apply gap-4;
+}
+
+/* You could add more specific styles for team vs direct mode */
+.chat-mode-team .message-bubble {
+  /* Example: Team messages could have subtle borders */
+  @apply border-l-2 border-blue-200 dark:border-blue-800;
+}

@@ -59,6 +59,7 @@ const PureChatItem = ({
             setThreadId(chat.id);
             console.log("chat.id", chat.id);
           }}
+          className="justify-start text-left"
         >
           <span>{chat.title}</span>
         </Button>

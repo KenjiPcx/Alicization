@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 
 // Team configuration with desk counts
@@ -16,8 +16,10 @@ const TEAM_CONFIG = {
 };
 
 export const seedTeams = mutation({
-    args: {},
-    handler: async (ctx): Promise<{ message: string, teams: Doc<"teams">[] }> => {
+    args: {
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { companyId }): Promise<{ message: string, teams: Doc<"teams">[] }> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -44,12 +46,34 @@ export const seedTeams = mutation({
                     : `${teamName} - A dynamic team working on various projects`,
                 clusterPosition: config.clusterPos,
                 deskCount: config.deskCount,
+                companyId: companyId,
             });
             const team = await ctx.db.get(teamId) as Doc<"teams">;
             teams.push(team);
         }
 
         return { message: "Teams seeded successfully", teams };
+    },
+});
+
+export const createTeam = mutation({
+    args: {
+        name: v.string(),
+        description: v.string(),
+        clusterPosition: v.array(v.number()),
+        deskCount: v.number(),
+        companyId: v.optional(v.id("companies")),
+    },
+    handler: async (ctx, args): Promise<Id<"teams">> => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) {
+            throw new Error("User not found");
+        }
+
+        return await ctx.db.insert("teams", {
+            ...args,
+            userId,
+        });
     },
 });
 
@@ -172,5 +196,15 @@ export const reorganizeOfficeLayout = mutation({
         }
 
         return { success: true };
+    },
+});
+
+export const setTeamCompanyId = mutation({
+    args: {
+        teamId: v.id("teams"),
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { teamId, companyId }) => {
+        await ctx.db.patch(teamId, { companyId });
     },
 });

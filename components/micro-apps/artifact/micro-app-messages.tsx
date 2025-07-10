@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import { Vote } from '@/lib/types';
 
-interface ArtifactMessagesProps {
+interface MicroAppMessagesProps {
   chatId: string;
   status: 'submitted' | 'ready' | 'pending' | 'failed' | 'success';
   votes: Array<Vote> | undefined;
@@ -14,13 +14,13 @@ interface ArtifactMessagesProps {
   isReadonly: boolean;
 }
 
-function PureArtifactMessages({
+function PureMicroAppMessages({
   chatId,
   status,
   votes,
   messages,
   isReadonly,
-}: ArtifactMessagesProps) {
+}: MicroAppMessagesProps) {
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
@@ -52,6 +52,7 @@ function PureArtifactMessages({
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
+          isLatestMessage={index === messages.length - 1}
         />
       ))}
 
@@ -70,8 +71,8 @@ function PureArtifactMessages({
 }
 
 function areEqual(
-  prevProps: ArtifactMessagesProps,
-  nextProps: ArtifactMessagesProps,
+  prevProps: MicroAppMessagesProps,
+  nextProps: MicroAppMessagesProps,
 ) {
   if (
     prevProps.status === 'pending' &&
@@ -87,4 +88,4 @@ function areEqual(
   return true;
 }
 
-export const ArtifactMessages = memo(PureArtifactMessages, areEqual);
+export const MicroAppMessages = memo(PureMicroAppMessages, areEqual);

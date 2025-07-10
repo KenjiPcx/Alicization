@@ -8,7 +8,7 @@ import { vKpiScopes, vKpiQuarters, vKpiStatuses, vKpi } from "./schema";
 export const getKPIs = query({
     args: v.object({
         scope: v.optional(vKpiScopes),
-        companyId: v.optional(v.id("company")),
+        companyId: v.optional(v.id("companies")),
         teamId: v.optional(v.id("teams")),
         employeeId: v.optional(v.id("employees")),
         quarter: v.optional(vKpiQuarters),
@@ -46,7 +46,7 @@ export const getKPIs = query({
 export const getKPIDashboard = query({
     args: v.object({
         scope: v.optional(vKpiScopes),
-        companyId: v.optional(v.id("company")),
+        companyId: v.optional(v.id("companies")),
         teamId: v.optional(v.id("teams")),
         employeeId: v.optional(v.id("employees")),
         quarter: v.optional(vKpiQuarters),

@@ -8,10 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PencilEditIcon, PlusIcon, SparklesIcon, CheckCircleFillIcon, CrossIcon } from '@/components/icons';
-// Remove useAuth import since it doesn't exist
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface CompanyConfigProps {
@@ -20,7 +17,7 @@ interface CompanyConfigProps {
 }
 
 interface Company {
-    _id: Id<"company">;
+    _id: Id<"companies">;
     name: string;
     vision?: string;
     mission?: string;

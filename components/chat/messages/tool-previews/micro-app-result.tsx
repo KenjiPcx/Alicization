@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMicroApp } from '@/hooks/use-micro-app';
 import { Button } from '@/components/ui/button';
 import { ExternalLinkIcon } from 'lucide-react';
@@ -9,10 +9,33 @@ interface MicroAppResultProps {
   result: any;
   toolCallId: string;
   isReadonly: boolean;
+  autoOpen: boolean;
 }
 
-export function MicroAppResult({ result, toolCallId, isReadonly }: MicroAppResultProps) {
-  const { openOfficeMicroApp } = useMicroApp();
+export function MicroAppResult({ result, toolCallId, isReadonly, autoOpen }: MicroAppResultProps) {
+  const { openOfficeMicroApp, isVisible, toolCallId: currentToolCallId } = useMicroApp();
+
+  const [opened, setOpened] = useState(false)
+  const [isOpening, setIsOpening] = useState(false)
+
+  useEffect(() => {
+    if (autoOpen && !opened) {
+      // Check if a micro app is already open
+      if (isVisible && currentToolCallId) {
+        // If a different micro app is already open, don't auto-open this one
+        if (currentToolCallId !== toolCallId) {
+          console.log(`Micro app ${currentToolCallId} is already open, not auto-opening ${toolCallId}`);
+          return;
+        }
+        // If the same micro app is already open, don't open it again
+        if (currentToolCallId === toolCallId) {
+          setOpened(true);
+          return;
+        }
+      }
+      handleOpenMicroApp();
+    }
+  }, [autoOpen, opened, isVisible, currentToolCallId, toolCallId]);
 
   const handleOpenMicroApp = () => {
     // Open the office micro UI directly
@@ -34,6 +57,7 @@ export function MicroAppResult({ result, toolCallId, isReadonly }: MicroAppResul
     const title = result.message || 'Micro App';
 
     openOfficeMicroApp(toolCallId, boundingBox, result.microAppType, microAppData, title);
+    setOpened(true);
   };
 
   return (
@@ -46,7 +70,7 @@ export function MicroAppResult({ result, toolCallId, isReadonly }: MicroAppResul
           </p>
         </div>
         {!isReadonly && (
-          <Button 
+          <Button
             onClick={handleOpenMicroApp}
             variant="default"
             size="sm"

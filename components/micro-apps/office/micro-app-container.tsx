@@ -28,11 +28,13 @@ export function MicroAppContainer(props: MicroAppContainerProps) {
   const { microAppType, microAppData } = useMicroApp();
 
   if (microAppType === 'office' && microAppData) {
+    console.log("microAppData", microAppData);
     return (
       <OfficeMicroApp
         microAppType={microAppData.microAppType}
         microAppData={microAppData.data}
         title={microAppData.title}
+        {...props}
       />
     );
   }

@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 
-import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from '../../icons';
+import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from '../../../icons';
 import { toast } from 'sonner';
 import type { ArtifactKind } from '@/lib/types';
 import { useMicroApp } from '@/hooks/use-micro-app';

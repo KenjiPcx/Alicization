@@ -27,12 +27,15 @@ import type * as http from "../http.js";
 import type * as interpreter from "../interpreter.js";
 import type * as kpis from "../kpis.js";
 import type * as memories from "../memories.js";
+import type * as onboarding from "../onboarding.js";
+import type * as seed from "../seed.js";
 import type * as tags from "../tags.js";
 import type * as tasks from "../tasks.js";
 import type * as teams from "../teams.js";
 import type * as threadTitles from "../threadTitles.js";
 import type * as tools from "../tools.js";
 import type * as usage from "../usage.js";
+import type * as utils from "../utils.js";
 import type * as votes from "../votes.js";
 
 import type {
@@ -69,12 +72,15 @@ declare const fullApi: ApiFromModules<{
   interpreter: typeof interpreter;
   kpis: typeof kpis;
   memories: typeof memories;
+  onboarding: typeof onboarding;
+  seed: typeof seed;
   tags: typeof tags;
   tasks: typeof tasks;
   teams: typeof teams;
   threadTitles: typeof threadTitles;
   tools: typeof tools;
   usage: typeof usage;
+  utils: typeof utils;
   votes: typeof votes;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

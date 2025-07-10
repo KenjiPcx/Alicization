@@ -1,6 +1,6 @@
 import { Artifact } from '@/components/micro-apps/artifact/create-artifact';
 import { DiffView } from '@/components/micro-apps/artifact/text-artifact/diffview';
-import { DocumentSkeleton } from '@/components/chat/messages/document-skeleton';
+import { DocumentSkeleton } from '@/components/chat/messages/tool-previews/document-skeleton';
 import { Editor } from '@/components/micro-apps/artifact/text-editor';
 import {
   ClockRewind,

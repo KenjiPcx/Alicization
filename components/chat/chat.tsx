@@ -10,19 +10,21 @@ import { api } from '@/convex/_generated/api';
 import { optimisticallySendMessage, toUIMessages, useThreadMessages } from '@convex-dev/agent/react';
 import { useChatStore } from '@/lib/store/chat-store';
 import type { MessageDoc } from '@convex-dev/agent';
-import { Artifact } from '../micro-apps/artifact/artifact';
 import type { Id } from '@/convex/_generated/dataModel';
+import { MicroAppContainer } from '../micro-apps/office/micro-app-container';
 
 const PureChat = ({
   threadId,
   mainParticipantId,
   teamId,
   isReadonly,
+  chatMode = 'direct',
 }: {
   threadId: string;
   mainParticipantId: Id<"employees">;
   teamId?: Id<"teams">;
   isReadonly: boolean;
+  chatMode?: 'direct' | 'team';
 }) => {
 
   const messages = useThreadMessages(
@@ -63,7 +65,8 @@ const PureChat = ({
 
   return (
     <>
-      <div className="ml-4 flex flex-col min-w-0 bg-background h-full w-full">
+      <div className={`ml-4 flex flex-col min-w-0 bg-background h-full w-full ${chatMode === 'team' ? 'chat-mode-team' : 'chat-mode-direct'
+        }`}>
         <ChatHeader
           threadId={threadId}
           selectedModelId={modelId}
@@ -76,9 +79,8 @@ const PureChat = ({
           status={status}
           votes={votes}
           messages={toUIMessages(messages.results)}
-          // setMessages={setMessages}
-          // reload={reload}
           isReadonly={isReadonly}
+          chatMode={chatMode}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
@@ -96,18 +98,18 @@ const PureChat = ({
               attachments={attachments}
               setAttachments={setAttachments}
               messages={toUIMessages(messages.results)}
-              // setMessages={setMessages}
               append={async () => {
                 await handleSubmit();
                 return null;
               }}
               selectedVisibilityType={"public"} // TODO: add visibility type
+              chatMode={chatMode}
             />
           )}
         </form>
       </div>
 
-      <Artifact
+      <MicroAppContainer
         chatId={threadId}
         input={prompt}
         setInput={setPrompt}
@@ -138,6 +140,7 @@ export const Chat = memo(PureChat, (prevProps, nextProps) => {
   if (prevProps.isReadonly !== nextProps.isReadonly) return false;
   if (prevProps.mainParticipantId !== nextProps.mainParticipantId) return false;
   if (prevProps.teamId !== nextProps.teamId) return false;
+  if (prevProps.chatMode !== nextProps.chatMode) return false;
 
   return true;
 });

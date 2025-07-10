@@ -5,11 +5,17 @@ import { getRandomEmployeeGreeting } from './employee-greetings';
 import { useMemo } from 'react';
 import { useChatStore } from '@/lib/store/chat-store';
 import { useOfficeStore } from '@/lib/store/office-store';
+import { getRandomTeamGreeting } from './team-greetings';
 
 export const Greeting = () => {
   const { threadId } = useChatStore();
-  const { activeParticipant } = useOfficeStore();
-  const greeting = useMemo(() => getRandomEmployeeGreeting(), [threadId, activeParticipant]);
+  const { activeChatParticipant } = useOfficeStore();
+  const greeting = useMemo(() => {
+    if (activeChatParticipant?.type === 'team') {
+      return getRandomTeamGreeting();
+    }
+    return getRandomEmployeeGreeting();
+  }, [threadId, activeChatParticipant]);
 
   return (
     <div

@@ -24,11 +24,13 @@ import {
 import { api } from '@/convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { useOfficeStore } from '@/lib/store/office-store';
+import { useOnboarding } from '@/hooks/use-onboarding';
 
 export function ChatSidebar() {
   const { setOpenMobile, open } = useSidebar();
   const { setThreadId, currentMode, setCurrentMode, initialVisibilityType } = useChatStore();
-  const { activeParticipant } = useOfficeStore();
+  const { activeChatParticipant } = useOfficeStore();
+  const { resetOnboarding } = useOnboarding();
   const createThread = useMutation(api.chat.createThread);
 
   return (
@@ -79,6 +81,16 @@ export function ChatSidebar() {
                 >
                   Config
                 </DropdownMenuItem>
+                {/* Development helper - remove in production */}
+                <DropdownMenuItem
+                  onClick={async () => {
+                    setOpenMobile(false);
+                    await resetOnboarding();
+                  }}
+                  className="text-orange-600"
+                >
+                  Reset Onboarding (Dev)
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -90,10 +102,16 @@ export function ChatSidebar() {
                   className="p-2 h-fit"
                   onClick={async () => {
                     setOpenMobile(false);
-                    if (!activeParticipant?.data._id) return;
+                    if (!activeChatParticipant) return;
+
+                    // Use the correct chat owner ID based on the chat type
+                    const chatOwnerId = activeChatParticipant.type === 'team'
+                      ? activeChatParticipant.teamId
+                      : activeChatParticipant.employeeId;
+
                     const { threadId } = await createThread({
-                      chatOwnerId: activeParticipant?.data._id,
-                      chatType: "employee",
+                      chatOwnerId,
+                      chatType: activeChatParticipant.type,
                       visibility: initialVisibilityType,
                     });
                     setThreadId(threadId);

@@ -1,15 +1,14 @@
-import { GenericId, v } from "convex/values";
-import { GenericActionCtx, paginationOptsValidator, } from "convex/server";
-import { action, httpAction, internalAction, internalMutation, mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+import { paginationOptsValidator, } from "convex/server";
+import { action, httpAction, internalAction, mutation, query } from "./_generated/server";
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
-import { employeeAgent, systemPrompt } from "@/lib/ai/agents/employee-agent";
+import { employeeAgent } from "@/lib/ai/agents/employee-agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
 import dedent from "dedent";
-// import { createEmployeeTools } from "@/lib/ai/tools/office/employee";
 
 export const createThread = mutation({
     args: {

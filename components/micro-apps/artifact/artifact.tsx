@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArtifactCloseButton } from './artifact-close-button';
 import { useWindowSize } from 'usehooks-ts';
 import { MultimodalInput } from '../../chat/multimodal-input';
-import { ArtifactMessages } from './artifact-messages';
+import { MicroAppMessages } from './micro-app-messages';
 import { formatDistance } from 'date-fns';
 import type { Attachment, UIMessage } from 'ai';
 import type { UseChatHelpers } from '@ai-sdk/react';
@@ -185,7 +185,7 @@ export function PureArtifact({
               </AnimatePresence>
 
               <div className="flex flex-col h-full justify-between items-center">
-                <ArtifactMessages
+                <MicroAppMessages
                   chatId={chatId}
                   status={status}
                   votes={votes}

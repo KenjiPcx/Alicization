@@ -6,6 +6,7 @@ import { employeeAgent, systemPrompt } from "@/lib/ai/agents/employee-agent";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import { api } from "./_generated/api";
 import { createEmployeeTools } from "@/lib/ai/tools/office/employee";
+import { createCEOTools } from "@/lib/ai/tools/office/ceo";
 
 export const streamMessage = internalAction({
     args: {
@@ -20,6 +21,7 @@ export const streamMessage = internalAction({
         const employee = await ctx.runQuery(api.employees.getEmployeeById, {
             employeeId,
         });
+        if (!employee) throw new Error("Employee not found");
         await employeeAgent.generateAndSaveEmbeddings(ctx, {
             messageIds: [promptMessageId],
         });
@@ -29,7 +31,7 @@ export const streamMessage = internalAction({
                 system: systemPrompt({ ...employee }),
                 promptMessageId,
                 providerOptions: anthropicProviderOptions,
-                tools: createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
+                tools: employee.isCEO ? await createCEOTools(ctx, userId) : await createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
                 maxSteps: 20
             },
             {

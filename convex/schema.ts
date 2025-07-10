@@ -60,7 +60,7 @@ export const vKpi = v.object({
   unit: v.string(),
   currentValue: v.optional(v.number()),
   target: v.optional(v.number()),
-  companyId: v.optional(v.id("company")),
+  companyId: v.optional(v.id("companies")),
   teamId: v.optional(v.id("teams")),
   employeeId: v.optional(v.id("employees")),
   scope: vKpiScopes,
@@ -75,18 +75,19 @@ export const applicationTables = {
   usersMetadata: defineTable({
     userId: v.id("users"),
     type: v.union(v.literal("regular"), v.literal("pro")),
+    onboardingCompleted: v.optional(v.boolean()),
+    onboardingCompletedAt: v.optional(v.number()),
   }).index("by_userId", ["userId"]),
 
-  company: defineTable({
+  companies: defineTable({
     name: v.string(),
+    description: v.string(),
     vision: v.string(),
     mission: v.string(),
     values: v.array(v.string()),
     goals: v.array(v.string()),
-    teamId: v.id("teams"),
     userId: v.id("users"),
-  }).index("by_teamId", ["teamId"])
-    .index("by_userId", ["userId"]),
+  }).index("by_userId", ["userId"]),
 
   kpis: defineTable(vKpi)
     .index("by_teamId", ["teamId"])
@@ -135,6 +136,7 @@ export const applicationTables = {
     description: v.string(),
     clusterPosition: v.optional(v.array(v.number())), // [x, y, z] position for team cluster
     deskCount: v.optional(v.number()), // Number of desks for this team
+    companyId: v.optional(v.id("companies")), // Temp optional for development
   }).index("by_userId", ["userId"]),
 
   // Employees are the AI agents in the office
@@ -153,6 +155,7 @@ export const applicationTables = {
     isSupervisor: v.boolean(), // If the employee is a supervisor
     isCEO: v.boolean(), // If the employee is the CEO of the company
     deskIndex: v.optional(v.number()), // Which desk position in their team (0-based)
+    companyId: v.optional(v.id("companies")), // Temp optional for development
   }).index("by_teamId", ["teamId"])
     .index("by_userId", ["userId"]),
 

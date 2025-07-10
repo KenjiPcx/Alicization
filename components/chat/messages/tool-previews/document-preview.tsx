@@ -11,11 +11,11 @@ import React, {
 import { FileIcon, FullscreenIcon, ImageIcon, LoaderIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { InlineDocumentSkeleton } from './document-skeleton';
-import { Editor } from '../../micro-apps/artifact/text-editor';
+import { Editor } from '../../../micro-apps/artifact/text-editor';
 import { DocumentToolCall, DocumentToolResult } from './document';
-import { CodeEditor } from '../../micro-apps/artifact/code-artifact/code-editor';
-import { SpreadsheetEditor } from '../../micro-apps/artifact/sheet-editor';
-import { ImageEditor } from '../../micro-apps/artifact/text-artifact/image-editor';
+import { CodeEditor } from '../../../micro-apps/artifact/code-artifact/code-editor';
+import { SpreadsheetEditor } from '../../../micro-apps/artifact/sheet-editor';
+import { ImageEditor } from '../../../micro-apps/artifact/text-artifact/image-editor';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { ArtifactKind } from '@/lib/types';

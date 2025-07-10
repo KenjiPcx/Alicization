@@ -4,6 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useWindowSize } from 'usehooks-ts';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MicroAppMessages } from '@/components/micro-apps/artifact/micro-app-messages';
+import { MultimodalInput } from '@/components/chat/multimodal-input';
+import type { Attachment, UIMessage } from 'ai';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { VisibilityType } from '@/components/chat/visibility-selector';
+import type { Dispatch, SetStateAction } from 'react';
+import type { Vote } from '@/lib/types';
 import KPIClientMicroUI from '@/micro-apps/office/kpi-client';
 import CompanyConfigMicroUI from '@/micro-apps/office/company-config';
 import EmployeeConfigMicroUI from '@/micro-apps/office/employee-config';
@@ -12,9 +19,39 @@ interface OfficeMicroAppProps {
   microAppType: string;
   microAppData: any;
   title: string;
+  chatId: string;
+  input: string;
+  setInput: UseChatHelpers['setInput'];
+  handleSubmit: UseChatHelpers['handleSubmit'];
+  status: 'submitted' | 'ready' | 'pending' | 'failed' | 'success';
+  stop: UseChatHelpers['stop'];
+  attachments: Array<Attachment>;
+  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  append: UseChatHelpers['append'];
+  messages: Array<UIMessage>;
+  votes: Array<Vote> | undefined;
+  isReadonly: boolean;
+  selectedVisibilityType: VisibilityType;
 }
 
-export function OfficeMicroApp({ microAppType, microAppData, title }: OfficeMicroAppProps) {
+export function OfficeMicroApp({
+  microAppType,
+  microAppData,
+  title,
+  chatId,
+  input,
+  setInput,
+  handleSubmit,
+  status,
+  stop,
+  attachments,
+  setAttachments,
+  append,
+  messages,
+  votes,
+  isReadonly,
+  selectedVisibilityType,
+}: OfficeMicroAppProps) {
   const { isVisible, boundingBox, closeMicroApp } = useMicroApp();
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
@@ -40,30 +77,30 @@ export function OfficeMicroApp({ microAppType, microAppData, title }: OfficeMicr
             companyId: microAppData.companyId,
           };
         }
-        
+
         return (
-          <KPIClientMicroUI 
+          <KPIClientMicroUI
             title={title}
             scopeAndId={scopeAndId}
           />
         );
-      
+
       case 'company-config':
         return (
-          <CompanyConfigMicroUI 
+          <CompanyConfigMicroUI
             title={title}
             toolCallId={microAppData.toolCallId || ''}
           />
         );
-      
+
       case 'employee-config':
         return (
-          <EmployeeConfigMicroUI 
+          <EmployeeConfigMicroUI
             title={title}
             toolCallId={microAppData.toolCallId || ''}
           />
         );
-      
+
       default:
         return (
           <div className="p-6 text-center">
@@ -87,9 +124,61 @@ export function OfficeMicroApp({ microAppType, microAppData, title }: OfficeMicr
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { delay: 0.4 } }}
         >
+          {/* Chat sidebar */}
+          {!isMobile && (
+            <motion.div
+              className="relative w-[450px] bg-muted dark:bg-background h-full shrink-0"
+              initial={{ opacity: 0, x: 10, scale: 1 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                scale: 1,
+                transition: {
+                  delay: 0.2,
+                  type: 'spring',
+                  stiffness: 200,
+                  damping: 30,
+                },
+              }}
+              exit={{
+                opacity: 0,
+                x: 0,
+                scale: 1,
+                transition: { duration: 0 },
+              }}
+            >
+              <div className="flex flex-col h-full justify-between items-center">
+                <MicroAppMessages
+                  chatId={chatId}
+                  status={status}
+                  votes={votes}
+                  messages={messages}
+                  isReadonly={isReadonly}
+                />
+
+                <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
+                  <MultimodalInput
+                    chatId={chatId}
+                    input={input}
+                    setInput={setInput}
+                    handleSubmit={handleSubmit}
+                    status={status}
+                    stop={stop}
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+                    messages={messages}
+                    append={append}
+                    className="bg-background dark:bg-muted"
+                    selectedVisibilityType={selectedVisibilityType}
+                  />
+                </form>
+              </div>
+            </motion.div>
+          )}
+
           {/* Main content */}
           <motion.div
-            className="relative flex-1 dark:bg-muted bg-background h-full flex flex-col"
+            className="relative flex-1 dark:bg-muted bg-background h-full flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
             initial={{
               opacity: 1,
               x: boundingBox.left,
