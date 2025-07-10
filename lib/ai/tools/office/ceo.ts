@@ -12,8 +12,8 @@ import { createTool } from "@convex-dev/agent";
 import dedent from "dedent";
 import { z } from "zod";
 import { createKPIToolset, resolveCompanyScope } from "../advanced/kpi";
-import { openMicroApp } from "../advanced/micro-app";
-import { ActionCtx, MutationCtx } from "@/convex/_generated/server";
+import { createOpenOfficeMicroAppTool } from "../advanced/office-micro-app";
+import { ActionCtx } from "@/convex/_generated/server";
 
 export const useCeoToolsPrompt = dedent`
     # CEO Tools
@@ -137,6 +137,7 @@ export const createCEOTools = async (ctx: ActionCtx, userId: Id<"users">) => {
     // Resolve company scope for KPI tools
     const companyScope = await resolveCompanyScope(ctx, userId);
     const kpiTools = createKPIToolset(ctx, companyScope, userId);
+    const openOfficeMicroAppTool = createOpenOfficeMicroAppTool(companyScope);
 
     return {
         // Company management tools
@@ -146,7 +147,7 @@ export const createCEOTools = async (ctx: ActionCtx, userId: Id<"users">) => {
         updateCompanyDetails,
 
         // Micro-app tools
-        openMicroApp,
+        openOfficeMicroApp: openOfficeMicroAppTool,
 
         // KPI tools with company context injected
         viewKPIDashboard: kpiTools.viewKPIDashboard,

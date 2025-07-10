@@ -9,12 +9,13 @@ import { useChatStore } from '@/lib/store/chat-store';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useOfficeData } from '@/hooks/use-office-data';
+import type { Id } from '@/convex/_generated/dataModel';
 
 // Main Office Simulation Component
 export default function OfficeSimulation() {
     const {
-        activeParticipant,
-        setActiveParticipant,
+        activeChatParticipant,
+        setActiveChatParticipant,
         debugMode,
         toggleDebugMode,
     } = useOfficeStore();
@@ -24,6 +25,10 @@ export default function OfficeSimulation() {
         setIsChatModalOpen,
         setUserMetadata
     } = useAppStore();
+
+    useEffect(() => {
+        console.log("isChatModalOpen", isChatModalOpen);
+    }, [isChatModalOpen]);
 
     const { threadId, setThreadId } = useChatStore();
 
@@ -55,30 +60,44 @@ export default function OfficeSimulation() {
 
     const handleEmployeeClick = useCallback(
         async (employee: EmployeeData) => {
-            setActiveParticipant({ type: 'employee', data: employee });
+            setActiveChatParticipant({
+                type: 'employee',
+                employeeId: employee._id as Id<"employees">,
+                teamId: employee.teamId as Id<"teams">
+            });
             setThreadId(await getLatestThreadId(employee._id, "employee"));
             setIsChatModalOpen(true);
         },
-        [setActiveParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
+        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
     );
 
     const handleTeamClick = useCallback(
         async (team: TeamData) => {
-            setActiveParticipant({ type: 'team', data: team });
+            // Use supervisor as the employee ID for team chats
+            if (!team.supervisorId) {
+                console.error('Team has no supervisor:', team);
+                return;
+            }
+
+            setActiveChatParticipant({
+                type: 'team',
+                employeeId: team.supervisorId as Id<"employees">,
+                teamId: team._id as Id<"teams">
+            });
             // Use team ID as chatOwnerId to distinguish from direct supervisor chats
             setThreadId(await getLatestThreadId(team._id, "team"));
             setIsChatModalOpen(true);
         },
-        [setActiveParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
+        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
     );
 
     const handleChatModalClose = useCallback((isOpen: boolean) => {
         setIsChatModalOpen(isOpen);
         if (!isOpen) {
             // Clear selections when modal closes
-            setActiveParticipant(null);
+            setActiveChatParticipant(null);
         }
-    }, [setIsChatModalOpen, setActiveParticipant]);
+    }, [setIsChatModalOpen, setActiveChatParticipant]);
 
     // Fetch office data from database
     const { teams, employees, desks, isLoading } = useOfficeData();
@@ -112,7 +131,7 @@ export default function OfficeSimulation() {
             <ChatDialog
                 isOpen={isChatModalOpen}
                 onOpenChange={handleChatModalClose}
-                chatWith={activeParticipant}
+                chatParticipant={activeChatParticipant}
             />
         </div>
     );

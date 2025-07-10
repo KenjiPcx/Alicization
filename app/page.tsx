@@ -5,8 +5,12 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import OfficeSimulation from "@/components/office-simulation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
+import { useOnboarding } from '@/hooks/use-onboarding';
 
-export default function Home() {
+export default function HomePage() {
+  const { showOnboarding, isLoadingStatus } = useOnboarding();
+
   return (
     <main className="w-[100dvw] h-[100dvh]">
       <div className="absolute top-0 right-0 p-4 z-10">
@@ -17,6 +21,12 @@ export default function Home() {
           <OfficeSimulation />
         </SidebarInset>
       </SidebarProvider>
+      {/* Only show onboarding modal when status is loaded */}
+      {!isLoadingStatus && (
+        <OnboardingModal
+          open={showOnboarding}
+        />
+      )}
     </main>
   );
 }
