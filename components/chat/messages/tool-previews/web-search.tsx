@@ -4,12 +4,26 @@ import React from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
+interface WebSearchResult {
+    content: string;
+    sourceUrl: string;
+}
+
+interface WebSearchResponse {
+    success: boolean;
+    message: string;
+    results?: WebSearchResult[];
+    query?: string;
+    resultCount?: number;
+}
+
 interface WebSearchPreviewProps {
     args: { query: string };
     toolCallId: string;
+    result?: WebSearchResponse;
 }
 
-export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
+export function WebSearchPreview({ args, toolCallId, result }: WebSearchPreviewProps) {
     const backgroungJobStatus = useQuery(api.backgroundJobStatuses.getBackgroundJobStatus, { toolCallId });
 
     if (!backgroungJobStatus) {
@@ -18,6 +32,8 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
 
     const currentStatus = backgroungJobStatus.statusUpdates[backgroungJobStatus.statusUpdates.length - 1];
     const currentProgress = currentStatus?.progress || 0;
+    const isCompleted = currentStatus?.status === "completed";
+    const isFailed = currentStatus?.status === "failed";
 
     return (
         <div className="border border-hacker-border rounded-lg p-4 bg-gradient-to-r from-hacker-bg to-hacker-bg-secondary shadow-lg shadow-hacker-accent/20">
@@ -63,32 +79,32 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
             <div className="space-y-2">
                 {backgroungJobStatus.statusUpdates.map((status, index) => {
                     const isLatest = index === backgroungJobStatus.statusUpdates.length - 1;
-                    const isCompleted = status.status === "completed";
-                    const isFailed = status.status === "failed";
+                    const isStatusCompleted = status.status === "completed";
+                    const isStatusFailed = status.status === "failed";
 
                     return (
                         <div
                             key={`${status.message}-${status.timestamp}`}
                             className={`flex items-center gap-3 p-2 rounded transition-all ${isLatest && status.status === "running"
                                 ? 'bg-hacker-progress/20 border-l-2 border-hacker-progress shadow-sm shadow-hacker-progress/20'
-                                : isCompleted
+                                : isStatusCompleted
                                     ? 'bg-hacker-success/10 border-l-2 border-hacker-success/50'
-                                    : isFailed
+                                    : isStatusFailed
                                         ? 'bg-hacker-error/10 border-l-2 border-hacker-error/50'
                                         : 'bg-hacker-pending/10 border border-hacker-pending/20'
                                 }`}
                         >
                             <div className={`text-sm ${isLatest && status.status === "running" ? 'animate-pulse' : ''}`}>
-                                {isCompleted ? '✅' :
-                                    isFailed ? '❌' :
+                                {isStatusCompleted ? '✅' :
+                                    isStatusFailed ? '❌' :
                                         isLatest && status.status === "running" ? '🔄' : '✅'}
                             </div>
                             <div className="flex-1">
                                 <div className={`text-sm font-medium ${isLatest && status.status === "running"
                                     ? 'text-hacker-progress-bright'
-                                    : isCompleted
+                                    : isStatusCompleted
                                         ? 'text-hacker-success'
-                                        : isFailed
+                                        : isStatusFailed
                                             ? 'text-hacker-error'
                                             : 'text-hacker-text'
                                     }`}>
@@ -105,6 +121,52 @@ export function WebSearchPreview({ args, toolCallId }: WebSearchPreviewProps) {
                     );
                 })}
             </div>
+
+            {/* Results section - only show when completed and we have results */}
+            {isCompleted && result && (
+                <div className="mt-4 border-t border-hacker-border pt-4">
+                    {result.success ? (
+                        <>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="text-sm font-medium text-hacker-success">
+                                    Found {result.resultCount || result.results?.length || 0} results
+                                </div>
+                            </div>
+                            {result.results && result.results.length > 0 && (
+                                <div className="space-y-3">
+                                    {result.results.slice(0, 3).map((searchResult, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-hacker-bg-secondary/50 rounded-lg p-3 border border-hacker-border/50"
+                                        >
+                                            <div className="text-sm text-hacker-text line-clamp-3 mb-2">
+                                                {searchResult.content}
+                                            </div>
+                                            <a
+                                                href={searchResult.sourceUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-hacker-accent-bright hover:text-hacker-accent underline break-all"
+                                            >
+                                                {searchResult.sourceUrl}
+                                            </a>
+                                        </div>
+                                    ))}
+                                    {result.results.length > 3 && (
+                                        <div className="text-xs text-hacker-text-secondary text-center">
+                                            + {result.results.length - 3} more results
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="text-sm text-hacker-error">
+                            ❌ Search failed: {result.message}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

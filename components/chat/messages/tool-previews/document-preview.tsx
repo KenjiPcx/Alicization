@@ -21,9 +21,19 @@ import { api } from '@/convex/_generated/api';
 import type { ArtifactKind } from '@/lib/types';
 import { useMicroApp } from '@/hooks/use-micro-app';
 
+interface DocumentResponse {
+  success: boolean;
+  message: string;
+  artifactId?: string;
+  title?: string;
+  kind?: ArtifactKind;
+  content?: string;
+}
+
 interface DocumentPreviewProps {
   isReadonly: boolean;
   result?: string;
+  structuredResult?: DocumentResponse;
   args?: {
     title: string;
     type: ArtifactKind;
@@ -34,6 +44,7 @@ interface DocumentPreviewProps {
 export function DocumentPreview({
   isReadonly,
   result,
+  structuredResult,
   args,
   toolCallId,
 }: DocumentPreviewProps) {
@@ -101,6 +112,7 @@ export function DocumentPreview({
         <DocumentToolResult
           type="create"
           result={{ toolCallId, title, kind: type }}
+          structuredResult={structuredResult}
           isReadonly={isReadonly}
         />
       );
@@ -111,6 +123,7 @@ export function DocumentPreview({
         <DocumentToolCall
           type="create"
           args={{ title: args.title }}
+          structuredResult={structuredResult}
           isReadonly={isReadonly}
           toolCallId={toolCallId}
         />
@@ -125,6 +138,27 @@ export function DocumentPreview({
 
   const currentStatus = backgroungJobStatus?.statusUpdates?.[backgroungJobStatus.statusUpdates.length - 1];
   const isInProgress = currentStatus?.status === "running";
+  const isCompleted = currentStatus?.status === "completed";
+  const isFailed = currentStatus?.status === "failed";
+
+  // Show error state if we have a structured result with failure
+  if (structuredResult && !structuredResult.success && (isCompleted || isFailed)) {
+    return (
+      <div className="relative w-full">
+        <div className="border border-red-200 dark:border-red-700 rounded-xl p-4 bg-background">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="text-red-500">❌</div>
+            <div className="font-medium text-red-600 dark:text-red-400">
+              Document Creation Failed
+            </div>
+          </div>
+          <div className="text-sm text-red-600 dark:text-red-400">
+            {structuredResult.message}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Create a document object for rendering
   const document = previewArtifact || {
@@ -147,10 +181,12 @@ export function DocumentPreview({
         title={document.title}
         kind={document.kind}
         isStreaming={isInProgress}
+        isSuccess={structuredResult?.success}
       />
       <DocumentContent
         document={document}
         isInProgress={isInProgress}
+        structuredResult={structuredResult}
       />
     </div>
   );
@@ -230,10 +266,12 @@ const PureDocumentHeader = ({
   title,
   kind,
   isStreaming,
+  isSuccess,
 }: {
   title: string;
   kind: ArtifactKind;
   isStreaming: boolean;
+  isSuccess?: boolean;
 }) => (
   <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-t-2xl flex flex-row gap-2 items-start sm:items-center justify-between dark:bg-muted border-b-0">
     <div className="flex flex-row items-start sm:items-center gap-3">
@@ -242,6 +280,8 @@ const PureDocumentHeader = ({
           <div className="animate-spin">
             <LoaderIcon />
           </div>
+        ) : isSuccess ? (
+          <div className="text-green-500">✅</div>
         ) : kind === 'image' ? (
           <ImageIcon />
         ) : (
@@ -257,12 +297,14 @@ const PureDocumentHeader = ({
 const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
   if (prevProps.title !== nextProps.title) return false;
   if (prevProps.isStreaming !== nextProps.isStreaming) return false;
+  if (prevProps.isSuccess !== nextProps.isSuccess) return false;
   return true;
 });
 
-const DocumentContent = ({ document, isInProgress }: {
+const DocumentContent = ({ document, isInProgress, structuredResult }: {
   document: any;
   isInProgress: boolean;
+  structuredResult?: DocumentResponse;
 }) => {
   const containerClassName = cn(
     'h-[257px] overflow-y-scroll border border-gray-200 dark:border-gray-700 rounded-b-2xl dark:bg-muted border-t-0 custom-scrollbar',
@@ -310,6 +352,15 @@ const DocumentContent = ({ document, isInProgress }: {
           isInline={true}
         />
       ) : null}
+
+      {/* Show success message when completed successfully */}
+      {structuredResult?.success && status === 'idle' && (
+        <div className="absolute top-2 right-2 bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1">
+          <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+            ✅ Created successfully
+          </div>
+        </div>
+      )}
     </div>
   );
 };

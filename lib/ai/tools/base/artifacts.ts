@@ -1,6 +1,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 // Generalized entrypoint to create an artifact
 // Could be text, sheet, code, image, video, audio, workflows, etc
@@ -11,33 +12,47 @@ export const createArtifact = createTool({
         type: z.enum(["text", "sheet", "code", "image", "video", "music"]).describe("The type of the artifact"),
         generationPrompt: z.string().describe("The prompt to generate the artifact, you should be as specific as possible with what you want to generate"),
     }),
-    handler: async (ctx, args, { toolCallId }): Promise<string> => {
-        if (!ctx.threadId) throw new Error("Thread ID is required");
-        if (!ctx.userId) throw new Error("User ID is required");
-        if (!ctx.messageId) throw new Error("Message ID is required");
+    handler: async (ctx, args, { toolCallId }): Promise<{ success: boolean; message: string; jobId?: string; toolCallId?: string }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
+                if (!ctx.userId) throw new Error("User ID is required");
+                if (!ctx.messageId) throw new Error("Message ID is required");
 
-        const { title, type, generationPrompt } = args;
+                const { title, type, generationPrompt } = args;
 
-        const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
-            toolCallId,
-            threadId: ctx.threadId,
-            messageId: ctx.messageId,
-            toolName: "createArtifact",
-            toolParameters: args,
-        });
+                const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
+                    toolCallId,
+                    threadId: ctx.threadId,
+                    messageId: ctx.messageId,
+                    toolName: "createArtifact",
+                    toolParameters: args,
+                });
 
-        // Not sure which artifact needs to be in the background yet, but it should be useful for longer running artifacts
-        const jobId = await ctx.runAction(internal.artifacts.scheduleArtifactGeneration, {
-            threadId: ctx.threadId,
-            employeeId: ctx.userId,
-            messageId: ctx.messageId,
-            title: title,
-            kind: type,
-            generationPrompt: generationPrompt,
-            toolCallId,
-            backgroundJobStatusId,
-        });
-        return `Artifact scheduled to be created in the background with job id: ${jobId}. Will notify you when it is ready.`;
+                // Not sure which artifact needs to be in the background yet, but it should be useful for longer running artifacts
+                const jobId = await ctx.runAction(internal.artifacts.scheduleArtifactGeneration, {
+                    threadId: ctx.threadId,
+                    employeeId: ctx.userId,
+                    messageId: ctx.messageId,
+                    title: title,
+                    kind: type,
+                    generationPrompt: generationPrompt,
+                    toolCallId,
+                    backgroundJobStatusId,
+                });
+
+                return jobId;
+            },
+            {
+                operation: "Artifact creation",
+                includeTechnicalDetails: true
+            },
+            (jobId) => ({
+                message: `Artifact scheduled to be created in the background with job id: ${jobId}. Will notify you when it is ready.`,
+                jobId: jobId,
+                toolCallId: toolCallId
+            })
+        );
     },
 })
 
@@ -49,33 +64,47 @@ export const updateArtifact = createTool({
         kind: z.enum(["text", "sheet", "code", "image", "video", "music"]).describe("The kind of the artifact"),
         generationPrompt: z.string().describe("The prompt to generate the artifact, you should be as specific as possible with what you want to generate"),
     }),
-    handler: async (ctx, args, { toolCallId }): Promise<string> => {
-        if (!ctx.threadId) throw new Error("Thread ID is required");
-        if (!ctx.userId) throw new Error("User ID is required");
-        if (!ctx.messageId) throw new Error("Message ID is required");
+    handler: async (ctx, args, { toolCallId }): Promise<{ success: boolean; message: string; jobId?: string; artifactGroupId?: string; toolCallId?: string }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
+                if (!ctx.userId) throw new Error("User ID is required");
+                if (!ctx.messageId) throw new Error("Message ID is required");
 
-        const { artifactGroupId, title, kind, generationPrompt } = args;
+                const { artifactGroupId, title, kind, generationPrompt } = args;
 
-        const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
-            toolCallId,
-            threadId: ctx.threadId,
-            messageId: ctx.messageId,
-            toolName: "createArtifact",
-            toolParameters: args,
-        });
+                const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
+                    toolCallId,
+                    threadId: ctx.threadId,
+                    messageId: ctx.messageId,
+                    toolName: "createArtifact",
+                    toolParameters: args,
+                });
 
-        const jobId = await ctx.runAction(internal.artifacts.scheduleArtifactGeneration, {
-            artifactGroupId,
-            threadId: ctx.threadId,
-            employeeId: ctx.userId,
-            messageId: ctx.messageId,
-            title,
-            kind,
-            generationPrompt,
-            toolCallId,
-            backgroundJobStatusId,
-        });
+                const jobId = await ctx.runAction(internal.artifacts.scheduleArtifactGeneration, {
+                    artifactGroupId,
+                    threadId: ctx.threadId,
+                    employeeId: ctx.userId,
+                    messageId: ctx.messageId,
+                    title,
+                    kind,
+                    generationPrompt,
+                    toolCallId,
+                    backgroundJobStatusId,
+                });
 
-        return `Artifact group ${artifactGroupId} scheduled to be updated in the background with job id: ${jobId}. Will notify you when it is ready.`;
+                return { jobId, artifactGroupId };
+            },
+            {
+                operation: "Artifact update",
+                includeTechnicalDetails: true
+            },
+            ({ jobId, artifactGroupId }) => ({
+                message: `Artifact group ${artifactGroupId} scheduled to be updated in the background with job id: ${jobId}. Will notify you when it is ready.`,
+                jobId: jobId,
+                artifactGroupId: artifactGroupId,
+                toolCallId: toolCallId
+            })
+        );
     },
 })

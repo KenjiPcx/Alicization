@@ -1,10 +1,11 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { model } from "../../model";
+import { model, summaryModel } from "../../model";
 import dedent from "dedent";
 import { generateObject } from "ai";
 import { internal } from "@/convex/_generated/api";
-import { tavily } from "@tavily/core"
+import { tavily } from "@tavily/core";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 const webSearchResultSchema = z.object({
     content: z.string(),
@@ -47,90 +48,111 @@ export const webSearch = createTool({
         includeDomains: z.optional(z.array(z.string())).describe("Filter results by specific domains, leave it out if you need results from all domains"),
         excludeDomains: z.optional(z.array(z.string())).describe("Exclude specific domains, leave it out if you need results from all domains")
     }),
-    handler: async (ctx, args, { toolCallId }): Promise<z.infer<typeof webSearchResultSchema>[]> => {
-        const { query, topic, timeRange, includeDomains, excludeDomains } = args;
+    handler: async (ctx, args, { toolCallId }): Promise<{
+        success: boolean;
+        message: string;
+        results?: z.infer<typeof webSearchResultSchema>[];
+        query?: string;
+        resultCount?: number;
+    }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
+                if (!ctx.messageId) throw new Error("Message ID is required");
 
-        if (!ctx.threadId) throw new Error("Thread ID is required");
-        if (!ctx.messageId) throw new Error("Message ID is required");
+                const { query, topic, timeRange, includeDomains, excludeDomains } = args;
 
-        // Create a tool status
-        const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
-            toolCallId,
-            messageId: ctx.messageId,
-            toolName: "webSearch",
-            toolParameters: args,
-            threadId: ctx.threadId,
-        });
-
-        try {
-
-            await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                backgroundJobStatusId,
-                status: "running",
-                message: "Searching the web...",
-                progress: 25,
-            });
-
-            const res = await tvly.search(query, {
-                max_results: 8,
-                topic: topic,
-                searchDepth: "advanced",
-                timeRange: timeRange,
-                includeDomains: includeDomains,
-                excludeDomains: excludeDomains
-            })
-
-            await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                backgroundJobStatusId,
-                status: "running",
-                message: `Found ${res.results.length} results, analyzing content...`,
-                progress: 60,
-            });
-
-            const extracted = await tvly.extract(res.results.map((r) => r.url))
-
-            await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                backgroundJobStatusId,
-                status: "running",
-                message: "Extracting information from the web...",
-                progress: 75,
-            });
-
-            const { object: usefulInfo } = await generateObject({
-                model,
-                prompt: dedent(`You are a helpful research assistant that extracts information from web pages.
-
-                Given page content of potentially relevant websites, extract the information that is most relevant to the question: ${query}.
-                If there is no relevant information, return an empty array.
-
-                Here is the text: 
-                ${JSON.stringify(extracted)}
-
-                Extract the information from the text and return it in a structured format.`),
-                output: 'array',
-                schema: webSearchResultSchema,
-            });
-
-            await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                backgroundJobStatusId,
-                status: "completed",
-                message: `Search completed: ${usefulInfo.length} relevant results found`,
-                progress: 100,
-            });
-
-            return usefulInfo;
-        } catch (error) {
-            if (error instanceof Error) {
-                await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                    backgroundJobStatusId,
-                    status: "failed",
-                    message: `Search failed: ${error.message}`,
-                    progress: 0,
+                // Create a tool status
+                const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
+                    toolCallId,
+                    messageId: ctx.messageId,
+                    toolName: "webSearch",
+                    toolParameters: args,
+                    threadId: ctx.threadId,
                 });
 
-                throw new Error(`Web search failed: ${error.message}`);
-            }
-            throw new Error("An unknown error occurred");
-        }
+                try {
+                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                        backgroundJobStatusId,
+                        status: "running",
+                        message: "Searching the web...",
+                        progress: 25,
+                    });
+
+                    const res = await tvly.search(query, {
+                        max_results: 8,
+                        topic: topic,
+                        searchDepth: "advanced",
+                        timeRange: timeRange,
+                        includeDomains: includeDomains,
+                        excludeDomains: excludeDomains
+                    })
+
+                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                        backgroundJobStatusId,
+                        status: "running",
+                        message: `Found ${res.results.length} results, analyzing content...`,
+                        progress: 60,
+                    });
+
+                    const extracted = await tvly.extract(res.results.map((r) => r.url))
+
+                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                        backgroundJobStatusId,
+                        status: "running",
+                        message: "Extracting information from the web...",
+                        progress: 75,
+                    });
+
+                    const { object: usefulInfo } = await generateObject({
+                        model: summaryModel,
+                        prompt: dedent(`You are a helpful research assistant that extracts information from web pages.
+
+                        Given page content of potentially relevant websites, extract the information that is most relevant to the question: ${query}.
+                        If there is no relevant information, return an empty array.
+
+                        Here is the text: 
+                        ${JSON.stringify(extracted)}
+
+                        Extract the information from the text and return it in a structured format.`),
+                        output: 'array',
+                        schema: webSearchResultSchema,
+                    });
+
+                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                        backgroundJobStatusId,
+                        status: "completed",
+                        message: `Search completed: ${usefulInfo.length} relevant results found`,
+                        progress: 100,
+                    });
+
+                    return {
+                        results: usefulInfo,
+                        query,
+                        resultCount: usefulInfo.length,
+                        backgroundJobStatusId
+                    };
+                } catch (error) {
+                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                        backgroundJobStatusId,
+                        status: "failed",
+                        message: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        progress: 0,
+                    });
+                    throw error; // Re-throw to be handled by withToolErrorHandling
+                }
+            },
+            {
+                operation: "Web search",
+                context: `query: "${args.query}"`,
+                includeTechnicalDetails: true
+            },
+            ({ results, query, resultCount }) => ({
+                message: `Web search completed successfully for "${query}". Found ${resultCount} relevant results.`,
+                results: results,
+                query: query,
+                resultCount: resultCount
+            })
+        );
     },
 })
