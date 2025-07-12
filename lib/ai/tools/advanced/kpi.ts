@@ -12,7 +12,6 @@ import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 export const createKPIDashboardTool = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => tool({
     description: `View KPI dashboard with summary and progress for the ${scopeAndId.scope}`,
     parameters: z.object({
@@ -49,7 +48,6 @@ export const createKPIDashboardTool = (
 export const createKPITool = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => tool({
     description: `Create a new KPI (Key Performance Indicator) for the ${scopeAndId.scope}`,
     parameters: z.object({
@@ -103,7 +101,6 @@ export const createKPITool = (
 export const createUpdateKPITool = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => tool({
     description: `Update the progress of a KPI for the ${scopeAndId.scope}`,
     parameters: z.object({
@@ -165,7 +162,6 @@ export const createUpdateKPITool = (
 export const createRemoveKPITool = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => tool({
     description: `Remove a KPI that is no longer needed from the ${scopeAndId.scope}`,
     parameters: z.object({
@@ -216,7 +212,6 @@ export const createRemoveKPITool = (
 export const createListKPIsTool = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => tool({
     description: `List all KPIs for the ${scopeAndId.scope}`,
     parameters: z.object({
@@ -268,13 +263,12 @@ export const createListKPIsTool = (
 export const createKPIToolset = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
-    userId: Id<"users">
 ) => ({
-    viewKPIDashboard: createKPIDashboardTool(ctx, scopeAndId, userId),
-    createKPI: createKPITool(ctx, scopeAndId, userId),
-    updateKPI: createUpdateKPITool(ctx, scopeAndId, userId),
-    removeKPI: createRemoveKPITool(ctx, scopeAndId, userId),
-    listKPIs: createListKPIsTool(ctx, scopeAndId, userId),
+    viewKPIDashboard: createKPIDashboardTool(ctx, scopeAndId),
+    createKPI: createKPITool(ctx, scopeAndId),
+    updateKPI: createUpdateKPITool(ctx, scopeAndId),
+    removeKPI: createRemoveKPITool(ctx, scopeAndId),
+    listKPIs: createListKPIsTool(ctx, scopeAndId),
 });
 
 /**

@@ -10,7 +10,7 @@ export const useBrowser = createTool({
     args: z.object({
         content: z.string().describe("The content to use the browser"),
     }),
-    handler: async (ctx, args): Promise<string> => {
+    handler: async (): Promise<string> => {
         // Use the browser
         return "Browser used";
     },

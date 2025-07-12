@@ -42,7 +42,6 @@ function PureMultimodalInput({
   handleSubmit,
   className,
   selectedVisibilityType,
-  chatMode = 'direct',
 }: {
   chatId: string;
   input: UseChatHelpers['input'];
@@ -130,7 +129,6 @@ function PureMultimodalInput({
     setAttachments,
     setLocalStorageInput,
     width,
-    chatId,
   ]);
 
   const uploadFile = async (file: File) => {

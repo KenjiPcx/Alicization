@@ -46,7 +46,7 @@ export function WebSearchResults({ results: response }: WebSearchResultsProps) {
             {/* Show search query if available */}
             {response.query && (
                 <div className="text-sm text-hacker-text-secondary mb-3">
-                    Searching for: <span className="font-medium text-hacker-text">"{response.query}"</span>
+                    Searching for: <span className="font-medium text-hacker-text">&quot;{response.query}&quot;</span>
                 </div>
             )}
 

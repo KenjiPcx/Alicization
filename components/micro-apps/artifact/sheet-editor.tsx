@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { DataGrid, textEditor } from 'react-data-grid';
 import { parse, unparse } from 'papaparse';

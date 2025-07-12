@@ -13,9 +13,7 @@ interface SuggestedActionsProps {
 }
 
 function PureSuggestedActions({
-  chatId,
   append,
-  selectedVisibilityType,
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {

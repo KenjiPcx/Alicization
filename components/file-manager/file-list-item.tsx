@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import type { DBManagedFileType } from '@/lib/db/schema';
-import { Badge } from '../ui/badge';
+import { useState } from 'react';
+import type { CompanyFile } from '@/lib/types';
 import { Button } from '../ui/button';
 import {
   ImageIcon,
@@ -22,10 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  useRealtimeStore,
-  type RealtimeState,
-} from '@/lib/store/realtime-store';
 
 export interface FileStatus {
   managedFileId: string;
@@ -36,7 +31,7 @@ export interface FileStatus {
 }
 
 interface FileListItemProps {
-  file: DBManagedFileType;
+  file: CompanyFile;
   onClick: () => void;
   onDelete: (fileId: string) => Promise<void>;
 }
@@ -60,9 +55,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
   onClick,
   onDelete,
 }) => {
-  const currentFileStatus = useRealtimeStore(
-    (state: RealtimeState) => state.fileStatuses[file.id] || null,
-  );
+  const isEmbedded = file.embeddingStatus === "completed";
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -71,7 +64,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
     e.stopPropagation(); // Prevent triggering the onClick for the whole item
     setIsDeleting(true);
     try {
-      await onDelete(file.id);
+      await onDelete(file._id);
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);
@@ -87,20 +80,19 @@ const FileListItem: React.FC<FileListItemProps> = ({
         {getFileIcon(file.mimeType)}
         <div className="flex-grow min-w-0">
           <p
-            className={`text-sm font-medium ${
-              !file.isEmbedded && currentFileStatus?.status !== 'completed'
-                ? 'text-gray-400 dark:text-gray-500'
-                : 'text-gray-900 dark:text-white'
-            } truncate`}
+            className={`text-sm font-medium ${!isEmbedded
+              ? 'text-gray-400 dark:text-gray-500'
+              : 'text-gray-900 dark:text-white'
+              } truncate`}
             title={file.name}
           >
             {file.name}
-            {!file.isEmbedded && !currentFileStatus && (
+            {file.embeddingStatus !== "completed" && (
               <span className="ml-2 inline-block">
                 <Loader2Icon className="inline-block w-3 h-3 animate-spin" />
               </span>
             )}
-            {currentFileStatus?.status === 'error' && (
+            {file.embeddingStatus === 'failed' && (
               <span className="ml-2 text-xs text-red-500">Error</span>
             )}
           </p>
@@ -108,32 +100,30 @@ const FileListItem: React.FC<FileListItemProps> = ({
             className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xl"
             title={
               file.aiSummary ||
-              currentFileStatus?.message ||
+              file.embeddingMessage ||
               'No summary available'
             }
           >
             {file.aiSummary ||
-              currentFileStatus?.message ||
-              (file.isEmbedded
+              file.embeddingMessage ||
+              (isEmbedded
                 ? 'No summary available'
-                : currentFileStatus &&
-                    currentFileStatus.status !== 'completed' &&
-                    currentFileStatus.status !== 'error'
+                : file.embeddingStatus !== 'completed' &&
+                  file.embeddingStatus !== 'failed'
                   ? 'Processing...'
                   : 'Pending...')}
           </p>
-          {currentFileStatus &&
-            currentFileStatus.status !== 'completed' &&
-            currentFileStatus.status !== 'error' && (
+          {file.embeddingStatus !== 'completed' &&
+            file.embeddingStatus !== 'failed' && (
               <div className="mt-1">
-                <Progress value={currentFileStatus.progress} className="h-1" />
+                <Progress value={file.embeddingProgress} className="h-1" />
               </div>
             )}
         </div>
       </div>
       <div className="flex items-center space-x-3 ml-4 flex-shrink-0">
         <div className="hidden md:block min-w-0">
-          {file.tags?.slice(0, 2).map((tag: string) => (
+          {/* {file.tags?.slice(0, 2).map((tag: string) => (
             <Badge
               key={tag}
               variant="secondary"
@@ -146,17 +136,17 @@ const FileListItem: React.FC<FileListItemProps> = ({
             <Badge variant="outline" className="text-xs">
               +{file.tags.length - 2}
             </Badge>
-          )}
+          )} */}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 w-20 text-right hidden sm:block">
           {(file.size / 1024).toFixed(1)} KB
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 w-24 text-right hidden lg:block">
-          {new Date(file.uploadedAt).toLocaleDateString()}
+          {new Date(file._creationTime).toLocaleDateString()}
         </p>
-        {file.blobDownloadUrl && (
+        {/* {file.blobUrl && (
           <a
-            href={file.blobDownloadUrl}
+            href={file.blobUrl}
             download
             onClick={(e) => e.stopPropagation()}
             className="text-xs p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
@@ -164,7 +154,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
           >
             ⬇️
           </a>
-        )}
+        )} */}
         <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
           <AlertDialogTrigger asChild>
             <Button

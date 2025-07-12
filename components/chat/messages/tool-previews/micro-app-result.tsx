@@ -1,12 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useMicroApp } from '@/hooks/use-micro-app';
 import { Button } from '@/components/ui/button';
 import { ExternalLinkIcon } from 'lucide-react';
 
 interface MicroAppResultProps {
-  result: any;
+  result: {
+    microAppType: string;
+    scope: string;
+    companyId?: string;
+    teamId?: string;
+    employeeId?: string;
+    message: string;
+  };
   toolCallId: string;
   isReadonly: boolean;
   autoOpen: boolean;
@@ -16,28 +23,8 @@ export function MicroAppResult({ result, toolCallId, isReadonly, autoOpen }: Mic
   const { openOfficeMicroApp, isVisible, toolCallId: currentToolCallId } = useMicroApp();
 
   const [opened, setOpened] = useState(false)
-  const [isOpening, setIsOpening] = useState(false)
 
-  useEffect(() => {
-    if (autoOpen && !opened) {
-      // Check if a micro app is already open
-      if (isVisible && currentToolCallId) {
-        // If a different micro app is already open, don't auto-open this one
-        if (currentToolCallId !== toolCallId) {
-          console.log(`Micro app ${currentToolCallId} is already open, not auto-opening ${toolCallId}`);
-          return;
-        }
-        // If the same micro app is already open, don't open it again
-        if (currentToolCallId === toolCallId) {
-          setOpened(true);
-          return;
-        }
-      }
-      handleOpenMicroApp();
-    }
-  }, [autoOpen, opened, isVisible, currentToolCallId, toolCallId]);
-
-  const handleOpenMicroApp = () => {
+  const handleOpenMicroApp = useCallback(() => {
     // Open the office micro UI directly
     const boundingBox = {
       top: window.innerHeight * 0.1,
@@ -58,7 +45,26 @@ export function MicroAppResult({ result, toolCallId, isReadonly, autoOpen }: Mic
 
     openOfficeMicroApp(toolCallId, boundingBox, result.microAppType, microAppData, title);
     setOpened(true);
-  };
+  }, [openOfficeMicroApp, result, toolCallId, setOpened]);
+
+  useEffect(() => {
+    if (autoOpen && !opened) {
+      // Check if a micro app is already open
+      if (isVisible && currentToolCallId) {
+        // If a different micro app is already open, don't auto-open this one
+        if (currentToolCallId !== toolCallId) {
+          console.log(`Micro app ${currentToolCallId} is already open, not auto-opening ${toolCallId}`);
+          return;
+        }
+        // If the same micro app is already open, don't open it again
+        if (currentToolCallId === toolCallId) {
+          setOpened(true);
+          return;
+        }
+      }
+      handleOpenMicroApp();
+    }
+  }, [autoOpen, opened, isVisible, currentToolCallId, toolCallId, handleOpenMicroApp]);
 
   return (
     <div className="p-4 border rounded-lg bg-muted/50">

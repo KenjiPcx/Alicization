@@ -1,5 +1,5 @@
 import { embeddingModel } from "@/lib/ai/model";
-import { internalAction, internalMutation, internalQuery, action } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, action, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { embed } from "ai";
@@ -125,5 +125,11 @@ export const searchTagsPublic = action({
         if (!userId) throw new Error("User not authenticated");
 
         return await ctx.runAction(internal.tags.searchTags, args);
+    },
+});
+
+export const getTags = query({
+    handler: async (ctx) => {
+        return await ctx.db.query("tags").collect();
     },
 });

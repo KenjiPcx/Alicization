@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './code-block';
 
 const components: Partial<Components> = {
-  // @ts-expect-error
+  // @ts-expect-error - CodeBlock is a valid component
   code: CodeBlock,
   pre: ({ children }) => <>{children}</>,
   ol: ({ node, children, ...props }) => {
@@ -40,7 +40,7 @@ const components: Partial<Components> = {
   },
   a: ({ node, children, ...props }) => {
     return (
-      // @ts-expect-error
+      // @ts-expect-error - Link is a valid component
       <Link
         className="text-blue-500 hover:underline"
         target="_blank"

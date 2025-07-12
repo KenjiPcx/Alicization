@@ -87,7 +87,7 @@ export function MultiStepOnboarding({ open, onComplete, isLoading = false }: Mul
             <div className="text-center">
                 <h3 className="text-xl font-semibold mb-2">Create Your Company</h3>
                 <p className="text-muted-foreground">
-                    Let's start by setting up your AI company. Don't worry, you can change these details later.
+                    Let&apos;s start by setting up your AI company. Don&apos;t worry, you can change these details later.
                 </p>
             </div>
 
@@ -218,7 +218,7 @@ export function MultiStepOnboarding({ open, onComplete, isLoading = false }: Mul
 
             {ceoData.name && (
                 <div className="p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-semibold mb-2">{ceoData.name}'s Background</h4>
+                    <h4 className="font-semibold mb-2">{ceoData.name}&apos;s Background</h4>
                     <p className="text-sm text-muted-foreground">{ceoData.background}</p>
                 </div>
             )}
@@ -241,7 +241,7 @@ export function MultiStepOnboarding({ open, onComplete, isLoading = false }: Mul
             <div className="text-center">
                 <h3 className="text-xl font-semibold mb-2">Welcome to Your AI Office! 🏢</h3>
                 <p className="text-muted-foreground">
-                    Your company and CEO are ready. Let's start building your AI-powered organization.
+                    Your company and CEO are ready. Let&apos;s start building your AI-powered organization.
                 </p>
             </div>
 

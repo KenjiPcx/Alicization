@@ -8,7 +8,7 @@ import { createTool } from "@convex-dev/agent";
 import dedent from "dedent";
 import { z } from "zod";
 import { createKPIToolset, resolveTeamScope } from "../advanced/kpi";
-import { ActionCtx, MutationCtx } from "@/convex/_generated/server";
+import { ActionCtx } from "@/convex/_generated/server";
 
 export const useTeamLeadToolsPrompt = dedent`
     # Team Lead Tools
@@ -33,7 +33,7 @@ export const viewTeamMembers = createTool({
     args: z.object({
         teamId: z.string().describe("The team ID"),
     }),
-    handler: async (ctx, args, { toolCallId }) => {
+    handler: async (ctx, args) => {
         if (!ctx.userId) throw new Error("User ID is required");
 
         const teamMembers = await ctx.runQuery(api.employees.getEmployeesByTeam, {
@@ -59,7 +59,7 @@ export const viewTeamMembers = createTool({
 export const createTeamLeadTools = async (ctx: ActionCtx, teamId: Id<"teams">, userId: Id<"users">) => {
     // Resolve team scope for KPI tools
     const teamScope = resolveTeamScope(teamId);
-    const kpiTools = createKPIToolset(ctx, teamScope, userId);
+    const kpiTools = createKPIToolset(ctx, teamScope);
 
     return {
         // Team management tools

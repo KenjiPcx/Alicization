@@ -50,6 +50,9 @@ importers:
       '@convex-dev/crons':
         specifier: ^0.1.9
         version: 0.1.9(convex@1.25.2(react@19.1.0))
+      '@convex-dev/workflow':
+        specifier: ^0.2.5
+        version: 0.2.5(@convex-dev/workpool@0.2.16(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))
       '@e2b/code-interpreter':
         specifier: ^1.5.1
         version: 1.5.1
@@ -152,6 +155,9 @@ importers:
       next:
         specifier: 15.2.3
         version: 15.2.3(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       orderedmap:
         specifier: ^2.1.1
         version: 2.1.1
@@ -422,6 +428,19 @@ packages:
     resolution: {integrity: sha512-TV7hFli9iDekLQt95HgL1YfwdjG7TnVR2E+6meWo0VztdXqYN14aqwvEOcaadtDhFfedGx32xHZBFzvfgQZkYQ==}
     peerDependencies:
       convex: ~1.16.5 || >=1.17.0 <1.35.0
+
+  '@convex-dev/workflow@0.2.5':
+    resolution: {integrity: sha512-g3wiMj3twonm4MogFwu0mh5RLlaG07qjwo9IP4hhjZhJSoqmgSLGeRr7BWQ4Q512Kg2NRztkdhIP46NV0TBTHQ==}
+    peerDependencies:
+      '@convex-dev/workpool': ^0.2.16
+      convex: '>=1.25.0 <1.35.0'
+      convex-helpers: ^0.1.99
+
+  '@convex-dev/workpool@0.2.16':
+    resolution: {integrity: sha512-p4sQjWeHFZ9j4sosS2jDF2sHHmWqNttk2WlNWdPFitP6fOd98p+c8VR3BcltqNMaKSH9nSOkGlVFwtwvnciTLg==}
+    peerDependencies:
+      convex: '>=1.17.0 <1.35.0'
+      convex-helpers: ^0.1.94
 
   '@cspell/cspell-bundled-dicts@8.19.4':
     resolution: {integrity: sha512-2ZRcZP/ncJ5q953o8i+R0fb8+14PDt5UefUNMrFZZHvfTI0jukAASOQeLY+WT6ASZv6CgbPrApAdbppy9FaXYQ==}
@@ -2218,6 +2237,9 @@ packages:
   ast-types-flow@0.0.8:
     resolution: {integrity: sha512-OH/2E5Fg20h2aPrbe+QL8JZQFko0YZaF+j4mnQ7BGhfavO7OpSLa8a0y9sBwomHdSbkhTS8TQNayBfnW5DwbvQ==}
 
+  async-channel@0.2.0:
+    resolution: {integrity: sha512-BJyjI/sfKlyijaBt2hbOSxT28xGNtLR0QLzAKO1Hlnv5BULY7sAoYoTPW3lfr1ZIC7y+FxabxO9T8GXpyoofGg==}
+
   async-function@1.0.0:
     resolution: {integrity: sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA==}
     engines: {node: '>= 0.4'}
@@ -3602,6 +3624,12 @@ packages:
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
+  next-themes@0.4.6:
+    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
+    peerDependencies:
+      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+
   next@15.2.3:
     resolution: {integrity: sha512-x6eDkZxk2rPpu46E1ZVUWIBhYCLszmUY6fvHBFcbzJ9dD+qRX6vcHusaqqDlnY+VngKzKbAiG2iRCkPbmi8f7w==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
@@ -4707,6 +4735,18 @@ snapshots:
     dependencies:
       convex: 1.25.2(react@19.1.0)
       cron-parser: 4.9.0
+
+  '@convex-dev/workflow@0.2.5(@convex-dev/workpool@0.2.16(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))':
+    dependencies:
+      '@convex-dev/workpool': 0.2.16(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))
+      async-channel: 0.2.0
+      convex: 1.25.2(react@19.1.0)
+      convex-helpers: 0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67)
+
+  '@convex-dev/workpool@0.2.16(convex-helpers@0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))':
+    dependencies:
+      convex: 1.25.2(react@19.1.0)
+      convex-helpers: 0.1.95(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67)
 
   '@cspell/cspell-bundled-dicts@8.19.4':
     dependencies:
@@ -6380,6 +6420,8 @@ snapshots:
       is-array-buffer: 3.0.5
 
   ast-types-flow@0.0.8: {}
+
+  async-channel@0.2.0: {}
 
   async-function@1.0.0: {}
 
@@ -8126,6 +8168,11 @@ snapshots:
   napi-postinstall@0.2.5: {}
 
   natural-compare@1.4.0: {}
+
+  next-themes@0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   next@15.2.3(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:

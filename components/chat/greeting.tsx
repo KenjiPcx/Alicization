@@ -15,7 +15,7 @@ export const Greeting = () => {
       return getRandomTeamGreeting();
     }
     return getRandomEmployeeGreeting();
-  }, [threadId, activeChatParticipant]);
+  }, [activeChatParticipant]);
 
   return (
     <div

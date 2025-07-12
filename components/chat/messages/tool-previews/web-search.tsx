@@ -33,7 +33,6 @@ export function WebSearchPreview({ args, toolCallId, result }: WebSearchPreviewP
     const currentStatus = backgroungJobStatus.statusUpdates[backgroungJobStatus.statusUpdates.length - 1];
     const currentProgress = currentStatus?.progress || 0;
     const isCompleted = currentStatus?.status === "completed";
-    const isFailed = currentStatus?.status === "failed";
 
     return (
         <div className="border border-hacker-border rounded-lg p-4 bg-gradient-to-r from-hacker-bg to-hacker-bg-secondary shadow-lg shadow-hacker-accent/20">
@@ -58,7 +57,7 @@ export function WebSearchPreview({ args, toolCallId, result }: WebSearchPreviewP
 
             {/* Search query */}
             <div className="text-sm text-hacker-text-secondary mb-3">
-                Searching for: <span className="font-medium text-hacker-text">"{args.query}"</span>
+                Searching for: <span className="font-medium text-hacker-text">&quot;{args.query}&quot;</span>
             </div>
 
             {/* Progress bar */}

@@ -143,7 +143,7 @@ export function createSSRSafeStorage() {
 // Hook for hydration-safe Zustand store usage
 export function useHydratedStore<T>(
   storeHook: () => T & { _hasHydrated: boolean },
-  selector?: (state: T) => any
+  selector?: (state: T) => any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): [boolean, T | null] {
   const store = storeHook();
   const [hasHydrated, setHasHydrated] = useState(false);

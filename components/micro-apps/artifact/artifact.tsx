@@ -133,7 +133,7 @@ export function PureArtifact({
         });
       }
     }
-  }, [status, artifactDefinition]);
+  }, [status, artifactDefinition, artifact?._id]);
 
   if (!artifactDefinition) {
     return null;

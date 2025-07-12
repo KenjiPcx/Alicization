@@ -8,8 +8,6 @@ interface NavMeshProps {
 }
 
 export function NavMesh({ visible, showPadding = true }: NavMeshProps) {
-    const meshRef = useRef<THREE.Mesh>(null);
-
     // Create geometry for the walkable areas
     const { walkableGrid, gridWidth, gridDepth, cellSize, worldOffsetX, worldOffsetZ } = getGridData();
 

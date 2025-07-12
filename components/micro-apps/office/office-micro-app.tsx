@@ -10,14 +10,21 @@ import type { Attachment, UIMessage } from 'ai';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from '@/components/chat/visibility-selector';
 import type { Dispatch, SetStateAction } from 'react';
-import type { Vote } from '@/lib/types';
+import type { ScopeAndId, Vote } from '@/lib/types';
 import KPIClientMicroUI from '@/micro-apps/office/kpi-client';
 import CompanyConfigMicroUI from '@/micro-apps/office/company-config';
 import EmployeeConfigMicroUI from '@/micro-apps/office/employee-config';
+import { Id } from '@/convex/_generated/dataModel';
 
 interface OfficeMicroAppProps {
   microAppType: string;
-  microAppData: any;
+  microAppData: {
+    microAppType: string;
+    toolCallId: string;
+    companyId: Id<"companies">;
+    teamId?: Id<"teams">;
+    employeeId?: Id<"employees">;
+  };
   title: string;
   chatId: string;
   input: string;
@@ -60,7 +67,7 @@ export function OfficeMicroApp({
     switch (microAppType) {
       case 'kpi-dashboard':
         // Determine the proper scope and ID based on available data
-        let scopeAndId;
+        let scopeAndId: ScopeAndId;
         if (microAppData.employeeId) {
           scopeAndId = {
             scope: "employee" as const,
@@ -106,7 +113,7 @@ export function OfficeMicroApp({
           <div className="p-6 text-center">
             <h2 className="text-lg font-semibold mb-2">Unknown Office Micro App</h2>
             <p className="text-muted-foreground">
-              Office micro app type "{microAppType}" is not supported.
+              Office micro app type &quot;{microAppType}&quot; is not supported.
             </p>
           </div>
         );

@@ -191,7 +191,7 @@ export const createSetPlanAndTodosTool = (
 export const selectNextTodo = createTool({
     description: "Select the next todo to work on, selects the first pending todo to work on. Call this tool before proceeding to the next todo, it updates the UI for the user to track your progress",
     args: z.object({}),
-    handler: async (ctx, args): Promise<PlannerToolResult> => {
+    handler: async (ctx): Promise<PlannerToolResult> => {
         return withToolErrorHandling(
             async () => {
                 if (!ctx.threadId) throw new Error("Thread ID is required");
@@ -264,7 +264,7 @@ export const selectNextTodo = createTool({
 export const completeCurrentTodoAndMoveToNextTodo = createTool({
     description: "Complete the current todo and move to the next one",
     args: z.object({}),
-    handler: async (ctx, args): Promise<PlannerToolResult> => {
+    handler: async (ctx): Promise<PlannerToolResult> => {
         return withToolErrorHandling(
             async () => {
                 if (!ctx.threadId) throw new Error("Thread ID is required");

@@ -18,7 +18,7 @@ import { SpreadsheetEditor } from '../../../micro-apps/artifact/sheet-editor';
 import { ImageEditor } from '../../../micro-apps/artifact/text-artifact/image-editor';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import type { ArtifactKind } from '@/lib/types';
+import type { Artifact, ArtifactKind } from '@/lib/types';
 import { useMicroApp } from '@/hooks/use-micro-app';
 
 interface DocumentResponse {
@@ -101,7 +101,7 @@ export function DocumentPreview({
         });
       }
     }
-  }, [status, isVisible, openArtifactMicroApp, autoOpened, toolCallId]);
+  }, [status, isVisible, openArtifactMicroApp, autoOpened, toolCallId, previewArtifact]);
 
   // If we have the artifact visible, show the tool result
   if (isVisible && previewArtifact) {
@@ -163,10 +163,6 @@ export function DocumentPreview({
     title,
     kind: type,
     content: '',
-    _creationTime: Date.now(),
-    _id: 'preview',
-    userId: 'preview',
-    employeeId: 'preview',
   };
 
   return (
@@ -300,7 +296,11 @@ const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
 });
 
 const DocumentContent = ({ document, isInProgress, structuredResult }: {
-  document: any;
+  document: Artifact | {
+    title: string;
+    kind: ArtifactKind;
+    content: string;
+  };
   isInProgress: boolean;
   structuredResult?: DocumentResponse;
 }) => {

@@ -15,6 +15,7 @@ export type Vote = Doc<"votes">;
 export type Suggestion = Doc<"suggestions">;
 export type Tag = Doc<"tags">;
 export type UserType = Doc<"usersMetadata">["type"];
+export type Company = Doc<"companies">;
 export type ScopeAndId = {
     scope: "company";
     companyId: Id<"companies">;
@@ -26,6 +27,7 @@ export type ScopeAndId = {
     employeeId: Id<"employees">;
 };
 export type KPI = Doc<"kpis">;
+export type Memory = Doc<"memories">;
 
 // Compound types
 export type FullEmployee = Employee & {

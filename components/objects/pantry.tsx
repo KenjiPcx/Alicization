@@ -10,8 +10,6 @@ interface PantryProps {
 const COUNTER_HEIGHT = 1;
 const COUNTER_DEPTH = 1;
 const COUNTER_LENGTH = 6; // Doubled the length
-const CABINET_HEIGHT = 0.95; // Slightly less than counter for visual separation
-const CABINET_DEPTH = 0.75; // Slightly less than counter
 const FRIDGE_WIDTH = 0.8;
 const FRIDGE_HEIGHT = 1.8;
 const FRIDGE_DEPTH = 0.75;
@@ -23,7 +21,6 @@ const JUG_HEIGHT = 0.25;
 
 // Colors
 const COUNTER_COLOR = "#FFFFFF"; // Changed to white
-const CABINET_COLOR = "#8B4513"; // SaddleBrown - Keeping for lower part/fridge base maybe? Let's simplify to just fridge
 const FRIDGE_COLOR = "#E0E0E0"; // Light Grey
 const MICROWAVE_COLOR = "#333333"; // Dark Grey
 const JUG_COLOR = "#ADD8E6"; // Light Blue

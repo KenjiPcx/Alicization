@@ -14,7 +14,7 @@ import { fetcher } from '@/lib/utils';
 import FileListItem from '@/components/file-manager/file-list-item';
 import MultiSelectTags from './multi-select-tags';
 import { useQuery } from 'convex/react';
-import { api } from '@convex/api';
+import { api } from '@/convex/_generated/api';
 
 const FileManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +34,7 @@ const FileManager: React.FC = () => {
   const filesData = useQuery(api.companyFiles.getCompanyFiles, {
     employeeId: undefined,
   });
-  const tags = useQuery(api.companyFiles.getTags);
+  const tags = useQuery(api.tags.getTags);
 
   const isLoadingFiles = !filesData;
   const isLoadingTags = !tags
@@ -42,15 +42,15 @@ const FileManager: React.FC = () => {
 
   const filteredAndSortedFiles = useMemo(() => {
     if (!filesData) return [];
-    let processedFiles = [...filesData];
+    const processedFiles = [...filesData];
 
     // Apply tag filter
-    if (selectedTags.length > 0) {
-      processedFiles = processedFiles.filter(
-        (file) =>
-          file.tags && selectedTags.some((tag) => file.tags?.includes(tag)),
-      );
-    }
+    // if (selectedTags.length > 0) {
+    //   processedFiles = processedFiles.filter(
+    //     (file) =>
+    //       file.tags && selectedTags.some((tag) => file.tags?.includes(tag)),
+    //   );
+    // }
 
     // Apply sorting
     // Assuming file has: name: string, uploadedAt: Date, size: number
@@ -84,7 +84,7 @@ const FileManager: React.FC = () => {
     }
 
     return processedFiles;
-  }, [filesData, selectedTags, appliedSortBy]);
+  }, [filesData, appliedSortBy]);
 
   const paginatedFiles = useMemo(() => {
     if (!filteredAndSortedFiles) return [];
@@ -149,14 +149,14 @@ const FileManager: React.FC = () => {
               Filter by Tags
             </label>
 
-            <MultiSelectTags
+            {/* <MultiSelectTags
               allTags={tags?.map((tag) => tag.name) || []}
               selectedTags={selectedTags}
               onChange={setSelectedTags}
               isLoading={isLoadingTags}
               hasError={false}
               placeholder="Select tags to filter..."
-            />
+            /> */}
           </div>
           <div>
             <label
@@ -200,7 +200,7 @@ const FileManager: React.FC = () => {
           <div className="text-center text-gray-500 dark:text-gray-400 mt-10 flex-grow flex flex-col justify-center items-center">
             <FileTextIcon className="w-16 h-16 mb-4 text-gray-400 dark:text-gray-500" />
             <p className="text-xl font-semibold">No files uploaded yet.</p>
-            <p>Click "Add File" to get started.</p>
+            <p>Click &quot;Add File&quot; to get started.</p>
           </div>
         ) : (
           <div className="flex-grow overflow-y-auto">

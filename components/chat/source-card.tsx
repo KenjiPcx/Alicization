@@ -52,7 +52,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { page, text, blobUrl, fileName, documentTitle, mimeType } =
+  const { page, text, blobUrl, fileName, documentTitle } =
     source.providerMetadata || {};
 
   const displayTitle = documentTitle || fileName || 'Untitled Source';

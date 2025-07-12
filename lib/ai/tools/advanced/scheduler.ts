@@ -9,7 +9,7 @@ export const scheduleTask = createTool({
     args: z.object({
         task: z.string().describe("The task to schedule"),
     }),
-    handler: async (ctx, args): Promise<string> => {
+    handler: async (): Promise<string> => {
         // Schedule a task
         return "Task scheduled";
     },

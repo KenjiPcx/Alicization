@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -98,7 +98,7 @@ export default function KPIDashboard({ title }: KPIDashboardProps) {
             </div>
 
             {/* Time Period Selector */}
-            <Tabs value={selectedQuarter} onValueChange={(value) => setSelectedQuarter(value as any)}>
+            <Tabs value={selectedQuarter} onValueChange={(value) => setSelectedQuarter(value as "Q1" | "Q2" | "Q3" | "Q4")}>
                 <div className="flex items-center justify-between">
                     <TabsList>
                         <TabsTrigger value="Q1">Q1</TabsTrigger>

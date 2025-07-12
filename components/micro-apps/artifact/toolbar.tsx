@@ -26,7 +26,7 @@ import {
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from '@/components/icons';
 import type { UseChatHelpers } from '@ai-sdk/react';
-import type { MicroUIKind } from '@/lib/types';
+import type { ArtifactKind } from '@/lib/types';
 import { artifactDefinitions } from './artifact';
 
 export type MicroUIToolbarContext = {
@@ -139,7 +139,7 @@ const Tool = ({
   );
 };
 
-const randomArr = [...Array(6)].map((x) => nanoid(5));
+const randomArr = [...Array(6)].map(() => nanoid(5));
 
 const ReadingLevelSelector = ({
   setSelectedTool,
@@ -317,7 +317,7 @@ const PureToolbar = ({
   status: 'submitted' | 'ready' | 'pending' | 'failed' | 'success';
   append: UseChatHelpers['append'];
   stop: UseChatHelpers['stop'];
-  artifactKind: MicroUIKind;
+  artifactKind: ArtifactKind;
 }) => {
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);

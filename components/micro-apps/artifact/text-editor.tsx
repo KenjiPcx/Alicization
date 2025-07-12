@@ -4,7 +4,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { memo, useEffect, useRef } from 'react';
 
-import type { Suggestion } from '@customTypes';
+import type { Suggestion } from '@/lib/types';
 import {
   documentSchema,
   handleTransaction,

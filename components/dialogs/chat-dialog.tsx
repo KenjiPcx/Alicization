@@ -9,6 +9,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import { Users, User, MessageSquare } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useChatParticipantData } from '@/hooks/use-chat-participant-data';
+import { EmployeeData } from '@/lib/types';
 
 const SIDEBAR_WIDTH_REM = '16rem';
 
@@ -68,7 +69,7 @@ export default function ChatDialog({
     : {
       icon: <User className="h-4 w-4" />,
       title: `Chat with ${displayData?.name}`,
-      subtitle: (displayData as any)?.jobTitle || "Direct conversation",
+      subtitle: (displayData as EmployeeData)?.jobTitle || "Direct conversation",
       badge: "1:1 Meeting",
       badgeVariant: "outline" as const
     };

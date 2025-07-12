@@ -30,7 +30,7 @@ export default function OfficeSimulation() {
         console.log("isChatModalOpen", isChatModalOpen);
     }, [isChatModalOpen]);
 
-    const { threadId, setThreadId } = useChatStore();
+    const { setThreadId } = useChatStore();
 
     // Thread management
     const createThread = useMutation(api.chat.createThread);

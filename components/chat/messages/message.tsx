@@ -343,11 +343,18 @@ const PurePreviewMessage = ({
                                 <h3 className="text-sm font-medium">
                                   Search Results
                                 </h3>
-                                {result.map((r: any) => {
+                                {result.map((r: {
+                                  id: string;
+                                  result: {
+                                    metadata: {
+                                      sectionSummary: string;
+                                    };
+                                  };
+                                }) => {
                                   return (
                                     <div key={r.id}>
                                       <h4 className="text-sm font-medium">
-                                        {(r.result as any).metadata.sectionSummary}
+                                        {r.result.metadata.sectionSummary}
                                       </h4>
                                     </div>
                                   );

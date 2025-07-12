@@ -2,9 +2,7 @@ import { Agent, createTool } from "@convex-dev/agent";
 import { Id } from "@/convex/_generated/dataModel";
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
-import { action, mutation } from "@/convex/_generated/server";
 import { components, internal } from "@/convex/_generated/api";
-import { v } from "convex/values";
 
 /*
 CEO Agent Features:

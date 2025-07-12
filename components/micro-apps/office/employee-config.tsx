@@ -8,7 +8,7 @@ interface EmployeeConfigProps {
     toolCallId: string;
 }
 
-export default function EmployeeConfig({ title, toolCallId }: EmployeeConfigProps) {
+export default function EmployeeConfig({ title }: EmployeeConfigProps) {
     return (
         <div className="p-6 max-w-4xl mx-auto space-y-6">
             {/* Header */}

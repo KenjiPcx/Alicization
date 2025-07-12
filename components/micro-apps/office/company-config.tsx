@@ -26,7 +26,7 @@ interface Company {
     userId: Id<"users">;
 }
 
-export default function CompanyConfig({ title, toolCallId }: CompanyConfigProps) {
+export default function CompanyConfig({ title }: CompanyConfigProps) {
     const user = useQuery(api.auth.currentUser);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState<Partial<Company>>({});
@@ -153,7 +153,7 @@ export default function CompanyConfig({ title, toolCallId }: CompanyConfigProps)
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">{title}</h1>
-                    <p className="text-muted-foreground">Configure your company's core information</p>
+                    <p className="text-muted-foreground">Configure your company&apos;s core information</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {isEditing ? (

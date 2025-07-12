@@ -16,6 +16,7 @@ import { createOpenOfficeMicroAppTool } from "../advanced/office-micro-app";
 import { ActionCtx } from "@/convex/_generated/server";
 import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 import { createAdvancedTools } from "../advanced";
+import { Company, Team } from "@/lib/types";
 
 export const useCeoToolsPrompt = dedent`
     # CEO Tools
@@ -44,10 +45,10 @@ export const useCeoToolsPrompt = dedent`
 export const viewTeams = createTool({
     description: "View all teams in the office",
     args: z.object({}),
-    handler: async (ctx, args, { toolCallId }): Promise<{
+    handler: async (ctx): Promise<{
         success: boolean;
         message: string;
-        teams?: any[];
+        teams?: Team[];
     }> => {
         return withToolErrorHandling(
             async () => {
@@ -108,10 +109,10 @@ export const getCompanyDetails = createTool({
     args: z.object({
         fetchTeam: z.boolean().optional().describe("Whether to fetch the team details"),
     }),
-    handler: async (ctx, args, { toolCallId }): Promise<{
+    handler: async (ctx, args): Promise<{
         success: boolean;
         message: string;
-        company?: any;
+        company?: Company;
     }> => {
         return withToolErrorHandling(
             async () => {
@@ -154,7 +155,7 @@ export const updateCompanyDetails = createTool({
     handler: async (ctx, args, { toolCallId }): Promise<{
         success: boolean;
         message: string;
-        updates?: any;
+        updates?: Partial<Company>;
     }> => {
         return withToolErrorHandling(
             async () => {
@@ -195,7 +196,7 @@ export const createCEOTools = async (
 ) => {
     // Resolve company scope for KPI tools
     const companyScope = await resolveCompanyScope(ctx, userId);
-    const kpiTools = createKPIToolset(ctx, companyScope, userId);
+    const kpiTools = createKPIToolset(ctx, companyScope);
     const openOfficeMicroAppTool = createOpenOfficeMicroAppTool(companyScope);
     const advancedTools = createAdvancedTools(ctx, threadId, userId, employeeId, teamId);
 

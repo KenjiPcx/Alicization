@@ -12,7 +12,6 @@ interface CitationBadgeProps {
 export const CitationBadge: React.FC<CitationBadgeProps> = ({
   citationNumber,
   className,
-  url,
 }) => {
   return (
     <span

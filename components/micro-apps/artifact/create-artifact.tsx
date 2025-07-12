@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { Suggestion } from '@/lib/types';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ComponentType, Dispatch, ReactNode, SetStateAction } from 'react';
-import type { Suggestion } from '@customTypes';
 
 export type ArtifactActionContext<M = any> = {
     content: string;

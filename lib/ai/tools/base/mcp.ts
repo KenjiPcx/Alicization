@@ -9,7 +9,7 @@ export const useMcp = createTool({
     args: z.object({
         content: z.string().describe("The content to use the mcp"),
     }),
-    handler: async (ctx, args): Promise<string> => {
+    handler: async (): Promise<string> => {
         // Use the mcp
         return "MCP used";
     },

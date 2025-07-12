@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import * as THREE from 'three';
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import type { Group } from "three";
@@ -89,7 +88,7 @@ const StatusIcons = {
     ),
 
     // Fallback/none (shouldn't be visible)
-    none: ({ color }: { color: string }) => <group />  // Return empty group instead of null
+    none: () => <group />
 };
 
 // Get color for status type
@@ -109,70 +108,17 @@ const getStatusColor = (status: StatusType): string => {
 };
 
 export default function StatusIndicator({ status = 'none', message, visible }: StatusIndicatorProps) {
-    // Skip rendering if not visible
-    if (!visible) return null;
+    // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+    const groupRef = useRef<Group>(null);
+    const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [showMessage, setShowMessage] = useState(!!message);
+    const [isHovered, setIsHovered] = useState(false);
 
     // Validate status type
     const validStatuses: StatusType[] = ['info', 'success', 'question', 'warning', 'none'];
     const safeStatus = validStatuses.includes(status) ? status : 'none';
 
-    if (safeStatus !== status) {
-        console.warn(`StatusIndicator: Invalid status type "${status}". Using "none" instead.`);
-    }
-
-    // Reference to the indicator group for animations
-    const groupRef = useRef<Group>(null);
-
-    // State to track whether to show the message or just the icon
-    const [showMessage, setShowMessage] = useState(!!message);
-
-    // Function to toggle message visibility when icon is clicked
-    const handleIconClick = () => {
-        if (message) {
-            setShowMessage(true);
-            // Reset the auto-hide timer when clicked
-            resetMessageTimer();
-        }
-    };
-
-    // Set up timer to auto-hide messages after 60 seconds
-    const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    const resetMessageTimer = () => {
-        // Clear any existing timer
-        if (messageTimerRef.current) {
-            clearTimeout(messageTimerRef.current);
-        }
-
-        // Set new timer to hide message after 60 seconds
-        messageTimerRef.current = setTimeout(() => {
-            setShowMessage(false);
-        }, 60000); // 60 seconds
-    };
-
-    // Initialize timer when component mounts with a message
-    useEffect(() => {
-        if (message) {
-            resetMessageTimer();
-        }
-
-        // Cleanup timer on unmount
-        return () => {
-            if (messageTimerRef.current) {
-                clearTimeout(messageTimerRef.current);
-            }
-        };
-    }, [message]);
-
-    // Update showMessage when message prop changes
-    useEffect(() => {
-        setShowMessage(!!message);
-        if (message) {
-            resetMessageTimer();
-        }
-    }, [message]);
-
-    // Time offset to make different indicators bob at different times
+    // Time offset for different indicators to bob at different times
     const timeOffset = useMemo(() => Math.random() * Math.PI * 2, []);
 
     // Get color based on status
@@ -183,30 +129,56 @@ export default function StatusIndicator({ status = 'none', message, visible }: S
         safeStatus === 'warning' || safeStatus === 'question',
         [safeStatus]);
 
-    // Position higher above the employee's head
-    const basePosition: [number, number, number] = [0, 0.65, 0];
+    // Function to start/restart the message timer
+    const startMessageTimer = () => {
+        if (messageTimerRef.current) {
+            clearTimeout(messageTimerRef.current);
+        }
 
-    // Get the appropriate icon component
-    const IconComponent = StatusIcons[safeStatus];
+        messageTimerRef.current = setTimeout(() => {
+            setShowMessage(false);
+        }, 60000); // 60 seconds
+    };
 
-    // Safety check
-    if (!IconComponent) {
-        console.warn(`StatusIndicator: No icon found for status "${status}"`);
-        return null;
-    }
+    // Initialize: show message initially, then hide after 1 minute
+    useEffect(() => {
+        if (message) {
+            setShowMessage(true);
+            startMessageTimer();
+        }
 
-    // Add floating animation
+        // Cleanup timer on unmount
+        return () => {
+            if (messageTimerRef.current) {
+                clearTimeout(messageTimerRef.current);
+            }
+        };
+    }, [message]);
+
+    // Handle hover events
+    const handlePointerEnter = () => {
+        setIsHovered(true);
+        if (message) {
+            setShowMessage(true);
+            startMessageTimer();
+        }
+    };
+
+    const handlePointerLeave = () => {
+        setIsHovered(false);
+    };
+
+    // Animation frame
     useFrame((state) => {
         if (groupRef.current) {
-            // Enhanced floating movement
             const timeElapsed = state.clock.elapsedTime;
 
             // Vertical bob
             const bobHeight = 0.05;
             const bobSpeed = 1.0;
-            groupRef.current.position.y = basePosition[1] + Math.sin((timeElapsed * bobSpeed) + timeOffset) * bobHeight;
+            groupRef.current.position.y = 0.65 + Math.sin((timeElapsed * bobSpeed) + timeOffset) * bobHeight;
 
-            // Gentle rotation - only if not showing message bubble
+            // Gentle rotation when not showing message
             if (!showMessage) {
                 groupRef.current.rotation.y = timeElapsed * 0.5;
             }
@@ -215,71 +187,74 @@ export default function StatusIndicator({ status = 'none', message, visible }: S
             if (shouldPulse && !showMessage) {
                 const pulse = 1.0 + Math.sin((timeElapsed * 2) + timeOffset) * 0.1;
                 groupRef.current.scale.set(pulse, pulse, pulse);
+            } else {
+                groupRef.current.scale.set(1, 1, 1);
             }
         }
     });
 
+    // NOW we can do early returns after all hooks are called
+    if (!visible) return null;
+
+    if (safeStatus === 'none') return null;
+
+    const IconComponent = StatusIcons[safeStatus];
+    if (!IconComponent) return null;
+
     return (
         <group
             ref={groupRef}
-            position={basePosition}
-            onClick={handleIconClick}
+            position={[0, 0.65, 0]}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
         >
             {showMessage && message ? (
-                <>
-                    {/* Message bubble with icon */}
-                    <Html
-                        position={[0, 0.15, 0]}
-                        center
-                        distanceFactor={8}
-                        zIndexRange={[1, 0]}
-                    >
+                <Html
+                    position={[0, 0.15, 0]}
+                    center
+                    distanceFactor={8}
+                    zIndexRange={[1, 0]}
+                >
+                    <div style={{
+                        background: statusColor,
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        maxWidth: '350px',
+                        minWidth: "125px",
+                        fontSize: '11px',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
                         <div style={{
-                            background: statusColor,
-                            padding: '8px 12px',
-                            borderRadius: '12px',
-                            maxWidth: '350px',
-                            minWidth: "125px",
-                            fontSize: '11px',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                            width: '24px',
+                            height: '24px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px'
+                            justifyContent: 'center',
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            borderRadius: '50%',
+                            flexShrink: 0
                         }}>
-                            <div style={{
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: 'rgba(255, 255, 255, 0.2)',
-                                borderRadius: '50%',
-                                flexShrink: 0
-                            }}>
-                                {safeStatus === 'info' && 'i'}
-                                {safeStatus === 'success' && '✓'}
-                                {safeStatus === 'question' && '?'}
-                                {safeStatus === 'warning' && '!'}
-                            </div>
-                            <div style={{
-                                whiteSpace: 'normal',
-                                wordBreak: 'normal',
-                                textAlign: 'center'
-                            }}>
-                                {message}
-                            </div>
+                            {safeStatus === 'info' && 'i'}
+                            {safeStatus === 'success' && '✓'}
+                            {safeStatus === 'question' && '?'}
+                            {safeStatus === 'warning' && '!'}
                         </div>
-                    </Html>
-                </>
+                        <div style={{
+                            whiteSpace: 'normal',
+                            wordBreak: 'normal',
+                            textAlign: 'center'
+                        }}>
+                            {message}
+                        </div>
+                    </div>
+                </Html>
             ) : (
-                <>
-                    {/* Clickable icon */}
-                    <group onClick={message ? handleIconClick : undefined}>
-                        {IconComponent && <IconComponent color={statusColor} />}
-                    </group>
-                </>
+                <IconComponent color={statusColor} />
             )}
         </group>
     );

@@ -1,10 +1,10 @@
 'use client';
 
 interface CodeBlockProps {
-  node: any;
+  node: React.ReactNode;
   inline: boolean;
   className: string;
-  children: any;
+  children: React.ReactNode;
 }
 
 export function CodeBlock({

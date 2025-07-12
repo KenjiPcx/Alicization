@@ -86,7 +86,7 @@ export const createMemoryTools = (
             execute: async ({ key, value, scope }): Promise<SetMemoryResult> => {
                 return withToolErrorHandling(
                     async () => {
-                        const result = await ctx.runMutation(internal.memories.setMemory, {
+                        await ctx.runMutation(internal.memories.setMemory, {
                             key,
                             value,
                             scope,
@@ -131,7 +131,7 @@ export const createMemoryTools = (
                             limit: 10,
                         });
 
-                        const results = memories.map((m: any) => {
+                        const results = memories.filter(m => m !== null).map((m) => {
                             return {
                                 key: m.key,
                                 value: m.value,

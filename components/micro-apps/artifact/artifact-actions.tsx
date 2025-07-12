@@ -4,7 +4,7 @@ import { type Dispatch, memo, type SetStateAction, useState } from 'react';
 import type { ArtifactActionContext } from './create-artifact';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { Artifact } from '@customTypes';
+import type { Artifact } from '@/lib/types';
 import { artifactDefinitions } from './artifact';
 
 interface ArtifactActionsProps {
@@ -13,8 +13,8 @@ interface ArtifactActionsProps {
   currentVersionIndex: number;
   isCurrentVersion: boolean;
   mode: 'edit' | 'diff';
-  metadata: any;
-  setMetadata: Dispatch<SetStateAction<any>>;
+  metadata: Record<string, unknown>;
+  setMetadata: Dispatch<SetStateAction<Record<string, unknown>>>;
   status: 'submitted' | 'ready' | 'pending' | 'failed' | 'success';
 }
 

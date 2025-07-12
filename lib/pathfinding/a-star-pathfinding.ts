@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { Pathfinding, type PathfindingHelper } from 'three-pathfinding';
 
 // --- Grid Configuration ---
 const CELL_SIZE = 0.5; // Size of each grid cell in world units

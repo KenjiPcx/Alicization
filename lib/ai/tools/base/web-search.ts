@@ -1,6 +1,6 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
-import { model, summaryModel } from "../../model";
+import { summaryModel } from "../../model";
 import dedent from "dedent";
 import { generateObject } from "ai";
 import { internal } from "@/convex/_generated/api";

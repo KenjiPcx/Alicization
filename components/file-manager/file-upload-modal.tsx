@@ -100,9 +100,14 @@ export function FileUploadModal({
           result.error || 'Upload completed but no file ID returned.',
         );
       }
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setError(err.message || 'An unexpected error occurred during upload.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Upload error:', err);
+        setError(err.message || 'An unexpected error occurred during upload.');
+      } else {
+        console.error('Upload error:', err);
+        setError('An unexpected error occurred during upload.');
+      }
     } finally {
       setIsUploading(false);
     }

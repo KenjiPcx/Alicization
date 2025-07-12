@@ -4,7 +4,7 @@ import { useWindowSize } from 'usehooks-ts';
 
 import { LoaderIcon } from '../../icons';
 import { Button } from '../../ui/button';
-import type { Artifact } from '@customTypes';
+import type { Artifact } from '@/lib/types';
 
 interface VersionFooterProps {
   handleVersionChange: (type: 'next' | 'prev' | 'toggle' | 'latest') => void;
@@ -15,7 +15,6 @@ interface VersionFooterProps {
 export const VersionFooter = ({
   handleVersionChange,
   artifacts,
-  currentVersionIndex,
 }: VersionFooterProps) => {
   const { width } = useWindowSize();
   const isMobile = width < 768;

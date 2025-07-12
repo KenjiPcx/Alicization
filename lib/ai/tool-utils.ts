@@ -122,7 +122,7 @@ export async function withErrorHandling<T = string>(
  * @param formatSuccess - Optional function to format the success response
  * @returns Promise that resolves to a structured response object
  */
-export async function withToolErrorHandling<T, R = any>(
+export async function withToolErrorHandling<T, R>(
     operation: () => Promise<T>,
     options: ToolErrorOptions,
     formatSuccess?: (result: T) => { message: string } & R

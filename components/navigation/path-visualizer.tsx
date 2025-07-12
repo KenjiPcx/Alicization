@@ -7,7 +7,6 @@ export default function PathVisualizer({
     originalPath,
     remainingPath,
     isGoingToDesk,
-    employeeId // For debug and component identity
 }: {
     originalPath: THREE.Vector3[] | null,
     remainingPath: THREE.Vector3[] | null,

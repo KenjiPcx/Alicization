@@ -1,11 +1,7 @@
 
 import { Agent, type UsageHandler } from "@convex-dev/agent";
 import { components, internal } from "@/convex/_generated/api";
-import dedent from "dedent";
-import type { FullEmployee } from "../../types";
-import { anthropicProviderOptions, embeddingModel, model } from "../model";
-import { useMemoryToolsPrompt } from "../tools/advanced/memory";
-import { usePlannerToolsPrompt } from "../tools/advanced/planner";
+import { embeddingModel, model } from "../model";
 
 
 const usageHandler: UsageHandler = async (ctx, args) => {
