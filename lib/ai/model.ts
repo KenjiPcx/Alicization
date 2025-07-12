@@ -9,7 +9,7 @@ export const speechModel = openai.speech('tts-1')
 export const embeddingModel = openai.embedding('text-embedding-3-small', {
     dimensions: 1536,
 })
-export const summaryModel = openai('gpt-4o-mini')
+export const summaryModel = google('gemini-2.5-pro-preview-05-06')
 
 export const model = anthropic('claude-4-sonnet-20250514')
 export const anthropicProviderOptions = {

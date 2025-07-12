@@ -18,16 +18,17 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { SourceCard, type SourceDataType } from '../source-card';
 import { useChatStore } from '@/lib/store/chat-store';
-import { 
-  DocumentPreview, 
-  DocumentToolCall, 
-  DocumentToolResult, 
-  MemorySearchPreview, 
-  MemorySetPreview, 
-  MicroAppResult, 
-  TodoListPreview, 
-  WebSearchPreview, 
-  WebSearchResults 
+import {
+  DocumentPreview,
+  DocumentToolCall,
+  DocumentToolResult,
+  InterpreterPreview,
+  MemorySearchPreview,
+  MemorySetPreview,
+  MicroAppResult,
+  TodoListPreview,
+  WebSearchPreview,
+  WebSearchResults
 } from './tool-previews';
 
 const PurePreviewMessage = ({
@@ -60,7 +61,7 @@ const PurePreviewMessage = ({
     <AnimatePresence>
       <motion.div
         data-testid={`message-${message.role}`}
-        className="w-full mx-auto max-w-3xl px-4 group/message transform scale-95"
+        className="w-full mx-auto max-w-3xl px-4 group/message mb-5"
         initial={{ y: 5, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
@@ -251,6 +252,11 @@ const PurePreviewMessage = ({
                               toolCallId={toolCallId}
                               threadId={chatId}
                             />;
+                          case 'useInterpreter':
+                            return <InterpreterPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
                           default:
                             return null;
                         }
@@ -323,6 +329,12 @@ const PurePreviewMessage = ({
                               args={args}
                               toolCallId={toolCallId}
                               threadId={chatId}
+                              result={result}
+                            />;
+                          case 'useInterpreter':
+                            return <InterpreterPreview
+                              args={args}
+                              toolCallId={toolCallId}
                               result={result}
                             />;
                           case 'searchKnowledgeBase':

@@ -27,10 +27,10 @@ const PureChat = ({
   chatMode?: 'direct' | 'team';
 }) => {
 
-  const messages = useThreadMessages(
+  const { results: messages, loadMore, isLoading, status: messagesStatus } = useThreadMessages(
     api.chat.listThreadMessages,
     { threadId },
-    { initialNumItems: 20, stream: true },
+    { initialNumItems: 10, stream: true },
   );
   const sendMessage = useMutation(
     api.chat.streamMessageAsync,
@@ -53,7 +53,7 @@ const PureChat = ({
   const { modelId, initialVisibilityType } = useChatStore();
 
   useEffect(() => {
-    const latestStatus = messages.results[messages.results.length - 1]?.status;
+    const latestStatus = messages[messages.length - 1]?.status;
     if (latestStatus) {
       if (latestStatus === 'success' || latestStatus === 'failed') {
         setStatus('ready');
@@ -61,7 +61,7 @@ const PureChat = ({
         setStatus(latestStatus);
       }
     }
-  }, [messages.results]);
+  }, [messages]);
 
   return (
     <>
@@ -78,9 +78,14 @@ const PureChat = ({
           chatId={threadId}
           status={status}
           votes={votes}
-          messages={toUIMessages(messages.results)}
+          messages={toUIMessages(messages)}
           isReadonly={isReadonly}
           chatMode={chatMode}
+          loadMoreMessages={() => {
+            loadMore(10);
+          }}
+          isLoading={isLoading}
+          messagesStatus={messagesStatus}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
@@ -97,7 +102,7 @@ const PureChat = ({
               }}
               attachments={attachments}
               setAttachments={setAttachments}
-              messages={toUIMessages(messages.results)}
+              messages={toUIMessages(messages)}
               append={async () => {
                 await handleSubmit();
                 return null;
@@ -121,7 +126,7 @@ const PureChat = ({
         }}
         attachments={attachments}
         setAttachments={setAttachments}
-        messages={toUIMessages(messages.results)}
+        messages={toUIMessages(messages)}
         append={async () => {
           await handleSubmit();
           return null;

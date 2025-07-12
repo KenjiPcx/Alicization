@@ -14,6 +14,8 @@ import { z } from "zod";
 import { createKPIToolset, resolveCompanyScope } from "../advanced/kpi";
 import { createOpenOfficeMicroAppTool } from "../advanced/office-micro-app";
 import { ActionCtx } from "@/convex/_generated/server";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { createAdvancedTools } from "../advanced";
 
 export const useCeoToolsPrompt = dedent`
     # CEO Tools
@@ -42,10 +44,26 @@ export const useCeoToolsPrompt = dedent`
 export const viewTeams = createTool({
     description: "View all teams in the office",
     args: z.object({}),
-    handler: async (ctx, args, { toolCallId }) => {
-        if (!ctx.userId) throw new Error("User ID is required");
-        const teams = await ctx.runQuery(internal.teams.getTeams, { userId: ctx.userId as Id<"users"> });
-        return teams;
+    handler: async (ctx, args, { toolCallId }): Promise<{
+        success: boolean;
+        message: string;
+        teams?: any[];
+    }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.userId) throw new Error("User ID is required");
+                const teams = await ctx.runQuery(internal.teams.getTeams, { userId: ctx.userId as Id<"users"> });
+                return { teams };
+            },
+            {
+                operation: "Team listing",
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `Found ${result.teams.length} teams in the office`,
+                teams: result.teams
+            })
+        );
     },
 });
 
@@ -59,10 +77,26 @@ export const designTeam = createTool({
         name: z.string().describe("The name of the team"),
         description: z.string().describe("The description of the team"),
     }),
-    handler: async (ctx, args, { toolCallId }) => {
-        if (!ctx.userId) throw new Error("User ID is required");
-        // This will be implemented later - for now just create a placeholder team
-        return { message: "Team design feature coming soon", teamName: args.name };
+    handler: async (ctx, args, { toolCallId }): Promise<{
+        success: boolean;
+        message: string;
+        teamName?: string;
+    }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.userId) throw new Error("User ID is required");
+                // This will be implemented later - for now just create a placeholder team
+                return { teamName: args.name };
+            },
+            {
+                operation: "Team design",
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: "Team design feature coming soon",
+                teamName: result.teamName
+            })
+        );
     },
 });
 
@@ -74,21 +108,34 @@ export const getCompanyDetails = createTool({
     args: z.object({
         fetchTeam: z.boolean().optional().describe("Whether to fetch the team details"),
     }),
-    handler: async (ctx, args, { toolCallId }) => {
-        if (!ctx.userId) throw new Error("User ID is required");
-        const company = await ctx.runQuery(api.companies.getCompany, {
-            userId: ctx.userId as Id<"users">,
-            fetchTeam: args.fetchTeam,
-        });
+    handler: async (ctx, args, { toolCallId }): Promise<{
+        success: boolean;
+        message: string;
+        company?: any;
+    }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.userId) throw new Error("User ID is required");
+                const company = await ctx.runQuery(api.companies.getCompany, {
+                    userId: ctx.userId as Id<"users">,
+                    fetchTeam: args.fetchTeam,
+                });
 
-        if (!company) {
-            return { message: "No company found. Please create a company first." };
-        }
+                if (!company) {
+                    throw new Error("No company found. Please create a company first.");
+                }
 
-        return {
-            message: "Company details retrieved successfully",
-            company
-        };
+                return { company };
+            },
+            {
+                operation: "Company details retrieval",
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: "Company details retrieved successfully",
+                company: result.company
+            })
+        );
     },
 });
 
@@ -104,42 +151,58 @@ export const updateCompanyDetails = createTool({
         values: z.array(z.string()).optional().describe("The company values"),
         goals: z.array(z.string()).optional().describe("The company goals"),
     }),
-    handler: async (ctx, args, { toolCallId }) => {
-        if (!ctx.userId) throw new Error("User ID is required");
+    handler: async (ctx, args, { toolCallId }): Promise<{
+        success: boolean;
+        message: string;
+        updates?: any;
+    }> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.userId) throw new Error("User ID is required");
 
-        try {
-            await ctx.runMutation(api.companies.updateCompany, {
-                userId: ctx.userId as Id<"users">,
-                name: args.name,
-                vision: args.vision,
-                mission: args.mission,
-                values: args.values,
-                goals: args.goals,
-            });
+                await ctx.runMutation(api.companies.updateCompany, {
+                    userId: ctx.userId as Id<"users">,
+                    name: args.name,
+                    vision: args.vision,
+                    mission: args.mission,
+                    values: args.values,
+                    goals: args.goals,
+                });
 
-            return {
+                return { updates: args };
+            },
+            {
+                operation: "Company details update",
+                includeTechnicalDetails: true
+            },
+            (result) => ({
                 message: "Company details updated successfully",
-                updates: args
-            };
-        } catch (error) {
-            return {
-                message: "Failed to update company details",
-                error: error instanceof Error ? error.message : "Unknown error"
-            };
-        }
+                updates: result.updates
+            })
+        );
     },
 });
 
 /**
  * Factory function to create CEO tools with proper context injection
  */
-export const createCEOTools = async (ctx: ActionCtx, userId: Id<"users">) => {
+export const createCEOTools = async (
+    ctx: ActionCtx, 
+    threadId: string, 
+    userId: Id<"users">, 
+    employeeId: Id<"employees">, 
+    teamId?: Id<"teams">
+) => {
     // Resolve company scope for KPI tools
     const companyScope = await resolveCompanyScope(ctx, userId);
     const kpiTools = createKPIToolset(ctx, companyScope, userId);
     const openOfficeMicroAppTool = createOpenOfficeMicroAppTool(companyScope);
+    const advancedTools = createAdvancedTools(ctx, threadId, userId, employeeId, teamId);
 
     return {
+        // Advanced tools
+        ...advancedTools,
+
         // Company management tools
         viewTeams,
         designTeam,

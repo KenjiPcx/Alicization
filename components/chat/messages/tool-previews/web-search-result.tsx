@@ -3,19 +3,32 @@
 import React from 'react';
 
 interface WebSearchResult {
-    answer: string;
-    source: string;
+    content: string;
+    sourceUrl: string;
+}
+
+interface WebSearchResponse {
+    success: boolean;
+    message: string;
+    results?: WebSearchResult[];
+    query?: string;
+    resultCount?: number;
 }
 
 interface WebSearchResultsProps {
-    results: WebSearchResult[];
+    results: WebSearchResponse;
 }
 
-export function WebSearchResults({ results }: WebSearchResultsProps) {
-    if (!results || results.length === 0) {
+export function WebSearchResults({ results: response }: WebSearchResultsProps) {
+    console.log("Key results", response);
+
+    // Extract the actual results array from the response
+    const results = response?.results || [];
+
+    if (!response || !response.success || !Array.isArray(results) || results.length === 0) {
         return (
             <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                No search results found.
+                {response?.message || "No search results found."}
             </div>
         );
     }
@@ -30,17 +43,24 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
                 </div>
             </div>
 
+            {/* Show search query if available */}
+            {response.query && (
+                <div className="text-sm text-hacker-text-secondary mb-3">
+                    Searching for: <span className="font-medium text-hacker-text">"{response.query}"</span>
+                </div>
+            )}
+
             {/* Horizontal scrollable carousel with modern scrollbar */}
             <div className="flex gap-4 overflow-x-auto pb-3 pr-1 modern-scrollbar">
                 {results.map((result, index) => (
                     <div
-                        key={`${result.source}-${result.answer.slice(0, 20)}`}
+                        key={`${index}-${result.sourceUrl}-${result.content.slice(0, 20)}`}
                         className="flex-shrink-0 w-80 bg-gradient-to-r from-hacker-bg to-hacker-bg-secondary border border-hacker-border rounded-lg p-5 shadow-lg shadow-hacker-accent/20 hover:shadow-xl hover:shadow-hacker-accent/30 transition-shadow"
                     >
-                        {/* Answer */}
+                        {/* Content */}
                         <div className="mb-4">
                             <div className="text-sm font-medium text-hacker-text mb-2 line-clamp-5 leading-relaxed">
-                                {result.answer}
+                                {result.content}
                             </div>
                         </div>
 
@@ -50,18 +70,18 @@ export function WebSearchResults({ results }: WebSearchResultsProps) {
                                 <div className="text-xs text-hacker-text-secondary font-medium whitespace-nowrap">SOURCE:</div>
                                 <div className="flex-1 min-w-0">
                                     <a
-                                        href={result.source}
+                                        href={result.sourceUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-xs text-hacker-accent hover:text-hacker-accent-bright hover:underline block truncate"
-                                        title={result.source}
+                                        title={result.sourceUrl}
                                     >
-                                        {formatSourceUrl(result.source)}
+                                        {formatSourceUrl(result.sourceUrl)}
                                     </a>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => window.open(result.source, '_blank')}
+                                    onClick={() => window.open(result.sourceUrl, '_blank')}
                                     className="text-xs text-hacker-text-secondary hover:text-hacker-accent transition-colors flex-shrink-0 p-1 hover:bg-hacker-accent/20 rounded"
                                     title="Open in new tab"
                                 >

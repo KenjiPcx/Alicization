@@ -7,6 +7,13 @@ import { internal } from "@/convex/_generated/api";
 import { tavily } from "@tavily/core";
 import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
+export const useWebSearchPrompt = dedent`
+    <Use Web Search Docs>
+    The web search tool is a tool that allows you to search the web for information.
+    If the tool fails, try calling it again at most 3 times.
+    </Use Web Search Docs>
+`
+
 const webSearchResultSchema = z.object({
     content: z.string(),
     sourceUrl: z.string(),

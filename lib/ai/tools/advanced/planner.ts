@@ -9,8 +9,10 @@ import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { api, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 export type PlannerToolResult = {
+    success: boolean;
     message: string;
     taskId?: string;
     isCompleted?: boolean;
@@ -23,6 +25,7 @@ export type PlannerToolResult = {
 };
 
 export const usePlannerToolsPrompt = dedent`
+    <Use Planner Tools Docs>
     ## Todo List Toolset
 
     Use for large, multi-step tasks that need progress tracking.
@@ -44,6 +47,7 @@ export const usePlannerToolsPrompt = dedent`
     - Use completeCurrentTodoAndMoveToNextTodo when finishing (not selectNextTodo again)
 
     **Example:** User asks to "Build auth system" → setPlanAndTodos → selectNextTodo → work → completeCurrentTodoAndMoveToNextTodo → repeat until it tells you that no todos are left → summarize all your work so far
+    </Use Planner Tools Docs>
 `
 
 /**
@@ -59,83 +63,111 @@ export const setPlanAndTodos = createTool({
         todos: z.array(z.string()).describe("The remaining todos to accomplish the plan, these will be added to any existing incomplete todos")
     }),
     handler: async (ctx, args): Promise<PlannerToolResult> => {
-        const threadId = ctx.threadId;
-        if (!threadId) throw new Error("Thread ID is required");
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
 
-        const { plan, todos, title, description } = args;
+                const { plan, todos, title, description } = args;
 
-        const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
-            threadId,
-        });
+                const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
+                    threadId: ctx.threadId,
+                });
 
-        // This gets the latest open task and add new todos to it
-        if (latestTask) {
-            // Update existing plan (replanning)
-            const updatedTask = await ctx.runMutation(internal.tasks.updateTask, {
-                taskId: latestTask._id,
-                newPlan: plan,
-                newTodos: todos,
-            });
+                // This gets the latest open task and add new todos to it
+                if (latestTask) {
+                    // Update existing plan (replanning)
+                    const updatedTask = await ctx.runMutation(internal.tasks.updateTask, {
+                        taskId: latestTask._id,
+                        newPlan: plan,
+                        newTodos: todos,
+                    });
 
-            return {
-                message: `Replanned successfully! Added ${todos.length} new todos to existing plan.`,
-                taskId: latestTask._id,
-                task: {
-                    title: updatedTask.title,
-                    description: updatedTask.description,
-                    todos: updatedTask.todos,
-                },
-            };
-        }
+                    return {
+                        taskId: latestTask._id,
+                        task: {
+                            title: updatedTask.title,
+                            description: updatedTask.description,
+                            todos: updatedTask.todos,
+                        },
+                        operation: 'replan'
+                    };
+                }
 
-        // If we get here, that means that the agent is replanning even though the task was already completed
-        // If no title/description provided, try to find the last completed task and reactivate it
-        if (!title || !description) {
-            const lastCompletedTask = await ctx.runQuery(api.tasks.getLastCompletedTask, {
-                threadId,
-            });
+                // If we get here, that means that the agent is replanning even though the task was already completed
+                // If no title/description provided, try to find the last completed task and reactivate it
+                if (!title || !description) {
+                    const lastCompletedTask = await ctx.runQuery(api.tasks.getLastCompletedTask, {
+                        threadId: ctx.threadId,
+                    });
 
-            if (lastCompletedTask) {
-                // Reactivate the completed task and add new todos
-                const reactivatedTask = await ctx.runMutation(internal.tasks.reactivateAndUpdateTask, {
-                    taskId: lastCompletedTask._id,
-                    newPlan: plan,
-                    newTodos: todos,
+                    if (lastCompletedTask) {
+                        // Reactivate the completed task and add new todos
+                        const reactivatedTask = await ctx.runMutation(internal.tasks.reactivateAndUpdateTask, {
+                            taskId: lastCompletedTask._id,
+                            newPlan: plan,
+                            newTodos: todos,
+                        });
+
+                        return {
+                            taskId: lastCompletedTask._id,
+                            task: {
+                                title: reactivatedTask.title,
+                                description: reactivatedTask.description,
+                                todos: reactivatedTask.todos,
+                            },
+                            operation: 'reactivate'
+                        };
+                    }
+
+                    throw new Error("Title and description are required to create a new plan");
+                }
+
+                // Create a new plan and todos
+                const newTask = await ctx.runMutation(internal.tasks.createTask, {
+                    threadId: ctx.threadId,
+                    title,
+                    description,
+                    plan,
+                    todos,
                 });
 
                 return {
-                    message: `Reactivated completed task and added ${todos.length} new todos.`,
-                    taskId: lastCompletedTask._id,
+                    taskId: newTask._id,
                     task: {
-                        title: reactivatedTask.title,
-                        description: reactivatedTask.description,
-                        todos: reactivatedTask.todos,
+                        title: newTask.title,
+                        description: newTask.description,
+                        todos: newTask.todos,
+                        plan: newTask.plan[newTask.plan.length - 1],
                     },
+                    operation: 'create'
                 };
-            }
-
-            throw new Error("Title and description are required to create a new plan");
-        }
-
-        // Create a new plan and todos
-        const newTask = await ctx.runMutation(internal.tasks.createTask, {
-            threadId,
-            title,
-            description,
-            plan,
-            todos,
-        });
-
-        return {
-            message: `Created new task "${newTask.title}" with ${todos.length} todos.`,
-            taskId: newTask._id,
-            task: {
-                title: newTask.title,
-                description: newTask.description,
-                todos: newTask.todos,
-                plan: newTask.plan[newTask.plan.length - 1],
             },
-        };
+            {
+                operation: "Plan and todos management",
+                includeTechnicalDetails: true
+            },
+            (result) => {
+                if (result.operation === 'replan') {
+                    return {
+                        message: `Replanned successfully! Added ${args.todos.length} new todos to existing plan.`,
+                        taskId: result.taskId,
+                        task: result.task,
+                    };
+                } else if (result.operation === 'reactivate') {
+                    return {
+                        message: `Reactivated completed task and added ${args.todos.length} new todos.`,
+                        taskId: result.taskId,
+                        task: result.task,
+                    };
+                } else {
+                    return {
+                        message: `Created new task "${result.task.title}" with ${args.todos.length} todos.`,
+                        taskId: result.taskId,
+                        task: result.task,
+                    };
+                }
+            }
+        );
     },
 });
 
@@ -143,40 +175,69 @@ export const selectNextTodo = createTool({
     description: "Select the next todo to work on, selects the first pending todo to work on. Call this tool before proceeding to the next todo, it updates the UI for the user to track your progress",
     args: z.object({}),
     handler: async (ctx, args): Promise<PlannerToolResult> => {
-        const threadId = ctx.threadId;
-        if (!threadId) throw new Error("Thread ID is required");
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
 
-        const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
-            threadId,
-        });
+                const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
+                    threadId: ctx.threadId,
+                });
 
-        if (!latestTask) return { message: "No task exists for this thread." };
+                if (!latestTask) {
+                    return { message: "No task exists for this thread.", noTask: true };
+                }
 
-        const nextTodo = latestTask.todos.find(todo => todo.status === "pending");
-        if (!nextTodo) return {
-            message: "No pending todos found. All todos are completed. Please summarize your work to the user",
-            taskId: latestTask._id,
-            task: {
-                title: latestTask.title,
-                description: latestTask.description,
-                todos: latestTask.todos,
+                const nextTodo = latestTask.todos.find(todo => todo.status === "pending");
+                if (!nextTodo) {
+                    return {
+                        message: "No pending todos found. All todos are completed. Please summarize your work to the user",
+                        taskId: latestTask._id,
+                        task: {
+                            title: latestTask.title,
+                            description: latestTask.description,
+                            todos: latestTask.todos,
+                        },
+                        noMoreTodos: true
+                    };
+                }
+
+                // Actually start the todo by changing its status to "in-progress"
+                const { message, task } = await ctx.runMutation(internal.tasks.startNextTodo, {
+                    taskId: latestTask._id,
+                });
+
+                return {
+                    message,
+                    taskId: latestTask._id,
+                    task: {
+                        title: task.title,
+                        description: task.description,
+                        todos: task.todos,
+                    },
+                };
             },
-        };
-
-        // Actually start the todo by changing its status to "in-progress"
-        const { message, task } = await ctx.runMutation(internal.tasks.startNextTodo, {
-            taskId: latestTask._id,
-        });
-
-        return {
-            message,
-            taskId: latestTask._id,
-            task: {
-                title: task.title,
-                description: task.description,
-                todos: task.todos,
+            {
+                operation: "Todo selection",
+                includeTechnicalDetails: true
             },
-        };
+            (result) => {
+                if (result.noTask) {
+                    return { message: result.message };
+                } else if (result.noMoreTodos) {
+                    return {
+                        message: result.message,
+                        taskId: result.taskId,
+                        task: result.task,
+                    };
+                } else {
+                    return {
+                        message: result.message,
+                        taskId: result.taskId,
+                        task: result.task,
+                    };
+                }
+            }
+        );
     },
 });
 
@@ -187,31 +248,50 @@ export const completeCurrentTodoAndMoveToNextTodo = createTool({
     description: "Complete the current todo and move to the next one",
     args: z.object({}),
     handler: async (ctx, args): Promise<PlannerToolResult> => {
-        const threadId = ctx.threadId;
-        if (!threadId) throw new Error("Thread ID is required");
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
 
-        const currentTask = await ctx.runQuery(api.tasks.getLatestTask, {
-            threadId,
-        });
+                const currentTask = await ctx.runQuery(api.tasks.getLatestTask, {
+                    threadId: ctx.threadId,
+                });
 
-        if (!currentTask) {
-            return { message: "No task exists for this thread." };
-        }
+                if (!currentTask) {
+                    return { message: "No task exists for this thread.", noTask: true };
+                }
 
-        const { message, isCompleted, task } = await ctx.runMutation(internal.tasks.completeCurrentTodoAndMoveToNextTodo, {
-            taskId: currentTask._id,
-        });
+                const { message, isCompleted, task } = await ctx.runMutation(internal.tasks.completeCurrentTodoAndMoveToNextTodo, {
+                    taskId: currentTask._id,
+                });
 
-        return {
-            message,
-            taskId: currentTask._id,
-            isCompleted,
-            task: {
-                title: task.title,
-                description: task.description,
-                todos: task.todos,
+                return {
+                    message,
+                    taskId: currentTask._id,
+                    isCompleted,
+                    task: {
+                        title: task.title,
+                        description: task.description,
+                        todos: task.todos,
+                    },
+                };
             },
-        };
+            {
+                operation: "Todo completion",
+                includeTechnicalDetails: true
+            },
+            (result) => {
+                if (result.noTask) {
+                    return { message: result.message };
+                } else {
+                    return {
+                        message: result.message,
+                        taskId: result.taskId,
+                        isCompleted: result.isCompleted,
+                        task: result.task,
+                    };
+                }
+            }
+        );
     },
 });
 

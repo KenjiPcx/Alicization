@@ -4,6 +4,7 @@ import React from 'react';
 import { Save, User, Users, Building, Brain } from "lucide-react";
 
 interface SetMemoryResult {
+    success: boolean;
     message: string;
     key: string;
     value: string;
@@ -59,6 +60,21 @@ export function MemorySetPreview({ args, toolCallId, threadId, result }: MemoryS
                 <div className="animate-pulse space-y-2">
                     <div className="h-4 bg-hacker-accent/20 rounded w-3/4"></div>
                     <div className="h-4 bg-hacker-accent/20 rounded w-1/2"></div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if memory storage failed
+    if (result && !result.success) {
+        return (
+            <div className="border border-red-200 dark:border-red-700 rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="text-lg text-red-500">❌</div>
+                    <h3 className="font-medium text-red-600 dark:text-red-400">Memory Storage Failed</h3>
+                </div>
+                <div className="text-sm text-red-600 dark:text-red-400">
+                    {result.message}
                 </div>
             </div>
         );

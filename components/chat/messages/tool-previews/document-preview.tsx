@@ -32,8 +32,7 @@ interface DocumentResponse {
 
 interface DocumentPreviewProps {
   isReadonly: boolean;
-  result?: string;
-  structuredResult?: DocumentResponse;
+  result?: DocumentResponse;
   args?: {
     title: string;
     type: ArtifactKind;
@@ -44,7 +43,6 @@ interface DocumentPreviewProps {
 export function DocumentPreview({
   isReadonly,
   result,
-  structuredResult,
   args,
   toolCallId,
 }: DocumentPreviewProps) {
@@ -112,7 +110,7 @@ export function DocumentPreview({
         <DocumentToolResult
           type="create"
           result={{ toolCallId, title, kind: type }}
-          structuredResult={structuredResult}
+          structuredResult={result}
           isReadonly={isReadonly}
         />
       );
@@ -123,7 +121,7 @@ export function DocumentPreview({
         <DocumentToolCall
           type="create"
           args={{ title: args.title }}
-          structuredResult={structuredResult}
+          structuredResult={result}
           isReadonly={isReadonly}
           toolCallId={toolCallId}
         />
@@ -142,7 +140,7 @@ export function DocumentPreview({
   const isFailed = currentStatus?.status === "failed";
 
   // Show error state if we have a structured result with failure
-  if (structuredResult && !structuredResult.success && (isCompleted || isFailed)) {
+  if (result && !result.success && (isCompleted || isFailed)) {
     return (
       <div className="relative w-full">
         <div className="border border-red-200 dark:border-red-700 rounded-xl p-4 bg-background">
@@ -153,7 +151,7 @@ export function DocumentPreview({
             </div>
           </div>
           <div className="text-sm text-red-600 dark:text-red-400">
-            {structuredResult.message}
+            {result.message}
           </div>
         </div>
       </div>
@@ -181,12 +179,12 @@ export function DocumentPreview({
         title={document.title}
         kind={document.kind}
         isStreaming={isInProgress}
-        isSuccess={structuredResult?.success}
+        isSuccess={result?.success}
       />
       <DocumentContent
         document={document}
         isInProgress={isInProgress}
-        structuredResult={structuredResult}
+        structuredResult={result}
       />
     </div>
   );

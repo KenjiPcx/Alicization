@@ -7,16 +7,18 @@ import { TodoListPreview } from './todo-list';
 import { MemorySetPreview } from './memory-set-preview';
 import { MemorySearchPreview } from './memory-search-preview';
 import { DocumentSkeleton } from './document-skeleton';
+import { InterpreterPreview } from './interpreter-preview';
 
-export { 
-    DocumentToolCall, 
-    DocumentToolResult, 
-    DocumentPreview, 
-    MicroAppResult, 
-    WebSearchPreview, 
-    WebSearchResults, 
-    TodoListPreview, 
-    MemorySetPreview, 
+export {
+    DocumentToolCall,
+    DocumentToolResult,
+    DocumentPreview,
+    MicroAppResult,
+    WebSearchPreview,
+    WebSearchResults,
+    TodoListPreview,
+    MemorySetPreview,
     MemorySearchPreview,
     DocumentSkeleton,
+    InterpreterPreview,
 };

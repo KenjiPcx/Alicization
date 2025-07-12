@@ -4,6 +4,13 @@ import { createTool } from "@convex-dev/agent";
 import { z } from "zod";
 import { internal } from "@/convex/_generated/api";
 import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import dedent from "dedent";
+
+export const usePrivateKnowledgeSearchPrompt = dedent`
+    <Use Private Knowledge Search Docs>
+    The private knowledge search tool is a tool that allows you to search your private knowledge base.
+    </Use Private Knowledge Search Docs>
+`
 
 // A subagent will handle the different needs
 export const privateKnowledgeSearch = createTool({

@@ -60,6 +60,21 @@ export function TodoListPreview({ args, toolCallId, toolName, threadId, result }
         );
     }
 
+    // Show error state if the operation failed
+    if (result && !result.success) {
+        return (
+            <div className="border border-red-200 dark:border-red-700 rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="text-lg text-red-500">❌</div>
+                    <h3 className="font-medium text-red-600 dark:text-red-400">{getToolLabel()} Failed</h3>
+                </div>
+                <div className="text-sm text-red-600 dark:text-red-400">
+                    {result.message}
+                </div>
+            </div>
+        );
+    }
+
     // Use task data from the result
     const taskData = result.task;
 

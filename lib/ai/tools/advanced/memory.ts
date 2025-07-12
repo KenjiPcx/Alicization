@@ -33,8 +33,10 @@ import { z } from "zod";
 import { ActionCtx } from "@/convex/_generated/server";
 import { tool } from "ai";
 import dedent from "dedent";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 export const useMemoryToolsPrompt = dedent`
+    <Use Memory Tools Docs>
     **Memory Tools:**
     - setMemory: Save facts with descriptive keys. Scopes: personal (private, only information you should know), team (shared, information your team should know), user (global preferences, information everyone should know)
     - searchMemories: Find memories using natural language queries (semantic search)
@@ -45,9 +47,11 @@ export const useMemoryToolsPrompt = dedent`
     - User scope would be useful for things like user preferences, user facts, etc.
 
     **Usage:** Save key details immediately, search before asking users to repeat info, use consistent naming (client_name_topic)
+    </Use Memory Tools Docs>
 `
 
 export type SetMemoryResult = {
+    success: boolean;
     message: string;
     key: string;
     value: string;
@@ -55,6 +59,7 @@ export type SetMemoryResult = {
 };
 
 export type SearchMemoryResult = {
+    success: boolean;
     message: string;
     memories: {
         key: string;
@@ -79,22 +84,32 @@ export const createMemoryTools = (
                 scope: z.enum(["personal", "team", "user"]).describe("Memory scope - determines who can access it"),
             }),
             execute: async ({ key, value, scope }): Promise<SetMemoryResult> => {
-                const result = await ctx.runMutation(internal.memories.setMemory, {
-                    key,
-                    value,
-                    scope,
-                    threadId,
-                    userId,
-                    employeeId,
-                    teamId,
-                });
+                return withToolErrorHandling(
+                    async () => {
+                        const result = await ctx.runMutation(internal.memories.setMemory, {
+                            key,
+                            value,
+                            scope,
+                            threadId,
+                            userId,
+                            employeeId,
+                            teamId,
+                        });
 
-                return {
-                    message: `Saved ${scope} memory: ${key}`,
-                    key: key,
-                    value: value,
-                    scope: scope
-                };
+                        return { key, value, scope };
+                    },
+                    {
+                        operation: "Memory storage",
+                        context: `${scope} scope`,
+                        includeTechnicalDetails: true
+                    },
+                    (result) => ({
+                        message: `Saved ${result.scope} memory: ${result.key}`,
+                        key: result.key,
+                        value: result.value,
+                        scope: result.scope
+                    })
+                );
             },
         }),
         searchMemories: tool({
@@ -104,35 +119,47 @@ export const createMemoryTools = (
                 scope: z.optional(z.enum(["personal", "team", "user"]).describe("Filter by memory scope")),
             }),
             execute: async ({ query, scope }): Promise<SearchMemoryResult> => {
-                const memories = await ctx.runAction(internal.memories.searchMemories, {
-                    query,
-                    threadId,
-                    userId,
-                    employeeId,
-                    teamId,
-                    scope,
-                    limit: 10,
-                });
+                return withToolErrorHandling(
+                    async () => {
+                        const memories = await ctx.runAction(internal.memories.searchMemories, {
+                            query,
+                            threadId,
+                            userId,
+                            employeeId,
+                            teamId,
+                            scope,
+                            limit: 10,
+                        });
 
-                if (memories.length === 0) {
-                    return {
-                        message: query ? `No memories found for query: "${query}"` : "No memories found matching your criteria",
-                        memories: [],
-                    };
-                }
+                        const results = memories.map((m: any) => {
+                            return {
+                                key: m.key,
+                                value: m.value,
+                                scope: m.scope,
+                            }
+                        });
 
-                const results = memories.map((m: any) => {
-                    return {
-                        key: m.key,
-                        value: m.value,
-                        scope: m.scope,
+                        return { query, memories: results, memoriesCount: memories.length };
+                    },
+                    {
+                        operation: "Memory search",
+                        context: scope ? `${scope} scope` : "all scopes",
+                        includeTechnicalDetails: true
+                    },
+                    (result) => {
+                        if (result.memoriesCount === 0) {
+                            return {
+                                message: result.query ? `No memories found for query: "${result.query}"` : "No memories found matching your criteria",
+                                memories: [],
+                            };
+                        }
+
+                        return {
+                            message: `Found ${result.memoriesCount}`,
+                            memories: result.memories,
+                        };
                     }
-                });
-
-                return {
-                    message: `Found ${memories.length}`,
-                    memories: results,
-                };
+                );
             },
         }),
     }

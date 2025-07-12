@@ -4,6 +4,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { tool } from "ai";
 import { ActionCtx } from "@/convex/_generated/server";
 import { ScopeAndId } from "@/lib/types";
+import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 /**
  * View KPI dashboard - generalized for company/team/employee
@@ -19,16 +20,26 @@ export const createKPIDashboardTool = (
         year: z.number().optional().describe("Filter by year"),
     }),
     execute: async (args) => {
-        const dashboard = await ctx.runQuery(api.kpis.getKPIDashboard, {
-            ...scopeAndId,
-            quarter: args.quarter,
-            year: args.year,
-        });
+        return withToolErrorHandling(
+            async () => {
+                const dashboard = await ctx.runQuery(api.kpis.getKPIDashboard, {
+                    ...scopeAndId,
+                    quarter: args.quarter,
+                    year: args.year,
+                });
 
-        return {
-            message: `KPI dashboard retrieved successfully for ${scopeAndId.scope}`,
-            dashboard
-        };
+                return { dashboard };
+            },
+            {
+                operation: "KPI dashboard retrieval",
+                context: `for ${scopeAndId.scope}`,
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `KPI dashboard retrieved successfully for ${scopeAndId.scope}`,
+                dashboard: result.dashboard
+            })
+        );
     },
 });
 
@@ -53,26 +64,36 @@ export const createKPITool = (
         statusMessage: z.string().optional().describe("Initial status message"),
     }),
     execute: async (args) => {
-        const kpiData = {
-            name: args.name,
-            description: args.description,
-            direction: args.direction,
-            unit: args.unit,
-            target: args.target,
-            currentValue: args.currentValue,
-            quarter: args.quarter,
-            year: args.year,
-            status: "pending" as const,
-            statusMessage: args.statusMessage,
-            ...scopeAndId,
-        };
+        return withToolErrorHandling(
+            async () => {
+                const kpiData = {
+                    name: args.name,
+                    description: args.description,
+                    direction: args.direction,
+                    unit: args.unit,
+                    target: args.target,
+                    currentValue: args.currentValue,
+                    quarter: args.quarter,
+                    year: args.year,
+                    status: "pending" as const,
+                    statusMessage: args.statusMessage,
+                    ...scopeAndId,
+                };
 
-        const kpiId = await ctx.runMutation(api.kpis.createKPI, kpiData);
+                const kpiId = await ctx.runMutation(api.kpis.createKPI, kpiData);
 
-        return {
-            message: `KPI created successfully for ${scopeAndId.scope}`,
-            kpiId: kpiId,
-        };
+                return { kpiId };
+            },
+            {
+                operation: "KPI creation",
+                context: `for ${scopeAndId.scope}`,
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `KPI created successfully for ${scopeAndId.scope}`,
+                kpiId: result.kpiId,
+            })
+        );
     },
 });
 
@@ -93,35 +114,48 @@ export const createUpdateKPITool = (
         statusMessage: z.string().optional().describe("A message explaining the status update"),
     }),
     execute: async (args) => {
-        // Find the KPI by name within the scope
-        const kpis = await ctx.runQuery(api.kpis.getKPIs, {
-            ...scopeAndId,
-        });
+        return withToolErrorHandling(
+            async () => {
+                // Find the KPI by name within the scope
+                const kpis = await ctx.runQuery(api.kpis.getKPIs, {
+                    ...scopeAndId,
+                });
 
-        const kpi = kpis.find(k => k.name === args.kpiName);
+                const kpi = kpis.find(k => k.name === args.kpiName);
 
-        if (!kpi) {
-            return { message: `KPI "${args.kpiName}" not found in ${scopeAndId.scope}` };
-        }
+                if (!kpi) {
+                    throw new Error(`KPI "${args.kpiName}" not found in ${scopeAndId.scope}`);
+                }
 
-        await ctx.runMutation(api.kpis.updateKPI, {
-            kpiId: kpi._id,
-            currentValue: args.currentValue,
-            target: args.target,
-            status: args.status,
-            statusMessage: args.statusMessage,
-        });
+                await ctx.runMutation(api.kpis.updateKPI, {
+                    kpiId: kpi._id,
+                    currentValue: args.currentValue,
+                    target: args.target,
+                    status: args.status,
+                    statusMessage: args.statusMessage,
+                });
 
-        return {
-            message: `KPI "${args.kpiName}" updated successfully`,
-            kpi: {
-                name: args.kpiName,
-                currentValue: args.currentValue ?? kpi.currentValue,
-                target: args.target ?? kpi.target,
-                status: args.status ?? kpi.status,
-                statusMessage: args.statusMessage ?? kpi.statusMessage,
-            }
-        };
+                return {
+                    kpiName: args.kpiName,
+                    kpi: {
+                        name: args.kpiName,
+                        currentValue: args.currentValue ?? kpi.currentValue,
+                        target: args.target ?? kpi.target,
+                        status: args.status ?? kpi.status,
+                        statusMessage: args.statusMessage ?? kpi.statusMessage,
+                    }
+                };
+            },
+            {
+                operation: "KPI update",
+                context: `for ${scopeAndId.scope}`,
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `KPI "${result.kpiName}" updated successfully`,
+                kpi: result.kpi
+            })
+        );
     },
 });
 
@@ -138,28 +172,41 @@ export const createRemoveKPITool = (
         kpiName: z.string().describe("The name of the KPI to remove"),
     }),
     execute: async (args) => {
-        // Find the KPI by name within the scope
-        const kpis = await ctx.runQuery(api.kpis.getKPIs, {
-            ...scopeAndId,
-        });
+        return withToolErrorHandling(
+            async () => {
+                // Find the KPI by name within the scope
+                const kpis = await ctx.runQuery(api.kpis.getKPIs, {
+                    ...scopeAndId,
+                });
 
-        const kpi = kpis.find(k => k.name === args.kpiName);
+                const kpi = kpis.find(k => k.name === args.kpiName);
 
-        if (!kpi) {
-            return { message: `KPI "${args.kpiName}" not found in ${scopeAndId.scope}` };
-        }
+                if (!kpi) {
+                    throw new Error(`KPI "${args.kpiName}" not found in ${scopeAndId.scope}`);
+                }
 
-        await ctx.runMutation(api.kpis.deleteKPI, {
-            kpiId: kpi._id,
-        });
+                await ctx.runMutation(api.kpis.deleteKPI, {
+                    kpiId: kpi._id,
+                });
 
-        return {
-            message: `KPI "${args.kpiName}" removed successfully from ${scopeAndId.scope}`,
-            removedKPI: {
-                name: kpi.name,
-                description: kpi.description,
-            }
-        };
+                return {
+                    kpiName: args.kpiName,
+                    removedKPI: {
+                        name: kpi.name,
+                        description: kpi.description,
+                    }
+                };
+            },
+            {
+                operation: "KPI removal",
+                context: `for ${scopeAndId.scope}`,
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `KPI "${result.kpiName}" removed successfully from ${scopeAndId.scope}`,
+                removedKPI: result.removedKPI
+            })
+        );
     },
 });
 
@@ -178,27 +225,40 @@ export const createListKPIsTool = (
         status: z.enum(["pending", "in-progress", "completed", "failed"]).optional().describe("Filter by status"),
     }),
     execute: async (args) => {
-        const kpis = await ctx.runQuery(api.kpis.getKPIs, {
-            quarter: args.quarter,
-            year: args.year,
-            status: args.status,
-            ...scopeAndId,
-        });
+        return withToolErrorHandling(
+            async () => {
+                const kpis = await ctx.runQuery(api.kpis.getKPIs, {
+                    quarter: args.quarter,
+                    year: args.year,
+                    status: args.status,
+                    ...scopeAndId,
+                });
 
-        return {
-            message: `Found ${kpis.length} KPIs for ${scopeAndId.scope}`,
-            kpis: kpis.map(kpi => ({
-                name: kpi.name,
-                description: kpi.description,
-                currentValue: kpi.currentValue,
-                target: kpi.target,
-                unit: kpi.unit,
-                status: kpi.status,
-                quarter: kpi.quarter,
-                year: kpi.year,
-                direction: kpi.direction,
-            }))
-        };
+                return {
+                    kpisCount: kpis.length,
+                    kpis: kpis.map(kpi => ({
+                        name: kpi.name,
+                        description: kpi.description,
+                        currentValue: kpi.currentValue,
+                        target: kpi.target,
+                        unit: kpi.unit,
+                        status: kpi.status,
+                        quarter: kpi.quarter,
+                        year: kpi.year,
+                        direction: kpi.direction,
+                    }))
+                };
+            },
+            {
+                operation: "KPI listing",
+                context: `for ${scopeAndId.scope}`,
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: `Found ${result.kpisCount} KPIs for ${scopeAndId.scope}`,
+                kpis: result.kpis
+            })
+        );
     },
 });
 

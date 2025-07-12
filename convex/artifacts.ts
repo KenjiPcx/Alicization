@@ -138,43 +138,6 @@ export const handleArtifactTextChunk = internalMutation({
     },
 });
 
-export const artifactsPrompt = `
-Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
-
-When asked to write code, always use artifacts. When writing code, specify the language in the backticks, e.g. \`\`\`python\`code here\`\`\`. The default language is Python. Other languages are not yet supported, so let the user know if they request a different language.
-
-DO NOT UPDATE ARTIFACTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
-
-This is a guide for using artifacts tools: \`createArtifact\` and \`updateArtifact\`, which render content on a artifacts beside the conversation.
-
-**When to use \`createArtifact\`:**
-- For substantial content (>10 lines) or code
-- For content users will likely save/reuse (emails, code, essays, etc.)
-- When explicitly requested to create a document
-- For when content contains a single code snippet
-
-**When NOT to use \`createArtifact\`:**
-- For informational/explanatory content
-- For conversational responses
-- When asked to keep it in chat
-
-**Using \`updateArtifact\`:**
-- Default to full document rewrites for major changes
-- Use targeted updates only for specific, isolated changes
-- Follow user instructions for which parts to modify
-
-**When NOT to use \`updateArtifact\`:**
-- Immediately after creating a artifact
-
-Do not update artifact right after creating it. Wait for user feedback or request to update it.
-`;
-
-export const artifactGeneratorAgent = new Agent(components.agent, {
-    name: "Artifact Generator Agent",
-    chat: model,
-    instructions: artifactsPrompt,
-});
-
 export const generateArtifact = internalAction({
     args: {
         existingArtifactGroupId: v.optional(v.string()),
