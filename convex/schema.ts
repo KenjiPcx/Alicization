@@ -299,6 +299,12 @@ export const applicationTables = {
       status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed")),
     })),
     done: v.boolean(),
+    watchdogScheduledFunctionId: v.optional(v.id("_scheduled_functions")),
+    context: v.optional(v.object({
+      userId: v.id("users"),
+      employeeId: v.id("employees"),
+      teamId: v.id("teams"),
+    })),
   }).index("by_threadId", ["threadId"]),
 
   // Feedback and learning

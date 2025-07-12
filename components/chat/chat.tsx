@@ -22,7 +22,7 @@ const PureChat = ({
 }: {
   threadId: string;
   mainParticipantId: Id<"employees">;
-  teamId?: Id<"teams">;
+  teamId: Id<"teams">;
   isReadonly: boolean;
   chatMode?: 'direct' | 'team';
 }) => {

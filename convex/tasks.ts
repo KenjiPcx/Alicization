@@ -1,6 +1,7 @@
-import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
-import { internalMutation, query } from "./_generated/server";
+import { employeeAgent } from "@/lib/ai/agents/employee-agent";
+import { internal, api } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalMutation, query, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 
 export const createTask = internalMutation({
@@ -10,9 +11,14 @@ export const createTask = internalMutation({
         description: v.string(),
         plan: v.string(),
         todos: v.array(v.string()),
+        context: v.optional(v.object({
+            employeeId: v.id("employees"),
+            teamId: v.id("teams"),
+            userId: v.id("users"),
+        })),
     }),
     handler: async (ctx, args) => {
-        const { threadId, title, description, plan, todos } = args;
+        const { threadId, title, description, plan, todos, context } = args;
 
         const taskId = await ctx.db.insert("tasks", {
             threadId,
@@ -23,6 +29,7 @@ export const createTask = internalMutation({
                 title: todo,
                 status: "pending" as const,
             })),
+            context,
             done: false,
         });
 
@@ -298,5 +305,100 @@ export const reactivateAndUpdateTask = internalMutation({
         });
 
         return await ctx.db.get(taskId) as Doc<"tasks">;
+    },
+});
+
+// Schedule a watchdog to check task progress
+export const scheduleTaskWatchdog = internalMutation({
+    args: v.object({
+        taskId: v.id("tasks"),
+        delayMs: v.optional(v.number()), // Default to 10 minutes
+    }),
+    handler: async (ctx, args): Promise<Id<"_scheduled_functions">> => {
+        const { taskId, delayMs = 10 * 60 * 1000 } = args; // 10 minutes default
+
+        // Schedule new watchdog
+        const scheduledFunctionId = await ctx.scheduler.runAfter(
+            delayMs,
+            internal.tasks.watchdogCheck,
+            { taskId }
+        );
+
+        // Update task with new watchdog ID
+        await ctx.db.patch(taskId, {
+            watchdogScheduledFunctionId: scheduledFunctionId,
+        });
+
+        return scheduledFunctionId;
+    },
+});
+
+// Cancel the watchdog for a task
+export const cancelTaskWatchdog = internalMutation({
+    args: v.object({
+        taskId: v.id("tasks"),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId } = args;
+
+        const task = await ctx.db.get(taskId);
+        if (!task) {
+            return; // Task doesn't exist, nothing to cancel
+        }
+
+        if (task.watchdogScheduledFunctionId) {
+            await ctx.scheduler.cancel(task.watchdogScheduledFunctionId);
+            await ctx.db.patch(taskId, {
+                watchdogScheduledFunctionId: undefined,
+            });
+        }
+    },
+});
+
+// Watchdog action that checks task progress and unstucks if needed
+export const watchdogCheck = internalAction({
+    args: v.object({
+        taskId: v.id("tasks"),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId } = args;
+
+        const task = await ctx.runQuery(api.tasks.getTaskById, { taskId });
+        if (!task) {
+            console.log(`Watchdog: Task ${taskId} not found, skipping`);
+            return;
+        }
+
+        // If task is completed, no need to watchdog
+        if (task.done) {
+            console.log(`Watchdog: Task ${taskId} is completed, no need to watchdog`);
+            return;
+        }
+
+        // Check if there's a todo in progress or pending
+        const inProgressTodo = task.todos.find((todo: { title: string; status: "pending" | "in-progress" | "completed" }) => todo.status === "in-progress");
+        console.log(`Watchdog: Task ${taskId} has in-progress todo "${inProgressTodo?.title}", continuing monitoring`);
+
+        // Send unstuck message
+        if (task.context) { // New feature to continue the task
+            const { messageId } = await employeeAgent.saveMessage(ctx, {
+                threadId: task.threadId,
+                prompt: "Previous action timed out. Continuing the task from where it left off",
+                skipEmbeddings: true,
+            });
+            await ctx.scheduler.runAfter(0, internal.chatNode.streamMessage, {
+                threadId: task.threadId,
+                userId: task.context.userId,
+                promptMessageId: messageId,
+                employeeId: task.context.employeeId,
+                teamId: task.context.teamId,
+            });
+        }
+
+        // Todo is in progress, schedule another watchdog check
+        await ctx.runMutation(internal.tasks.scheduleTaskWatchdog, {
+            taskId,
+            delayMs: 10 * 60 * 1000 // 10 minutes - full cycle
+        });
     },
 });

@@ -3,7 +3,7 @@ import { raiseMissingToolRequest } from "./feedback";
 import { createChat } from "./agent-collab";
 import { scheduleTask } from "./scheduler";
 import { createMemoryTools } from "./memory";
-import { plannerTools } from "./planner";
+import { createPlannerTools } from "./planner";
 import { Id } from "@/convex/_generated/dataModel";
 import { ActionCtx } from "@/convex/_generated/server";
 import dedent from "dedent";
@@ -21,10 +21,10 @@ export const createAdvancedTools = (
     threadId: string,
     userId: Id<"users">,
     employeeId: Id<"employees">,
-    teamId?: Id<"teams">
+    teamId: Id<"teams">
 ) => {
     return {
-        ...plannerTools,
+        ...createPlannerTools(ctx, threadId, userId, employeeId, teamId),
         ...createMemoryTools(ctx, threadId, userId, employeeId, teamId),
         updateThreadTitle,
     }

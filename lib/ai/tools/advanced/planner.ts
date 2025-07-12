@@ -10,6 +10,9 @@ import { createTool } from "@convex-dev/agent";
 import { api, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
 import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { tool } from "ai";
+import { ActionCtx } from "@/convex/_generated/server";
+import { Id } from "@/convex/_generated/dataModel";
 
 export type PlannerToolResult = {
     success: boolean;
@@ -54,23 +57,27 @@ export const usePlannerToolsPrompt = dedent`
  * Set or update the plan and todos for this thread
  * Supports replanning by appending to existing plan arrays
  */
-export const setPlanAndTodos = createTool({
+export const createSetPlanAndTodosTool = (
+    ctx: ActionCtx,
+    threadId: string,
+    employeeId: Id<"employees">,
+    teamId: Id<"teams">,
+    userId: Id<"users">
+) => tool({
     description: "Set or update the plan and todos for a turn within a multiturn conversation. You can call this tool again when you replan and want to add more todos or change the plan, they will get appended to the existing plan and todos for this turn, don't provide a title and description when you do",
-    args: z.object({
+    parameters: z.object({
         title: z.optional(z.string().describe("The title of the user task, this will be used to create the plan title")),
         description: z.optional(z.string().describe("The description of the user task, this will be used to create the plan description")),
         plan: z.string().describe("The current plan to accomplish the user goal"),
         todos: z.array(z.string()).describe("The remaining todos to accomplish the plan, these will be added to any existing incomplete todos")
     }),
-    handler: async (ctx, args): Promise<PlannerToolResult> => {
+    execute: async (args): Promise<PlannerToolResult> => {
         return withToolErrorHandling(
             async () => {
-                if (!ctx.threadId) throw new Error("Thread ID is required");
-
                 const { plan, todos, title, description } = args;
 
                 const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
-                    threadId: ctx.threadId,
+                    threadId,
                 });
 
                 // This gets the latest open task and add new todos to it
@@ -97,7 +104,7 @@ export const setPlanAndTodos = createTool({
                 // If no title/description provided, try to find the last completed task and reactivate it
                 if (!title || !description) {
                     const lastCompletedTask = await ctx.runQuery(api.tasks.getLastCompletedTask, {
-                        threadId: ctx.threadId,
+                        threadId,
                     });
 
                     if (lastCompletedTask) {
@@ -124,11 +131,21 @@ export const setPlanAndTodos = createTool({
 
                 // Create a new plan and todos
                 const newTask = await ctx.runMutation(internal.tasks.createTask, {
-                    threadId: ctx.threadId,
+                    threadId,
                     title,
                     description,
                     plan,
                     todos,
+                    context: {
+                        employeeId,
+                        teamId,
+                        userId,
+                    },
+                });
+
+                // Schedule watchdog for the new task (only once!)
+                await ctx.runMutation(internal.tasks.scheduleTaskWatchdog, {
+                    taskId: newTask._id,
                 });
 
                 return {
@@ -264,6 +281,13 @@ export const completeCurrentTodoAndMoveToNextTodo = createTool({
                     taskId: currentTask._id,
                 });
 
+                // Only cancel watchdog when task is completely done
+                if (isCompleted) {
+                    await ctx.runMutation(internal.tasks.cancelTaskWatchdog, {
+                        taskId: currentTask._id,
+                    });
+                }
+
                 return {
                     message,
                     taskId: currentTask._id,
@@ -295,8 +319,16 @@ export const completeCurrentTodoAndMoveToNextTodo = createTool({
     },
 });
 
-export const plannerTools = {
-    setPlanAndTodos,
-    selectNextTodo,
-    completeCurrentTodoAndMoveToNextTodo
+export const createPlannerTools = (
+    ctx: ActionCtx,
+    threadId: string,
+    userId: Id<"users">,
+    employeeId: Id<"employees">,
+    teamId: Id<"teams">,
+) => {
+    return {
+        setPlanAndTodos: createSetPlanAndTodosTool(ctx, threadId, employeeId, teamId, userId),
+        selectNextTodo,
+        completeCurrentTodoAndMoveToNextTodo
+    }
 }

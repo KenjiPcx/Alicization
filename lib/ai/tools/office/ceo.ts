@@ -191,7 +191,7 @@ export const createCEOTools = async (
     threadId: string, 
     userId: Id<"users">, 
     employeeId: Id<"employees">, 
-    teamId?: Id<"teams">
+    teamId: Id<"teams">
 ) => {
     // Resolve company scope for KPI tools
     const companyScope = await resolveCompanyScope(ctx, userId);

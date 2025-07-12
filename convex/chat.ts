@@ -1,3 +1,4 @@
+
 import { v } from "convex/values";
 import { paginationOptsValidator, } from "convex/server";
 import { action, httpAction, internalAction, mutation, query } from "./_generated/server";
@@ -59,7 +60,7 @@ export const streamMessageAsync = mutation({
         prompt: v.string(),
         threadId: v.string(),
         employeeId: v.id("employees"),
-        teamId: v.optional(v.id("teams")),
+        teamId: v.id("teams"),
     },
     handler: async (ctx, { prompt, threadId, employeeId, teamId }) => {
         const userId = await getAuthUserId(ctx);

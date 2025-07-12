@@ -34,19 +34,29 @@ export default function ChatDialog({
   // Use our optimized hook that gets data from already-loaded office data
   const { employeeData, teamData, teamMembers, isLoading: isLoadingData } = useChatParticipantData(chatParticipant);
 
+  if (!chatParticipant || !threadId) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div>Loading...</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // We already have the IDs we need from the store
-  const mainParticipantId = chatParticipant?.employeeId;
-  const teamId = chatParticipant?.teamId;
+  const mainParticipantId = chatParticipant.employeeId;
+  const teamId = chatParticipant.teamId;
 
   // Get display data
-  const displayData = chatParticipant?.type === 'employee'
+  const displayData = chatParticipant.type === 'employee'
     ? employeeData
-    : chatParticipant?.type === 'team'
+    : chatParticipant.type === 'team'
       ? teamData
       : null;
 
   // Chat mode context
-  const isTeamChat = chatParticipant?.type === 'team';
+  const isTeamChat = chatParticipant.type === 'team';
   const chatModeInfo = isTeamChat
     ? {
       icon: <Users className="h-4 w-4" />,
@@ -65,71 +75,67 @@ export default function ChatDialog({
 
   // Always render the Dialog to maintain consistent structure
   return (
-    <Dialog open={isOpen && !!chatParticipant} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="min-w-[85vw] max-w-[85vw] h-[85vh] flex flex-col p-0">
-        {chatParticipant && (
-          <>
-            <DialogHeader className="p-6 pb-2">
-              <div className="flex items-center gap-3">
-                {chatModeInfo.icon}
-                <div className="flex-1">
-                  <DialogTitle className="flex items-center gap-2 flex-nowrap">
-                    {isLoadingData ? (
-                      'Loading...'
-                    ) : displayData ? (
-                      <>
-                        <span className="text-sm text-muted-foreground">
-                          {chatModeInfo.subtitle}
-                        </span>
-                        <span className="truncate">{chatModeInfo.title}</span>
-                        <Badge variant={chatModeInfo.badgeVariant} className="flex-shrink-0">
-                          {chatModeInfo.badge}
-                        </Badge>
-                      </>
-                    ) : (
-                      'Chat'
-                    )}
-                  </DialogTitle>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="flex-1 flex h-full max-h-[77.5dvh] overflow-hidden relative">
-              {!threadId || isLoadingData ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div>Loading...</div>
-                </div>
-              ) : (
-                <>
-                  <ChatSidebar />
-                  <motion.div
-                    className="flex-1 flex flex-col overflow-hidden relative"
-                    animate={{ marginLeft: isSidebarOpen ? SIDEBAR_WIDTH_REM : '0rem' }}
-                    transition={{ duration: 0.2, ease: 'linear' }}
-                  >
-                    {currentMode === 'Chat' && mainParticipantId ? (
-                      <Chat
-                        threadId={threadId}
-                        mainParticipantId={mainParticipantId}
-                        teamId={teamId}
-                        isReadonly={false}
-                        // Pass chat mode for different styling/behavior
-                        chatMode={isTeamChat ? 'team' : 'direct'}
-                      />
-                    ) : currentMode === 'Files' ? (
-                      <div>Files</div>
-                      // <FileManager />
-                    ) : (
-                      <div>
-                        <h1>Config</h1>
-                      </div>
-                    )}
-                  </motion.div>
-                </>
-              )}
+        <DialogHeader className="p-6 pb-2">
+          <div className="flex items-center gap-3">
+            {chatModeInfo.icon}
+            <div className="flex-1">
+              <DialogTitle className="flex items-center gap-2 flex-nowrap">
+                {isLoadingData ? (
+                  'Loading...'
+                ) : displayData ? (
+                  <>
+                    <span className="text-sm text-muted-foreground">
+                      {chatModeInfo.subtitle}
+                    </span>
+                    <span className="truncate">{chatModeInfo.title}</span>
+                    <Badge variant={chatModeInfo.badgeVariant} className="flex-shrink-0">
+                      {chatModeInfo.badge}
+                    </Badge>
+                  </>
+                ) : (
+                  'Chat'
+                )}
+              </DialogTitle>
             </div>
-          </>
-        )}
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 flex h-full max-h-[77.5dvh] overflow-hidden relative">
+          {!threadId || isLoadingData ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div>Loading...</div>
+            </div>
+          ) : (
+            <>
+              <ChatSidebar />
+              <motion.div
+                className="flex-1 flex flex-col overflow-hidden relative"
+                animate={{ marginLeft: isSidebarOpen ? SIDEBAR_WIDTH_REM : '0rem' }}
+                transition={{ duration: 0.2, ease: 'linear' }}
+              >
+                {currentMode === 'Chat' && mainParticipantId ? (
+                  <Chat
+                    threadId={threadId}
+                    mainParticipantId={mainParticipantId}
+                    teamId={teamId}
+                    isReadonly={false}
+                    // Pass chat mode for different styling/behavior
+                    chatMode={isTeamChat ? 'team' : 'direct'}
+                  />
+                ) : currentMode === 'Files' ? (
+                  <div>Files</div>
+                  // <FileManager />
+                ) : (
+                  <div>
+                    <h1>Config</h1>
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

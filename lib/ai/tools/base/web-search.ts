@@ -87,7 +87,7 @@ export const webSearch = createTool({
                     });
 
                     const res = await tvly.search(query, {
-                        max_results: 8,
+                        max_results: 5,
                         topic: topic,
                         searchDepth: "advanced",
                         timeRange: timeRange,

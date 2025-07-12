@@ -73,7 +73,7 @@ export const createMemoryTools = (
     threadId: string,
     userId: Id<"users">,
     employeeId: Id<"employees">,
-    teamId?: Id<"teams">
+    teamId: Id<"teams">
 ) => {
     return {
         setMemory: tool({

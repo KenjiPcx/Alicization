@@ -52,6 +52,9 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
     ## Role Specific Tools
     Here are your role specific tools to help you do your work 
     ${tools.map((tool) => tool.name).join(", ")}
+
+    ## More tool details
+    If a tool ever fails, you should try to fix the issue and continue the task. If you can't fix the issue, you should inform the user and ask for their help.
 `)
 }
 
@@ -61,7 +64,7 @@ export const streamMessage = internalAction({
         promptMessageId: v.string(),
         userId: v.id("users"),
         employeeId: v.id("employees"),
-        teamId: v.optional(v.id("teams")),
+        teamId: v.id("teams"),
     },
     handler: async (ctx, { promptMessageId, threadId, userId, employeeId, teamId }) => {
         // Resolve employee from employeeId and get employee details
