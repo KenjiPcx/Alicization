@@ -1,7 +1,7 @@
 import { employeeAgent } from "@/lib/ai/agents/employee-agent";
 import { internal, api } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, query, internalAction } from "./_generated/server";
+import { internalMutation, query, internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 export const createTask = internalMutation({
@@ -99,6 +99,26 @@ export const completeTask = internalMutation({
  * Get the most recent task for the threadId
  */
 export const getLatestTask = query({
+    args: v.object({
+        threadId: v.string(),
+    }),
+    handler: async (ctx, args) => {
+        const { threadId } = args;
+
+        const task = await ctx.db
+            .query("tasks")
+            .filter((q) => q.and(
+                q.eq(q.field("threadId"), threadId),
+                q.eq(q.field("done"), false)
+            ))
+            .order("desc")
+            .first();
+
+        return task;
+    },
+});
+
+export const internalGetLatestTask = internalQuery({
     args: v.object({
         threadId: v.string(),
     }),
@@ -308,6 +328,31 @@ export const reactivateAndUpdateTask = internalMutation({
     },
 });
 
+export const addTodoToTask = internalMutation({
+    args: v.object({
+        taskId: v.id("tasks"),
+        todo: v.string(),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId, todo } = args;
+
+        const task = await ctx.db.get(taskId);
+        if (!task) throw new Error("Task not found");
+
+        // Skip the completed todos, add the new one after all completed todos
+        const todos = [...task.todos];
+        const completedTodos = todos.filter(todo => todo.status === "completed");
+        const pendingTodos = todos.filter(todo => todo.status === "pending");
+
+        const updatedTodos = [...completedTodos, {
+            title: todo,
+            status: "pending" as const,
+        }, ...pendingTodos];
+
+        await ctx.db.patch(taskId, { todos: updatedTodos });
+    },
+});
+
 // Schedule a watchdog to check task progress
 export const scheduleTaskWatchdog = internalMutation({
     args: v.object({
@@ -381,17 +426,13 @@ export const watchdogCheck = internalAction({
 
         // Send unstuck message
         if (task.context) { // New feature to continue the task
-            const { messageId } = await employeeAgent.saveMessage(ctx, {
-                threadId: task.threadId,
-                prompt: "Previous action timed out. Continuing the task from where it left off",
-                skipEmbeddings: true,
-            });
             await ctx.scheduler.runAfter(0, internal.chatNode.streamMessage, {
                 threadId: task.threadId,
                 userId: task.context.userId,
-                promptMessageId: messageId,
+                prompt: "Previous action timed out. Continuing the task from where it left off",
                 employeeId: task.context.employeeId,
                 teamId: task.context.teamId,
+                blocking: false,
             });
         }
 

@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
 /**
@@ -154,12 +154,13 @@ export const getOrCreateManagementTeam = action({
         }
 
         // Create new management team
-        return await ctx.runMutation(api.teams.createTeam, {
+        return await ctx.runMutation(internal.teams.createTeam, {
             name: "Management",
             description: "Executive management team",
             clusterPosition: [0, 0, 15],
             deskCount: 1,
             companyId: companyId,
+            userId: userId,
         });
     },
 });
@@ -229,7 +230,7 @@ export const getOrCreateCEO = action({
         }
 
         // Create new CEO
-        const newCEO = await ctx.runMutation(api.employees.createEmployee, {
+        const newCEO = await ctx.runMutation(internal.employees.createEmployee, {
             teamId: managementTeamId,
             name: args.name,
             jobTitle: args.jobTitle,
@@ -242,6 +243,7 @@ export const getOrCreateCEO = action({
             isCEO: args.isCEO,
             deskIndex: args.deskIndex,
             companyId: args.companyId,
+            userId: userId,
         });
 
         return newCEO._id;

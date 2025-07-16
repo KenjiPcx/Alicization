@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalQuery, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
@@ -56,23 +56,18 @@ export const seedTeams = mutation({
     },
 });
 
-export const createTeam = mutation({
+export const createTeam = internalMutation({
     args: {
         name: v.string(),
         description: v.string(),
-        clusterPosition: v.array(v.number()),
-        deskCount: v.number(),
+        deskCount: v.optional(v.number()),
+        clusterPosition: v.optional(v.array(v.number())),
         companyId: v.optional(v.id("companies")),
+        userId: v.id("users"),
     },
     handler: async (ctx, args): Promise<Id<"teams">> => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) {
-            throw new Error("User not found");
-        }
-
         return await ctx.db.insert("teams", {
             ...args,
-            userId,
         });
     },
 });

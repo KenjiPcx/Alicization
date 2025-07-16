@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { mutation, query, action, internalMutation } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { vEmployeeStatuses } from "./schema";
@@ -80,6 +80,13 @@ function generateEmployeeData(teamName: string, isSupervisor: boolean = false, i
     };
 }
 
+const generateRandomName = () => {
+    const gender = Math.random() > 0.5 ? "male" : "female";
+    const firstName = firstNames[gender][Math.floor(Math.random() * firstNames[gender].length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    return `${firstName} ${lastName}`;
+}
+
 export const seedEmployees = action({
     args: {
         companyId: v.id("companies"),
@@ -125,11 +132,12 @@ export const seedEmployees = action({
                 const isAtDesk = Math.random() < 0.8 || isCEO; // CEO always at desk
                 const deskIndex = isAtDesk ? i : undefined;
 
-                const employee = await ctx.runMutation(api.employees.createEmployee, {
+                const employee = await ctx.runMutation(internal.employees.createEmployee, {
                     teamId: team._id,
                     ...employeeData,
                     deskIndex, // May be undefined if walking around
                     companyId: companyId,
+                    userId: userId,
                 });
 
                 employees.push(employee);
@@ -144,29 +152,30 @@ export const seedEmployees = action({
     },
 });
 
-export const createEmployee = mutation({
+export const createEmployee = internalMutation({
     args: {
         teamId: v.id("teams"),
-        name: v.string(),
+        name: v.optional(v.string()),
         jobTitle: v.string(),
         jobDescription: v.string(),
         gender: v.union(v.literal("male"), v.literal("female")),
-        background: v.string(),
-        personality: v.string(),
-        statusMessage: v.string(),
+        background: v.optional(v.string()),
+        personality: v.optional(v.string()),
+        statusMessage: v.optional(v.string()),
         isSupervisor: v.boolean(),
         isCEO: v.boolean(),
         deskIndex: v.optional(v.number()),
         companyId: v.optional(v.id("companies")),
+        userId: v.id("users"),
     },
     handler: async (ctx, args): Promise<Doc<"employees">> => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("Not authenticated");
-
         const employeeId = await ctx.db.insert("employees", {
             ...args,
+            name: args.name || generateRandomName(),
+            background: args.background || backgrounds[Math.floor(Math.random() * backgrounds.length)],
+            personality: args.personality || personalities[Math.floor(Math.random() * personalities.length)],
+            statusMessage: args.statusMessage || "Ready to collaborate",
             status: "none",
-            userId,
         });
 
         return await ctx.db.get(employeeId) as Doc<"employees">;

@@ -61,33 +61,56 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
 export const streamMessage = internalAction({
     args: {
         threadId: v.string(),
-        promptMessageId: v.string(),
+        prompt: v.optional(v.string()),
+        promptMessageId: v.optional(v.string()),
         userId: v.id("users"),
         employeeId: v.id("employees"),
         teamId: v.id("teams"),
+        blocking: v.boolean(),
     },
-    handler: async (ctx, { promptMessageId, threadId, userId, employeeId, teamId }) => {
+    handler: async (ctx, { threadId, prompt, promptMessageId, userId, employeeId, teamId, blocking = false }) => {
+        // Validate that exactly one of prompt or promptMessageId is provided
+        if ((prompt && promptMessageId) || (!prompt && !promptMessageId)) {
+            throw new Error("Must provide exactly one of 'prompt' or 'promptMessageId'");
+        }
+
         // Resolve employee from employeeId and get employee details
         const employee = await ctx.runQuery(api.employees.getEmployeeById, {
             employeeId,
         });
         if (!employee) throw new Error("Employee not found");
-        await employeeAgent.generateAndSaveEmbeddings(ctx, {
-            messageIds: [promptMessageId],
-        });
+
+        // Generate embeddings if we have a saved message ID
+        if (promptMessageId) {
+            await employeeAgent.generateAndSaveEmbeddings(ctx, {
+                messageIds: [promptMessageId],
+            });
+        }
+
         const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
+
+        // Prepare streamText options
+        const streamOptions = {
+            system: systemPrompt({ ...employee }),
+            providerOptions: anthropicProviderOptions,
+            tools: employee.isCEO ? await createCEOTools(ctx, threadId, userId, employeeId, teamId) : await createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
+            maxSteps: 100,
+            ...(prompt ? { prompt } : { promptMessageId })
+        };
+
         const result = await thread.streamText(
-            {
-                system: systemPrompt({ ...employee }),
-                promptMessageId,
-                providerOptions: anthropicProviderOptions,
-                tools: employee.isCEO ? await createCEOTools(ctx, threadId, userId, employeeId, teamId) : await createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
-                maxSteps: 100
-            },
+            streamOptions,
             {
                 saveStreamDeltas: { chunking: "line", throttleMs: 500 },
             },
         );
-        await result.consumeStream();
+
+        if (blocking) {
+            for await (const chunk of result.fullStream) {
+                // Do nothing, this just blocks the stream until it finishes
+            }
+        } else {
+            await result.consumeStream();
+        }
     },
 })

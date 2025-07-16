@@ -17,6 +17,9 @@ import { ActionCtx } from "@/convex/_generated/server";
 import { withToolErrorHandling } from "@/lib/ai/tool-utils";
 import { createAdvancedTools } from "../advanced";
 import { Company, Team } from "@/lib/types";
+import { generateObject } from "ai";
+import { model } from "../../model";
+import { employeeAgent } from "../../agents/employee-agent";
 
 export const useCeoToolsPrompt = dedent`
     # CEO Tools
@@ -69,14 +72,39 @@ export const viewTeams = createTool({
 });
 
 /**
- * Design a new team for the office, it just creates a placeholder team, along with the roles.
- * HR will be responsible for hiring / creating the individual employees and assigning them to the team.
+ * Design and create a new team for the office with placeholder employees.
+ * 
+ * USAGE GUIDE FOR CEO:
+ * This tool helps you collaboratively design teams with users based on business needs.
+ * 
+ * CONVERSATION FLOW:
+ * 1. User mentions a business problem or need for a team
+ * 2. You engage them in discussion to understand:
+ *    - What specific business problem are we solving?
+ *    - What skills/roles would be needed?
+ *    - How many people should be on this team?
+ *    - What would success look like?
+ * 3. Based on the conversation, propose a team structure
+ * 4. Get user feedback and refine the proposal
+ * 5. Use this tool to create the actual team and placeholder employees
+ * 
+ * EXAMPLE CONVERSATION:
+ * User: "We need to improve our customer support"
+ * You: "Let's design a team for that! Tell me more about the current pain points. How many customers are we serving? What's our response time goal?"
+ * User: "We have 1000+ customers, want <2hr response time, need both technical and general support"
+ * You: "Perfect! I'm thinking: 1 Customer Success Manager, 2 Support Specialists, 1 Technical Support Lead. Should I create this team?"
+ * User: "Yes, but add a part-time data analyst to track metrics"
+ * You: "Great idea! Creating the team now..." [calls tool]
  */
-export const designTeam = createTool({
-    description: "Design a new team for the office",
+export const createTeam = createTool({
+    description: "Create a new team for the office, this should only be called after the user has specified a business problem, asking you to design a team and you both have agreed to the team design",
     args: z.object({
         name: z.string().describe("The name of the team"),
         description: z.string().describe("The description of the team"),
+        employees: z.array(z.object({
+            jobTitle: z.string().describe("The job title of the employee"),
+            jobDescription: z.string().describe("The job description of the employee"),
+        })).describe("The employees to create for the team"),
     }),
     handler: async (ctx, args, { toolCallId }): Promise<{
         success: boolean;
@@ -86,16 +114,42 @@ export const designTeam = createTool({
         return withToolErrorHandling(
             async () => {
                 if (!ctx.userId) throw new Error("User ID is required");
-                // This will be implemented later - for now just create a placeholder team
-                return { teamName: args.name };
+
+                // Create the team
+                const teamId = await ctx.runMutation(internal.teams.createTeam, {
+                    name: args.name,
+                    description: args.description,
+                    userId: ctx.userId as Id<"users">,
+                    deskCount: args.employees.length,
+                });
+
+                // Create the employees
+                for (let i = 0; i < args.employees.length; i++) {
+                    const employee = args.employees[i];
+                    await ctx.runMutation(internal.employees.createEmployee, {
+                        jobTitle: employee.jobTitle,
+                        jobDescription: employee.jobDescription,
+                        userId: ctx.userId as Id<"users">,
+                        teamId: teamId,
+                        gender: "male",
+                        isSupervisor: false,
+                        isCEO: false,
+                        deskIndex: i,
+                    });
+                }
+
+                // Add task for user to go to HR to configure agents
+
+                return { teamName: args.name, description: args.description };
             },
             {
-                operation: "Team design",
+                operation: "Create team",
                 includeTechnicalDetails: true
             },
             (result) => ({
-                message: "Team design feature coming soon",
-                teamName: result.teamName
+                message: "Team created successfully",
+                teamName: result.teamName,
+                description: result.description
             })
         );
     },
@@ -188,10 +242,10 @@ export const updateCompanyDetails = createTool({
  * Factory function to create CEO tools with proper context injection
  */
 export const createCEOTools = async (
-    ctx: ActionCtx, 
-    threadId: string, 
-    userId: Id<"users">, 
-    employeeId: Id<"employees">, 
+    ctx: ActionCtx,
+    threadId: string,
+    userId: Id<"users">,
+    employeeId: Id<"employees">,
     teamId: Id<"teams">
 ) => {
     // Resolve company scope for KPI tools
@@ -206,7 +260,7 @@ export const createCEOTools = async (
 
         // Company management tools
         viewTeams,
-        designTeam,
+        createTeam,
         getCompanyDetails,
         updateCompanyDetails,
 

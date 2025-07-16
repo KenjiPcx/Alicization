@@ -28,6 +28,7 @@ export type ScopeAndId = {
 };
 export type KPI = Doc<"kpis">;
 export type Memory = Doc<"memories">;
+export type Task = Doc<"tasks">;
 
 // Compound types
 export type FullEmployee = Employee & {

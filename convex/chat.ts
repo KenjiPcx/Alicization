@@ -1,7 +1,7 @@
 
 import { v } from "convex/values";
 import { paginationOptsValidator, } from "convex/server";
-import { action, httpAction, internalAction, mutation, query } from "./_generated/server";
+import { action, httpAction, internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
@@ -10,6 +10,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
 import dedent from "dedent";
+import { workflow } from "./chatWorkflow";
 
 export const createThread = mutation({
     args: {
@@ -61,11 +62,28 @@ export const streamMessageAsync = mutation({
         threadId: v.string(),
         employeeId: v.id("employees"),
         teamId: v.id("teams"),
+        blocking: v.boolean(),
     },
-    handler: async (ctx, { prompt, threadId, employeeId, teamId }) => {
+    handler: async (ctx, { prompt, threadId, employeeId, teamId, blocking }) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
+        // Check if there's an existing task for this thread
+        const existingTask = await ctx.runQuery(internal.tasks.internalGetLatestTask, {
+            threadId,
+        });
+
+        if (existingTask) {
+            // Add user input as a new todo to the existing task or to the chat queue
+            const todoText = `Look into user input: ${prompt}`;
+            await ctx.runMutation(internal.tasks.addTodoToTask, {
+                taskId: existingTask._id,
+                todo: todoText,
+            });
+            return { message: "Added to existing task" };
+        }
+
+        // Save the message and use the saved message ID
         const { messageId } = await employeeAgent.saveMessage(ctx, {
             threadId,
             prompt,
@@ -84,6 +102,7 @@ export const streamMessageAsync = mutation({
             promptMessageId: messageId,
             employeeId,
             teamId,
+            blocking,
         });
     },
 });
@@ -140,7 +159,6 @@ export const continueStreamMessageWithToolResults = internalAction({
             }
         })
 
-        console.log("Kenji", backgroundJobStatusIdsToNotify);
         // Change status to completed
         await ctx.runMutation(internal.backgroundJobStatuses.markBackgroundJobsAsProcessed, {
             backgroundJobStatusIds: backgroundJobStatusIdsToNotify.toolCallStatusIds.map((toolId) => toolId as Id<"backgroundJobStatuses">),
