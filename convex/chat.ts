@@ -10,7 +10,7 @@ import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import z from "zod";
 import dedent from "dedent";
-import { workflow } from "./chatWorkflow";
+import { cleanupWorkflowHelper, workflow } from "./chatWorkflow";
 
 export const createThread = mutation({
     args: {
@@ -56,15 +56,52 @@ export const getLatestThreadByChatOwnerId = action({
     },
 });
 
+export const kickoffWorkflow = internalAction({
+    args: {
+        threadId: v.string(),
+        userId: v.id("users"),
+        employeeId: v.id("employees"),
+        teamId: v.id("teams"),
+        chatConfig: v.union(v.object({
+            type: v.literal("start-chat"),
+            promptMessageId: v.string(),
+        }), v.object({
+            type: v.literal("continue-task"),
+            prompt: v.string(),
+        })),
+    },
+    handler: async (ctx, { threadId, userId, employeeId, teamId, chatConfig }) => {
+        const workflowId = await workflow.start(ctx,
+            internal.chatWorkflow.chatWorkflow,
+            {
+                chatConfig,
+                threadId,
+                userId,
+                employeeId,
+                teamId,
+            },
+        );
+
+        await cleanupWorkflowHelper(ctx, workflowId);
+    },
+});
+
 export const streamMessageAsync = mutation({
     args: {
         prompt: v.string(),
         threadId: v.string(),
         employeeId: v.id("employees"),
         teamId: v.id("teams"),
-        blocking: v.boolean(),
+        sender: v.union(v.object({
+            type: v.literal("user"),
+            userTaskId: v.optional(v.id("userTasks")), // Used for human in the loop
+        }), v.object({
+            type: v.literal("other-employee"),
+            employeeDetails: v.string(),
+            userTaskId: v.optional(v.id("userTasks")), // Agents always have a request ref
+        })),
     },
-    handler: async (ctx, { prompt, threadId, employeeId, teamId, blocking }) => {
+    handler: async (ctx, { prompt, threadId, employeeId, teamId, sender }) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -74,36 +111,74 @@ export const streamMessageAsync = mutation({
         });
 
         if (existingTask) {
+            // If existing task was not blocked, then we just add the user input as a new todo item
             // Add user input as a new todo to the existing task or to the chat queue
-            const todoText = `Look into user input: ${prompt}`;
+            const todoTitle = dedent`Process ${sender.type === "user" ? "user" : `employee (${sender.employeeDetails})`}
+                ${sender.userTaskId ? `(request ref: ${sender.userTaskId})` : ""}
+                ${sender.type === "user" ? `User input: ${prompt}` : `Employee input: ${prompt}`}
+            `;
             await ctx.runMutation(internal.tasks.addTodoToTask, {
                 taskId: existingTask._id,
-                todo: todoText,
+                todo: todoTitle,
             });
-            return { message: "Added to existing task" };
+
+            // If this is a response to a human collaboration request, mark it as responded
+            if (sender.userTaskId) {
+                await ctx.runMutation(internal.userTasks.updateUserTaskStatus, {
+                    userTaskId: sender.userTaskId,
+                    status: "responded",
+                    response: prompt,
+                });
+            }
+
+            // If existing task was blocked, then we need to launch a new workflow to ask it to continue processing the input
+            // Assume that blocked means that previous workflow already ended, so we start a new one
+            if (existingTask.status === "blocked") {
+                await ctx.scheduler.runAfter(0, internal.chat.kickoffWorkflow, {
+                    threadId,
+                    userId,
+                    employeeId,
+                    teamId,
+                    chatConfig: {
+                        type: "continue-task",
+                        prompt: dedent`
+                            Response for user task: ${sender.userTaskId} ${sender.type === "user" ? "user" : `employee (${sender.employeeDetails})`}
+                            ${prompt}
+                        `,
+                    },
+                });
+            }
+
+            // Otherwise, the previous workflow should still be running, so it can just pick this up the next time it calls one of the todo tools, it will just appear in the todo list and the agent can continue working on it
+            return { message: "Added to existing task, existing task run will process the input" };
         }
 
-        // Save the message and use the saved message ID
-        const { messageId } = await employeeAgent.saveMessage(ctx, {
-            threadId,
-            prompt,
-            skipEmbeddings: true,
-        });
+        else {
+            // Save the message and use the saved message ID
+            const { messageId } = await employeeAgent.saveMessage(ctx, {
+                threadId,
+                prompt,
+                skipEmbeddings: true,
+            });
 
-        await ctx.scheduler.runAfter(
-            1000,
-            internal.threadTitles.maybeUpdateThreadTitle,
-            { threadId }
-        );
+            await ctx.scheduler.runAfter(
+                1000,
+                internal.threadTitles.maybeUpdateThreadTitle,
+                { threadId }
+            );
 
-        await ctx.scheduler.runAfter(0, internal.chatNode.streamMessage, {
-            threadId,
-            userId,
-            promptMessageId: messageId,
-            employeeId,
-            teamId,
-            blocking,
-        });
+            // Call workflow here
+            await ctx.scheduler.runAfter(0, internal.chat.kickoffWorkflow, {
+                threadId,
+                userId,
+                employeeId,
+                teamId,
+                chatConfig: {
+                    type: "start-chat",
+                    promptMessageId: messageId,
+                },
+            });
+        }
     },
 });
 

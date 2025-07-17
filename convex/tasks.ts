@@ -30,7 +30,7 @@ export const createTask = internalMutation({
                 status: "pending" as const,
             })),
             context,
-            done: false,
+            status: "in-progress" as const,
         });
 
         return await ctx.db.get(taskId) as Doc<"tasks">;
@@ -89,7 +89,7 @@ export const completeTask = internalMutation({
             throw new Error("Task not found");
         }
 
-        await ctx.db.patch(taskId, { done: true });
+        await ctx.db.patch(taskId, { status: "completed" });
 
         return `Task completed!`;
     },
@@ -109,7 +109,10 @@ export const getLatestTask = query({
             .query("tasks")
             .filter((q) => q.and(
                 q.eq(q.field("threadId"), threadId),
-                q.eq(q.field("done"), false)
+                q.or(
+                    q.eq(q.field("status"), "in-progress"),
+                    q.eq(q.field("status"), "blocked")
+                )
             ))
             .order("desc")
             .first();
@@ -129,7 +132,10 @@ export const internalGetLatestTask = internalQuery({
             .query("tasks")
             .filter((q) => q.and(
                 q.eq(q.field("threadId"), threadId),
-                q.eq(q.field("done"), false)
+                q.or(
+                    q.eq(q.field("status"), "in-progress"),
+                    q.eq(q.field("status"), "blocked")
+                )
             ))
             .order("desc")
             .first();
@@ -232,13 +238,9 @@ export const completeCurrentTodoAndMoveToNextTodo = internalMutation({
 
         // Check if all todos are completed
         if (pending.length === 0 && inProgress.length === 0) {
-            await ctx.runMutation(internal.tasks.completeTask, {
-                taskId,
-            });
-
             return {
-                isCompleted: true,
-                message: `All todos completed! 🎉 Total: ${completed.length}/${todos.length}`,
+                isCompleted: false, // Don't automatically complete, let agent decide
+                message: `All todos completed! 🎉 Total: ${completed.length}/${todos.length}. Use setTaskStatus to mark task as complete or add more todos if needed.`,
                 task: {
                     ...task,
                     todos: todos,
@@ -246,16 +248,51 @@ export const completeCurrentTodoAndMoveToNextTodo = internalMutation({
             };
         }
 
-        // There must be an in-progress todo (we just started one if there was a pending one)
-        const currentTodo = inProgress[0];
+        // Generate appropriate message
+        let message = "";
+        if (inProgressIndex !== -1 && pendingIndex !== -1) {
+            message = `Completed "${todos[inProgressIndex].title}" ✅ Started "${todos[pendingIndex].title}" ➡️ Progress: ${completed.length}/${todos.length}`;
+        } else if (inProgressIndex !== -1) {
+            message = `Completed "${todos[inProgressIndex].title}" ✅ Progress: ${completed.length}/${todos.length}`;
+        } else if (pendingIndex !== -1) {
+            message = `Started "${todos[pendingIndex].title}" ➡️ Progress: ${completed.length}/${todos.length}`;
+        } else {
+            message = `No changes made. Progress: ${completed.length}/${todos.length}`;
+        }
+
         return {
             isCompleted: false,
-            message: `Moved to next todo: "${currentTodo.title}" | Progress: ${completed.length}/${todos.length} completed, ${pending.length} remaining`,
+            message,
             task: {
                 ...task,
                 todos: todos,
             }
         };
+    },
+});
+
+/**
+ * Set the task status with a reason
+ */
+export const setTaskStatus = internalMutation({
+    args: v.object({
+        taskId: v.id("tasks"),
+        status: v.union(v.literal("in-progress"), v.literal("completed"), v.literal("blocked")),
+        reason: v.string(),
+    }),
+    handler: async (ctx, args) => {
+        const { taskId, status, reason } = args;
+
+        const task = await ctx.db.get(taskId);
+        if (!task) {
+            throw new Error("Task not found");
+        }
+
+        await ctx.db.patch(taskId, { status });
+
+        console.log(`Task ${taskId} status updated to "${status}": ${reason}`);
+
+        return `Task status updated to "${status}": ${reason}`;
     },
 });
 
@@ -282,7 +319,7 @@ export const getLastCompletedTask = query({
             .query("tasks")
             .filter((q) => q.and(
                 q.eq(q.field("threadId"), threadId),
-                q.eq(q.field("done"), true)
+                q.eq(q.field("status"), "completed")
             ))
             .order("desc")
             .first();
@@ -317,11 +354,11 @@ export const reactivateAndUpdateTask = internalMutation({
 
         const updatedTodos = [...existingTask.todos, ...newTodoObjects];
 
-        // Reactivate the task by setting done to false
+        // Reactivate the task by setting status to in-progress
         await ctx.db.patch(taskId, {
             plan: updatedPlanArray,
             todos: updatedTodos,
-            done: false,
+            status: "in-progress" as const,
         });
 
         return await ctx.db.get(taskId) as Doc<"tasks">;
@@ -349,97 +386,14 @@ export const addTodoToTask = internalMutation({
             status: "pending" as const,
         }, ...pendingTodos];
 
-        await ctx.db.patch(taskId, { todos: updatedTodos });
-    },
-});
+        const updateData: any = { todos: updatedTodos };
 
-// Schedule a watchdog to check task progress
-export const scheduleTaskWatchdog = internalMutation({
-    args: v.object({
-        taskId: v.id("tasks"),
-        delayMs: v.optional(v.number()), // Default to 10 minutes
-    }),
-    handler: async (ctx, args): Promise<Id<"_scheduled_functions">> => {
-        const { taskId, delayMs = 10 * 60 * 1000 } = args; // 10 minutes default
-
-        // Schedule new watchdog
-        const scheduledFunctionId = await ctx.scheduler.runAfter(
-            delayMs,
-            internal.tasks.watchdogCheck,
-            { taskId }
-        );
-
-        // Update task with new watchdog ID
-        await ctx.db.patch(taskId, {
-            watchdogScheduledFunctionId: scheduledFunctionId,
-        });
-
-        return scheduledFunctionId;
-    },
-});
-
-// Cancel the watchdog for a task
-export const cancelTaskWatchdog = internalMutation({
-    args: v.object({
-        taskId: v.id("tasks"),
-    }),
-    handler: async (ctx, args) => {
-        const { taskId } = args;
-
-        const task = await ctx.db.get(taskId);
-        if (!task) {
-            return; // Task doesn't exist, nothing to cancel
+        // If task is blocked, unblock it when new todos are added
+        if (task.status === "blocked") {
+            updateData.status = "in-progress";
+            console.log(`Task ${taskId} was blocked, now unblocking due to new todo: ${todo}`);
         }
 
-        if (task.watchdogScheduledFunctionId) {
-            await ctx.scheduler.cancel(task.watchdogScheduledFunctionId);
-            await ctx.db.patch(taskId, {
-                watchdogScheduledFunctionId: undefined,
-            });
-        }
-    },
-});
-
-// Watchdog action that checks task progress and unstucks if needed
-export const watchdogCheck = internalAction({
-    args: v.object({
-        taskId: v.id("tasks"),
-    }),
-    handler: async (ctx, args) => {
-        const { taskId } = args;
-
-        const task = await ctx.runQuery(api.tasks.getTaskById, { taskId });
-        if (!task) {
-            console.log(`Watchdog: Task ${taskId} not found, skipping`);
-            return;
-        }
-
-        // If task is completed, no need to watchdog
-        if (task.done) {
-            console.log(`Watchdog: Task ${taskId} is completed, no need to watchdog`);
-            return;
-        }
-
-        // Check if there's a todo in progress or pending
-        const inProgressTodo = task.todos.find((todo: { title: string; status: "pending" | "in-progress" | "completed" }) => todo.status === "in-progress");
-        console.log(`Watchdog: Task ${taskId} has in-progress todo "${inProgressTodo?.title}", continuing monitoring`);
-
-        // Send unstuck message
-        if (task.context) { // New feature to continue the task
-            await ctx.scheduler.runAfter(0, internal.chatNode.streamMessage, {
-                threadId: task.threadId,
-                userId: task.context.userId,
-                prompt: "Previous action timed out. Continuing the task from where it left off",
-                employeeId: task.context.employeeId,
-                teamId: task.context.teamId,
-                blocking: false,
-            });
-        }
-
-        // Todo is in progress, schedule another watchdog check
-        await ctx.runMutation(internal.tasks.scheduleTaskWatchdog, {
-            taskId,
-            delayMs: 10 * 60 * 1000 // 10 minutes - full cycle
-        });
+        await ctx.db.patch(taskId, updateData);
     },
 });

@@ -1,4 +1,5 @@
 import { updateThreadTitle } from "./updateThreadTitle";
+import { createHumanCollabTool } from "./human-collab";
 import { raiseMissingToolRequest } from "./feedback";
 import { createChat } from "./agent-collab";
 import { scheduleTask } from "./scheduler";
@@ -24,6 +25,7 @@ export const createAdvancedTools = (
     teamId: Id<"teams">
 ) => {
     return {
+        requestHumanInput: createHumanCollabTool(ctx, threadId, teamId, employeeId, userId),
         ...createPlannerTools(ctx, threadId, userId, employeeId, teamId),
         ...createMemoryTools(ctx, threadId, userId, employeeId, teamId),
         updateThreadTitle,

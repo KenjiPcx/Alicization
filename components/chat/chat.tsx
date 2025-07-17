@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages/messages';
-import { useMutation, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { optimisticallySendMessage, toUIMessages, useThreadMessages } from '@convex-dev/agent/react';
 import { useChatStore } from '@/lib/store/chat-store';
@@ -41,7 +41,7 @@ const PureChat = ({
   const [status, setStatus] = useState<"ready" | "submitted" | MessageDoc["status"]>('ready');
   const handleSubmit = useCallback(async () => {
     setStatus('submitted');
-    await sendMessage({ threadId, prompt, employeeId: mainParticipantId, teamId })
+    await sendMessage({ threadId, prompt, employeeId: mainParticipantId, teamId, sender: { type: "user" } })
     setPrompt('');
   }, [threadId, prompt, sendMessage, mainParticipantId, teamId]);
 

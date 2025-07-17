@@ -298,7 +298,8 @@ export const applicationTables = {
       title: v.string(),
       status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed")),
     })),
-    done: v.boolean(),
+    status: v.optional(v.union(v.literal("in-progress"), v.literal("completed"), v.literal("blocked"))),
+    done: v.optional(v.boolean()),
     watchdogScheduledFunctionId: v.optional(v.id("_scheduled_functions")),
     context: v.optional(v.object({
       userId: v.id("users"),
@@ -306,6 +307,22 @@ export const applicationTables = {
       teamId: v.id("teams"),
     })),
   }).index("by_threadId", ["threadId"]),
+
+  // Human collaboration requests
+  userTasks: defineTable({
+    threadId: v.string(),
+    employeeId: v.id("employees"),
+    userId: v.id("users"),
+    message: v.string(),
+    type: v.union(v.literal("approval"), v.literal("review"), v.literal("question"), v.literal("permission")),
+    context: v.string(),
+    status: v.union(v.literal("pending"), v.literal("responded"), v.literal("cancelled")),
+    response: v.optional(v.string()),
+    respondedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_threadId", ["threadId"])
+    .index("by_status", ["status"])
+    .index("by_userId", ["userId"]),
 
   // Feedback and learning
   votes: defineTable({

@@ -36,6 +36,7 @@ import type * as teams from "../teams.js";
 import type * as threadTitles from "../threadTitles.js";
 import type * as tools from "../tools.js";
 import type * as usage from "../usage.js";
+import type * as userTasks from "../userTasks.js";
 import type * as utils from "../utils.js";
 import type * as votes from "../votes.js";
 
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   threadTitles: typeof threadTitles;
   tools: typeof tools;
   usage: typeof usage;
+  userTasks: typeof userTasks;
   utils: typeof utils;
   votes: typeof votes;
 }>;

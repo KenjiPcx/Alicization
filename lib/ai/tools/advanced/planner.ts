@@ -40,16 +40,25 @@ export const usePlannerToolsPrompt = dedent`
     2. Work on the todo using appropriate tools
     3. Call completeCurrentTodoAndMoveToNextTodo when complete with a todo item
     4. Repeat until all todos are completed
-    5. Summarize all your work so far
+    5. Call the setTaskStatus tool to mark the task as completed
+    6. Summarize all your work so far
 
     **Replanning:** Call setPlanAndTodos again with updated plan and remaining todos (omit title/description).
 
-    **Key Rules:**
-    - One todo list per user turn (fresh list for each new large task, this will automatically be handled for you, you just have to call the setPlanAndTodos tool)
-    - Always call selectNextTodo once after successfully calling setPlanAndTodos
-    - Use completeCurrentTodoAndMoveToNextTodo when finishing (not selectNextTodo again)
+    **Blocking for Input:** When you need external input (user approval, data from other agents, etc.):
+    1. Call setTaskStatus with status="blocked" and explain what you're waiting for
+    2. The task will pause and resume when external input is provided
+    3. External input will be added as new todos to continue work
 
-    **Example:** User asks to "Build auth system" → setPlanAndTodos → selectNextTodo → work → completeCurrentTodoAndMoveToNextTodo → repeat until it tells you that no todos are left → summarize all your work so far
+    **Manual Completion:** If you finish early or need to end the task manually, call setTaskStatus with status="completed".
+
+    **Key Rules:**
+    - One todo list per user turn (fresh list for each new large task)
+    - Always call selectNextTodo once after successfully calling setPlanAndTodos
+    - Use completeCurrentTodoAndMoveToNextTodo when finishing todos (not selectNextTodo again)
+    - Use setTaskStatus to block when waiting for external input or to manually complete
+
+    **Example:** User asks to "Build auth system" → setPlanAndTodos → selectNextTodo → work → completeCurrentTodoAndMoveToNextTodo → repeat until done OR setTaskStatus("blocked", "waiting for user approval") if input needed
     </Use Planner Tools Docs>
 `
 
@@ -141,11 +150,6 @@ export const createSetPlanAndTodosTool = (
                         teamId,
                         userId,
                     },
-                });
-
-                // Schedule watchdog for the new task (only once!)
-                await ctx.runMutation(internal.tasks.scheduleTaskWatchdog, {
-                    taskId: newTask._id,
                 });
 
                 return {
@@ -281,13 +285,6 @@ export const completeCurrentTodoAndMoveToNextTodo = createTool({
                     taskId: currentTask._id,
                 });
 
-                // Only cancel watchdog when task is completely done
-                if (isCompleted) {
-                    await ctx.runMutation(internal.tasks.cancelTaskWatchdog, {
-                        taskId: currentTask._id,
-                    });
-                }
-
                 return {
                     message,
                     taskId: currentTask._id,
@@ -319,6 +316,65 @@ export const completeCurrentTodoAndMoveToNextTodo = createTool({
     },
 });
 
+/**
+ * Set the task status (e.g., block task when waiting for input)
+ */
+export const setTaskStatus = createTool({
+    description: "Set the task status. Use this to block the task when waiting for external input or responses, or to mark it as completed when all work is done.",
+    args: z.object({
+        status: z.enum(["blocked", "completed", "in-progress"]).describe("The new status for the task"),
+        reason: z.string().describe("Brief explanation of why the status is being changed (e.g., 'Waiting for user approval', 'All todos completed')")
+    }),
+    handler: async (ctx, args): Promise<PlannerToolResult> => {
+        return withToolErrorHandling(
+            async () => {
+                if (!ctx.threadId) throw new Error("Thread ID is required");
+
+                const { status, reason } = args;
+
+                const latestTask = await ctx.runQuery(api.tasks.getLatestTask, {
+                    threadId: ctx.threadId,
+                });
+
+                if (!latestTask) {
+                    return {
+                        message: "No task exists for this thread to update status.",
+                        success: false
+                    };
+                }
+
+                // Update task status
+                await ctx.runMutation(internal.tasks.setTaskStatus, {
+                    taskId: latestTask._id,
+                    status,
+                    reason,
+                });
+
+                return {
+                    message: `Task status updated to "${status}": ${reason}`,
+                    taskId: latestTask._id,
+                    success: true,
+                    task: {
+                        title: latestTask.title,
+                        description: latestTask.description,
+                        todos: latestTask.todos,
+                    },
+                };
+            },
+            {
+                operation: "Task status management",
+                includeTechnicalDetails: true
+            },
+            (result) => ({
+                message: result.message,
+                taskId: result.taskId,
+                success: result.success,
+                task: result.task,
+            })
+        );
+    },
+});
+
 export const createPlannerTools = (
     ctx: ActionCtx,
     threadId: string,
@@ -329,6 +385,7 @@ export const createPlannerTools = (
     return {
         setPlanAndTodos: createSetPlanAndTodosTool(ctx, threadId, employeeId, teamId, userId),
         selectNextTodo,
-        completeCurrentTodoAndMoveToNextTodo
+        completeCurrentTodoAndMoveToNextTodo,
+        setTaskStatus
     }
 }
