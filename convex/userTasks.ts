@@ -62,4 +62,17 @@ export const getPendingUserTasks = query({
             .filter((q) => q.eq(q.field("status"), "pending"))
             .collect();
     },
+});
+
+export const getAllPendingUserTasks = query({
+    args: v.object({
+        userId: v.id("users"),
+    }),
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("userTasks")
+            .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+            .filter((q) => q.eq(q.field("status"), "pending"))
+            .collect();
+    },
 }); 

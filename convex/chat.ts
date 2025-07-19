@@ -111,26 +111,19 @@ export const streamMessageAsync = mutation({
         });
 
         if (existingTask) {
-            // If existing task was not blocked, then we just add the user input as a new todo item
-            // Add user input as a new todo to the existing task or to the chat queue
-            const todoTitle = dedent`Process ${sender.type === "user" ? "user" : `employee (${sender.employeeDetails})`}
-                ${sender.userTaskId ? `(request ref: ${sender.userTaskId})` : ""}
-                ${sender.type === "user" ? `User input: ${prompt}` : `Employee input: ${prompt}`}
-            `;
-            await ctx.runMutation(internal.tasks.addTodoToTask, {
-                taskId: existingTask._id,
-                todo: todoTitle,
-            });
-
-            // If this is a response to a human collaboration request, mark it as responded
-            if (sender.userTaskId) {
-                await ctx.runMutation(internal.userTasks.updateUserTaskStatus, {
-                    userTaskId: sender.userTaskId,
-                    status: "responded",
-                    response: prompt,
+            if (existingTask.status === "in-progress") {
+                // If existing task was not blocked, then we just add the user input as a new todo item
+                // Add user input as a new todo to the existing task or to the chat queue
+                const todoTitle = dedent`Process ${sender.type === "user" ? "user" : `employee (${sender.employeeDetails})`}
+                    ${sender.userTaskId ? `(request ref: ${sender.userTaskId})` : ""}
+                    ${sender.type === "user" ? `User input: ${prompt}` : `Employee input: ${prompt}`}
+                `;
+                await ctx.runMutation(internal.tasks.addTodoToTask, {
+                    taskId: existingTask._id,
+                    todo: todoTitle,
                 });
             }
-
+            
             // If existing task was blocked, then we need to launch a new workflow to ask it to continue processing the input
             // Assume that blocked means that previous workflow already ended, so we start a new one
             if (existingTask.status === "blocked") {
@@ -146,6 +139,15 @@ export const streamMessageAsync = mutation({
                             ${prompt}
                         `,
                     },
+                });
+            }
+
+            // If this is a response to a human collaboration request, mark it as responded
+            if (sender.userTaskId) {
+                await ctx.runMutation(internal.userTasks.updateUserTaskStatus, {
+                    userTaskId: sender.userTaskId,
+                    status: "responded",
+                    response: prompt,
                 });
             }
 

@@ -94,7 +94,7 @@ export const streamMessage = internalAction({
             system: systemPrompt({ ...employee }),
             providerOptions: anthropicProviderOptions,
             tools: employee.isCEO ? await createCEOTools(ctx, threadId, userId, employeeId, teamId) : await createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
-            maxSteps: 100,
+            maxSteps: 25,
             ...(prompt ? { prompt } : { promptMessageId })
         };
 

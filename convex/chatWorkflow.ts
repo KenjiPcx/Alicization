@@ -35,7 +35,7 @@ export const chatWorkflow = workflow.define({
         const { threadId, userId, employeeId, teamId, chatConfig } = args;
 
         // Step 1: Handle the initial user message
-        // This is the first action that has a 10min timeout
+        // This is the first action that has a 10min timeout / 25 steps timeout
         // This saves the message as a user message and processes it
         console.log("[ChatWorkflow] Initial message started");
         await step.runAction(internal.chatNode.streamMessage, {
@@ -79,7 +79,7 @@ export const chatWorkflow = workflow.define({
 
             else {
                 // TODO: We can always compress context here, since we probably don't need the full 10mins worth of context
-                // If task is in progress, we give the agent another 10mins to complete the task
+                // If task is in progress, we give the agent another 10mins/25ConfiguredSteps to complete the task
                 console.log("[ChatWorkflow] Task is in progress, continuing turn");
                 await step.runAction(internal.chatNode.streamMessage, {
                     threadId,
@@ -105,7 +105,6 @@ export const cleanupWorkflowHelper = async (ctx: ActionCtx, workflowId: Workflow
                 await new Promise((resolve) => setTimeout(resolve, 1000));
                 continue;
             }
-            console.log("Workflow completed with status:", status);
             break;
         }
     } finally {

@@ -240,7 +240,7 @@ export const completeCurrentTodoAndMoveToNextTodo = internalMutation({
         if (pending.length === 0 && inProgress.length === 0) {
             return {
                 isCompleted: false, // Don't automatically complete, let agent decide
-                message: `All todos completed! 🎉 Total: ${completed.length}/${todos.length}. Use setTaskStatus to mark task as complete or add more todos if needed.`,
+                message: `All todos completed! 🎉 Total: ${completed.length}/${todos.length}. Use setTaskStatus tool to mark task as complete or add more todos if needed.`,
                 task: {
                     ...task,
                     todos: todos,
