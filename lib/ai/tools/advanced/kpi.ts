@@ -4,7 +4,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { tool } from "ai";
 import { ActionCtx } from "@/convex/_generated/server";
 import { ScopeAndId } from "@/lib/types";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 /**
  * View KPI dashboard - generalized for company/team/employee
@@ -260,7 +260,7 @@ export const createListKPIsTool = (
 /**
  * Helper function to create a complete KPI toolset for a specific context
  */
-export const createKPIToolset = (
+export const resolveKPIToolset = (
     ctx: ActionCtx,
     scopeAndId: ScopeAndId,
 ) => ({
@@ -274,10 +274,10 @@ export const createKPIToolset = (
 /**
  * Helper functions to resolve scope and IDs for different contexts
  */
-export const resolveCompanyScope = async (
-    ctx: ActionCtx,
-    userId: Id<"users">
-): Promise<ScopeAndId> => {
+export const resolveCompanyScope = async ({
+    ctx,
+    userId,
+}: ResolveToolProps): Promise<ScopeAndId> => {
     const company = await ctx.runQuery(api.companies.getCompany, { userId });
     if (!company) {
         throw new Error("No company found. Please create a company first.");

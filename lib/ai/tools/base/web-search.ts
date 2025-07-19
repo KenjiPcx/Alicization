@@ -65,14 +65,12 @@ export const webSearch = createTool({
         return withToolErrorHandling(
             async () => {
                 if (!ctx.threadId) throw new Error("Thread ID is required");
-                if (!ctx.messageId) throw new Error("Message ID is required");
 
                 const { query, topic, timeRange, includeDomains, excludeDomains } = args;
 
                 // Create a tool status
                 const backgroundJobStatusId = await ctx.runMutation(internal.backgroundJobStatuses.createBackgroundJobStatus, {
                     toolCallId,
-                    messageId: ctx.messageId,
                     toolName: "webSearch",
                     toolParameters: args,
                     threadId: ctx.threadId,

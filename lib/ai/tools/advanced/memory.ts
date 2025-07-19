@@ -28,12 +28,10 @@
  */
 
 import { internal } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { z } from "zod";
-import { ActionCtx } from "@/convex/_generated/server";
 import { tool } from "ai";
 import dedent from "dedent";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 export const useMemoryToolsPrompt = dedent`
     <Use Memory Tools Docs>
@@ -68,13 +66,13 @@ export type SearchMemoryResult = {
     }[];
 };
 
-export const createMemoryTools = (
-    ctx: ActionCtx,
-    threadId: string,
-    userId: Id<"users">,
-    employeeId: Id<"employees">,
-    teamId: Id<"teams">
-) => {
+export const resolveMemoryToolset = ({
+    ctx,
+    threadId,
+    userId,
+    employeeId,
+    teamId,
+}: ResolveToolProps) => {
     return {
         setMemory: tool({
             description: "Save memory and important facts and knowledge from the conversation. Scope determines sharing: personal (private) for stuff like gossip, team (team-wide) for team knowledge, conversation (chat participants) for shared context, user (global preferences) for user preferences.",

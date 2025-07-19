@@ -30,7 +30,7 @@ import { z } from "zod";
 import { ActionCtx } from "@/convex/_generated/server";
 import { tool } from "ai";
 import dedent from "dedent";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
 
 export const useLearnSkillPrompt = dedent`
     <Learn Skill Tool Docs>
@@ -54,21 +54,13 @@ export type LearnSkillResult = {
     skillId: Id<"skills">;
 };
 
-interface ResolveSkillToolsetProps {
-    ctx: ActionCtx;
-    threadId: string;
-    userId: Id<"users">;
-    employeeId: Id<"employees">;
-    companyId: Id<"companies">;
-}
-
 const resolveLearnSkillTool = ({
     ctx,
     threadId,
     userId,
     employeeId,
     companyId
-}: ResolveSkillToolsetProps) => tool({
+}: ResolveToolProps) => tool({
     description: "Learn a new skill when the user teaches you a workflow. Creates skill record and generates documentation that gets saved to company files for institutional knowledge. Only call this tool after confirming the workflow details with the user.",
     parameters: z.object({
         artifactGroupId: z.string().describe("The ID of the artifact group to save the documentation to. This is the ID of the artifact group in the database."),
@@ -146,15 +138,9 @@ const resolveLearnSkillTool = ({
     },
 });
 
-export const resolveSkillToolset = ({
-    ctx,
-    threadId,
-    userId,
-    employeeId,
-    companyId,
-}: ResolveSkillToolsetProps) => {
+export const resolveSkillToolset = (toolProps: ResolveToolProps) => {
     return {
-        learnSkill: resolveLearnSkillTool({ ctx, threadId, userId, employeeId, companyId }),
+        learnSkill: resolveLearnSkillTool(toolProps),
         // TODO: Add updateSkill, viewSkill
     }
 }

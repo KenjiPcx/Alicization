@@ -2,25 +2,26 @@ import { useInterpreter, useInterpreterPrompt } from "./interpreter";
 import { useWebSearchPrompt, webSearch } from "./web-search";
 import { createArtifact, updateArtifact, useArtifactsPrompt } from "./artifacts";
 import { useBrowser } from "./browser-use";
-import { privateKnowledgeSearch, usePrivateKnowledgeSearchPrompt } from "../advanced/company-file-search";
+import { resolveCompanyFileSearchTool, useCompanyFileSearchPrompt } from "../advanced/company-file-search";
 import dedent from "dedent";
+import { ResolveToolProps } from "../../tool-utils";
 
 export const baseToolsPrompt = dedent`
     Here are some base tools that you can use to help you with your task:
 
     <Base Tools>
     ${useWebSearchPrompt}
-    ${usePrivateKnowledgeSearchPrompt}
+    ${useCompanyFileSearchPrompt}
     ${useInterpreterPrompt}
     ${useArtifactsPrompt}
     </Base Tools>
 `
 
-export const baseTools = {
+export const resolveBaseTools = (toolProps: ResolveToolProps) => ({
     useInterpreter,
     webSearch,
     createArtifact,
     updateArtifact,
     useBrowser,
-    privateKnowledgeSearch,
-}
+    companyFileSearch: resolveCompanyFileSearchTool(toolProps),
+});

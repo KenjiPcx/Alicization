@@ -15,7 +15,7 @@ interface OpenOfficeMicroAppToolProps {
 export const createOpenOfficeMicroAppTool = ({ kpiScopeAndId, role }: OpenOfficeMicroAppToolProps) => tool({
     description: "Open a micro app for viewing and interacting with specific data dashboards",
     parameters: z.object({
-        name: role === "ceo" ? z.enum(["kpi-dashboard", "company-config", "employee-config"]) : z.enum(["kpi-dashboard", "employee-config"]),
+        name: role === "ceo" ? z.enum(["kpi-dashboard", "company-config", "employee-config", "employee-drive"]) : z.enum(["kpi-dashboard", "employee-config", "employee-drive"]),
         title: z.string().optional().describe("Custom title for the micro app"),
     }),
     execute: async (args) => {
@@ -25,7 +25,8 @@ export const createOpenOfficeMicroAppTool = ({ kpiScopeAndId, role }: OpenOffice
         const microAppTitle = title || {
             "kpi-dashboard": "KPI Dashboard",
             "company-config": "Company Configuration",
-            "employee-config": "Employee Configuration"
+            "employee-config": "Employee Configuration",
+            "employee-drive": "Employee Drive"
         }[name];
 
         return {

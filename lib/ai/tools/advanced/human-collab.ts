@@ -1,6 +1,7 @@
-import { generateId, tool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 import { internal, api } from "@/convex/_generated/api";
+import { ResolveToolProps } from "../../tool-utils";
 
 /**
  * Human Collaboration Tool
@@ -18,7 +19,12 @@ import { internal, api } from "@/convex/_generated/api";
  * - "Which option would you prefer for the design?"
  * - "Do you want me to proceed with this action?"
  */
-export const createHumanCollabTool = (ctx: any, threadId: string, teamId: string, employeeId: string, userId: string) => tool({
+export const resolveHumanCollabTool = ({
+    ctx,
+    threadId,
+    userId,
+    employeeId,
+}: ResolveToolProps) => tool({
     description: "Request input from a human user. Use this when you need approval, review, clarification, or additional information before proceeding. The task will pause until the human responds.",
     parameters: z.object({
         message: z.string().describe("Clear message describing what you need from the human"),

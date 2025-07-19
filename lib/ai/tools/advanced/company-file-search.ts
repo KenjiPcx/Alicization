@@ -1,7 +1,7 @@
 // Private knowledge can contain internal company documentation, company information, etc.
 
 import { z } from "zod";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
 import dedent from "dedent";
 import { rag } from "@/convex/setup";
 import { SearchResult } from "@convex-dev/rag";
@@ -24,15 +24,10 @@ export type PrivateKnowledgeSearchResult = {
     resultCount?: number;
 }
 
-interface ResolveCompanyFileSearchProps {
-    ctx: ActionCtx;
-    companyId: Id<"companies">;
-}
-
-export const companyFileSearch = ({
+export const resolveCompanyFileSearchTool = ({
     ctx,
     companyId,
-}: ResolveCompanyFileSearchProps) => tool({
+}: ResolveToolProps) => tool({
     description: "Search your company file data base",
     parameters: z.object({
         query: z.string().describe("The query to search"),

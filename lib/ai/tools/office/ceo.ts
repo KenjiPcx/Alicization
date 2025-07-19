@@ -11,15 +11,12 @@ import { Id } from "@/convex/_generated/dataModel";
 import { createTool } from "@convex-dev/agent";
 import dedent from "dedent";
 import { z } from "zod";
-import { createKPIToolset, resolveCompanyScope } from "../advanced/kpi";
+import { resolveCompanyScope, resolveKPIToolset } from "../advanced/kpi";
 import { createOpenOfficeMicroAppTool } from "../advanced/office-micro-app";
-import { ActionCtx } from "@/convex/_generated/server";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
-import { createAdvancedTools } from "../advanced";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { resolveAdvancedTools } from "../advanced";
 import { Company, Team } from "@/lib/types";
-import { generateObject } from "ai";
-import { model } from "../../model";
-import { employeeAgent } from "../../agents/employee-agent";
+import { tool } from "ai";
 
 export const useCeoToolsPrompt = dedent`
     # CEO Tools
@@ -96,9 +93,13 @@ export const viewTeams = createTool({
  * User: "Yes, but add a part-time data analyst to track metrics"
  * You: "Great idea! Creating the team now..." [calls tool]
  */
-export const createTeam = createTool({
+export const resolveCreateTeamTool = ({
+    ctx,
+    userId,
+    companyId,
+}: ResolveToolProps) => tool({
     description: "Create a new team for the office, this should only be called after the user has specified a business problem, asking you to design a team and you both have agreed to the team design",
-    args: z.object({
+    parameters: z.object({
         name: z.string().describe("The name of the team"),
         description: z.string().describe("The description of the team"),
         employees: z.array(z.object({
@@ -106,21 +107,20 @@ export const createTeam = createTool({
             jobDescription: z.string().describe("The job description of the employee"),
         })).describe("The employees to create for the team"),
     }),
-    handler: async (ctx, args, { toolCallId }): Promise<{
+    execute: async (args, { toolCallId }): Promise<{
         success: boolean;
         message: string;
         teamName?: string;
     }> => {
         return withToolErrorHandling(
             async () => {
-                if (!ctx.userId) throw new Error("User ID is required");
-
                 // Create the team
                 const teamId = await ctx.runMutation(internal.teams.createTeam, {
                     name: args.name,
                     description: args.description,
-                    userId: ctx.userId as Id<"users">,
+                    userId: userId,
                     deskCount: args.employees.length,
+                    companyId: companyId,
                 });
 
                 // Create the employees
@@ -129,12 +129,13 @@ export const createTeam = createTool({
                     await ctx.runMutation(internal.employees.createEmployee, {
                         jobTitle: employee.jobTitle,
                         jobDescription: employee.jobDescription,
-                        userId: ctx.userId as Id<"users">,
+                        userId: userId,
                         teamId: teamId,
                         gender: "male",
                         isSupervisor: false,
                         isCEO: false,
                         deskIndex: i,
+                        companyId: companyId,
                     });
                 }
 
@@ -241,21 +242,15 @@ export const updateCompanyDetails = createTool({
 /**
  * Factory function to create CEO tools with proper context injection
  */
-export const createCEOTools = async (
-    ctx: ActionCtx,
-    threadId: string,
-    userId: Id<"users">,
-    employeeId: Id<"employees">,
-    teamId: Id<"teams">
-) => {
+export const resolveCEOTools = async (toolProps: ResolveToolProps) => {
     // Resolve company scope for KPI tools
-    const companyScope = await resolveCompanyScope(ctx, userId);
-    const kpiTools = createKPIToolset(ctx, companyScope);
+    const companyScope = await resolveCompanyScope(toolProps);
+    const kpiTools = resolveKPIToolset(toolProps.ctx, companyScope);
     const openOfficeMicroAppTool = createOpenOfficeMicroAppTool({
         kpiScopeAndId: companyScope,
         role: "ceo"
     });
-    const advancedTools = createAdvancedTools(ctx, threadId, userId, employeeId, teamId);
+    const advancedTools = resolveAdvancedTools(toolProps);
 
     return {
         // Advanced tools
@@ -263,7 +258,7 @@ export const createCEOTools = async (
 
         // Company management tools
         viewTeams,
-        createTeam,
+        createTeam: resolveCreateTeamTool(toolProps),
         getCompanyDetails,
         updateCompanyDetails,
 

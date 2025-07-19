@@ -48,6 +48,18 @@
  * );
  */
 
+import { Id } from "@/convex/_generated/dataModel";
+import { ActionCtx } from "@/convex/_generated/server";
+
+export interface ResolveToolProps {
+    ctx: ActionCtx;
+    threadId: string;
+    userId: Id<"users">;
+    employeeId: Id<"employees">;
+    teamId: Id<"teams">;
+    companyId: Id<"companies">;
+}
+
 export interface ToolErrorOptions {
     /**
      * The operation being attempted (e.g., "Artifact creation", "Company update")

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { api, internal } from "@/convex/_generated/api";
 import dedent from "dedent";
-import { withToolErrorHandling } from "@/lib/ai/tool-utils";
+import { ResolveToolProps, withToolErrorHandling } from "@/lib/ai/tool-utils";
 import { tool } from "ai";
 import { ActionCtx } from "@/convex/_generated/server";
 import { Id } from "@/convex/_generated/dataModel";
@@ -66,13 +66,13 @@ export const usePlannerToolsPrompt = dedent`
  * Set or update the plan and todos for this thread
  * Supports replanning by appending to existing plan arrays
  */
-export const createSetPlanAndTodosTool = (
-    ctx: ActionCtx,
-    threadId: string,
-    employeeId: Id<"employees">,
-    teamId: Id<"teams">,
-    userId: Id<"users">
-) => tool({
+export const resolveSetPlanAndTodosTool = ({
+    ctx,
+    threadId,
+    employeeId,
+    teamId,
+    userId,
+}: ResolveToolProps) => tool({
     description: "Set or update the plan and todos for a turn within a multiturn conversation. You can call this tool again when you replan and want to add more todos or change the plan, they will get appended to the existing plan and todos for this turn, don't provide a title and description when you do",
     parameters: z.object({
         title: z.optional(z.string().describe("The title of the user task, this will be used to create the plan title")),
@@ -376,15 +376,9 @@ export const setTaskStatus = createTool({
     },
 });
 
-export const createPlannerTools = (
-    ctx: ActionCtx,
-    threadId: string,
-    userId: Id<"users">,
-    employeeId: Id<"employees">,
-    teamId: Id<"teams">,
-) => {
+export const resolvePlannerToolset = (toolProps: ResolveToolProps) => {
     return {
-        setPlanAndTodos: createSetPlanAndTodosTool(ctx, threadId, employeeId, teamId, userId),
+        setPlanAndTodos: resolveSetPlanAndTodosTool(toolProps),
         selectNextTodo,
         completeCurrentTodoAndMoveToNextTodo,
         setTaskStatus

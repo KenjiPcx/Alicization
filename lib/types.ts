@@ -32,25 +32,25 @@ export type Task = Doc<"tasks">;
 
 // Compound types
 export type FullEmployee = Employee & {
-  tools: {
-    _id: Id<"tools">;
-    name: string;
-    description: string;
-  }[];
-  skills: {
-    _id: Id<"skills">;
-    name: string;
-    description: string;
-  }[];
-  team: Team | {
-    _id: Id<"teams">;
-    name: string;
-  };
+    tools: {
+        _id: Id<"tools">;
+        name: string;
+        description: string;
+    }[];
+    skills: {
+        _id: Id<"skills">;
+        name: string;
+        description: string;
+    }[];
+    team: Team | {
+        _id: Id<"teams">;
+        name: string;
+    };
 };
 
 export type ArtifactKind = Doc<"artifacts">["kind"];
 
-export type OfficeMicroAppKind = "kpi-dashboard" | "company-config" | "employee-config";
+export type OfficeMicroAppKind = "kpi-dashboard" | "company-config" | "employee-config" | "employee-drive";
 
 // Frontend-specific employee data that extends the backend model
 export interface EmployeeData extends Doc<"employees"> {

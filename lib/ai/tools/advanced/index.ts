@@ -1,16 +1,11 @@
 import { updateThreadTitle } from "./updateThreadTitle";
-import { createHumanCollabTool } from "./human-collab";
-import { raiseMissingToolRequest } from "./missing-tool-request";
-import { createChat } from "./agent-collab";
-import { scheduleTask } from "./scheduler";
-import { createMemoryTools } from "./memory";
-import { createPlannerTools } from "./planner";
-import { Id } from "@/convex/_generated/dataModel";
-import { ActionCtx } from "@/convex/_generated/server";
-import dedent from "dedent";
-import { usePlannerToolsPrompt } from "./planner";
+import { resolveHumanCollabTool } from "./human-collab";
+import { resolveMemoryToolset } from "./memory";
+import { resolvePlannerToolset, usePlannerToolsPrompt } from "./planner";
 import { useMemoryToolsPrompt } from "./memory";
 import { resolveSkillToolset, useLearnSkillPrompt } from "./learn-skill";
+import { ResolveToolProps } from "../../tool-utils";
+import dedent from "dedent";
 
 export const advancedToolsPrompt = dedent`
     <Use Advanced Tools Docs>
@@ -19,18 +14,13 @@ export const advancedToolsPrompt = dedent`
     ${useLearnSkillPrompt}
     </Use Advanced Tools Docs>
 `
-export const createAdvancedTools = (
-    ctx: ActionCtx,
-    threadId: string,
-    userId: Id<"users">,
-    employeeId: Id<"employees">,
-    teamId: Id<"teams">
-) => {
+
+export const resolveAdvancedTools = (toolProps: ResolveToolProps) => {
     return {
-        requestHumanInput: createHumanCollabTool(ctx, threadId, teamId, employeeId, userId),
-        ...createPlannerTools(ctx, threadId, userId, employeeId, teamId),
-        ...createMemoryTools(ctx, threadId, userId, employeeId, teamId),
-        ...resolveSkillToolset(ctx, threadId, userId, employeeId, teamId),
+        requestHumanInput: resolveHumanCollabTool(toolProps),
+        ...resolvePlannerToolset(toolProps),
+        ...resolveMemoryToolset(toolProps),
+        ...resolveSkillToolset(toolProps),
         updateThreadTitle,
     }
 }
