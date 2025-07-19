@@ -63,7 +63,7 @@ export const getArtifactsByToolCallId = query({
     },
     handler: async (ctx, args): Promise<Doc<"artifacts">[] | null> => {
         const { toolCallId } = args;
-        console.log("toolCallId", toolCallId);
+
         const artifact = await ctx.db.query("artifacts")
             .withIndex("by_toolCallId", (q) => q.eq("toolCallId", toolCallId))
             .first();
@@ -142,7 +142,6 @@ export const generateArtifact = internalAction({
     args: {
         existingArtifactGroupId: v.optional(v.string()),
         threadId: v.string(),
-        messageId: v.string(),
         employeeId: v.string(),
         title: v.string(),
         kind: vArtifactKinds,
@@ -229,66 +228,11 @@ export const generateArtifact = internalAction({
             result: `${message}`,
         });
 
-        if (scheduled) {
-            // Notify the supervisor that the artifact is ready
-            await ctx.scheduler.runAfter(5000, internal.chat.continueStreamMessageWithToolResults, {
-                userId: employeeId,
-                threadId,
-            });
-        }
-
         return {
+            artifactGroupId,
             title,
             kind,
             content: artifactContent,
         };
-    },
-});
-
-export const scheduleArtifactGeneration = internalAction({
-    args: {
-        artifactGroupId: v.optional(v.string()),
-        threadId: v.string(),
-        messageId: v.string(),
-        employeeId: v.string(),
-        title: v.string(),
-        kind: vArtifactKinds,
-        generationPrompt: v.string(),
-        toolCallId: v.string(),
-        backgroundJobStatusId: v.id("backgroundJobStatuses"),
-    },
-    returns: v.string(),
-    handler: async (ctx, args) => {
-        const {
-            artifactGroupId,
-            threadId,
-            messageId,
-            employeeId,
-            title,
-            kind,
-            generationPrompt,
-            toolCallId,
-            backgroundJobStatusId,
-        } = args;
-
-        // Schedule a artifact generation
-        const jobId: Id<"_scheduled_functions"> = await ctx.scheduler.runAfter(
-            0,
-            internal.artifacts.generateArtifact,
-            {
-                existingArtifactGroupId: artifactGroupId,
-                threadId,
-                messageId,
-                employeeId,
-                title,
-                kind,
-                generationPrompt,
-                scheduled: true,
-                toolCallId,
-                backgroundJobStatusId,
-            }
-        );
-
-        return jobId;
     },
 });

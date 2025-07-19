@@ -18,16 +18,14 @@ export const createBackgroundJobStatus = internalMutation({
     args: v.object({
         toolCallId: v.string(),
         threadId: v.string(),
-        messageId: v.string(),
         toolName: v.string(),
         toolParameters: v.any(),
     }),
     handler: async (ctx, args) => {
-        const { toolCallId, threadId, messageId, toolName, toolParameters } = args;
+        const { toolCallId, threadId, toolName, toolParameters } = args;
         const backgroundJobStatusId = await ctx.db.insert("backgroundJobStatuses", {
             toolCallId,
             threadId,
-            messageId,
             metadata: {
                 toolName,
                 toolParameters,

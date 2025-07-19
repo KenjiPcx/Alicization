@@ -2,17 +2,20 @@ import { z } from "zod";
 import { tool } from "ai";
 import { type ScopeAndId } from "@/lib/types";
 
+interface OpenOfficeMicroAppToolProps {
+    kpiScopeAndId: ScopeAndId;
+    role: "ceo" | "employee" | "hr";
+}
+
 /**
  * Creates a tool that lets the agent open up a micro app for viewing and interacting with specific data dashboards
- * @param scopeAndId - The scope and ID of the data dashboard to open
+ * @param kpiScopeAndId - The scope and ID of the data dashboard to open
  * @returns 
  */
-export const createOpenOfficeMicroAppTool = (
-    scopeAndId: ScopeAndId
-) => tool({
+export const createOpenOfficeMicroAppTool = ({ kpiScopeAndId, role }: OpenOfficeMicroAppToolProps) => tool({
     description: "Open a micro app for viewing and interacting with specific data dashboards",
     parameters: z.object({
-        name: z.enum(["kpi-dashboard", "company-config", "employee-config"]),
+        name: role === "ceo" ? z.enum(["kpi-dashboard", "company-config", "employee-config"]) : z.enum(["kpi-dashboard", "employee-config"]),
         title: z.string().optional().describe("Custom title for the micro app"),
     }),
     execute: async (args) => {
@@ -28,7 +31,7 @@ export const createOpenOfficeMicroAppTool = (
         return {
             message: `Opening ${microAppTitle} micro app`,
             microAppType: name,
-            ...scopeAndId,
+            ...kpiScopeAndId,
         };
     },
 })

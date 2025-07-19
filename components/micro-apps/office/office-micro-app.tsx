@@ -13,7 +13,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ScopeAndId, Vote } from '@/lib/types';
 import KPIClientMicroUI from '@/micro-apps/office/kpi-client';
 import CompanyConfigMicroUI from '@/micro-apps/office/company-config';
-import EmployeeConfigMicroUI from '@/micro-apps/office/employee-config';
+import EmployeeConfigMicroUI from '@/micro-apps/office/hr-config';
 import { Id } from '@/convex/_generated/dataModel';
 
 interface OfficeMicroAppProps {
@@ -105,6 +105,7 @@ export function OfficeMicroApp({
           <EmployeeConfigMicroUI
             title={title}
             toolCallId={microAppData.toolCallId || ''}
+            employeeId={microAppData.employeeId}
           />
         );
 

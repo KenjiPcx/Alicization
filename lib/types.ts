@@ -32,7 +32,16 @@ export type Task = Doc<"tasks">;
 
 // Compound types
 export type FullEmployee = Employee & {
-  tools: Tool[];
+  tools: {
+    _id: Id<"tools">;
+    name: string;
+    description: string;
+  }[];
+  skills: {
+    _id: Id<"skills">;
+    name: string;
+    description: string;
+  }[];
   team: Team | {
     _id: Id<"teams">;
     name: string;

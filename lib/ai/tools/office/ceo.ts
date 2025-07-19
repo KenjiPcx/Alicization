@@ -251,7 +251,10 @@ export const createCEOTools = async (
     // Resolve company scope for KPI tools
     const companyScope = await resolveCompanyScope(ctx, userId);
     const kpiTools = createKPIToolset(ctx, companyScope);
-    const openOfficeMicroAppTool = createOpenOfficeMicroAppTool(companyScope);
+    const openOfficeMicroAppTool = createOpenOfficeMicroAppTool({
+        kpiScopeAndId: companyScope,
+        role: "ceo"
+    });
     const advancedTools = createAdvancedTools(ctx, threadId, userId, employeeId, teamId);
 
     return {

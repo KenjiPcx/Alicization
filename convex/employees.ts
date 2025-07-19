@@ -255,16 +255,37 @@ export const getEmployeeById = query({
         if (!employee) return null;
 
         const team = await ctx.db.get(employee.teamId);
+        if (!team) throw new Error("Team not found");
+
+        // Get tools
         const toolsIds = (await ctx.db.query("employeeToTools").withIndex("by_employeeId", (q) => q.eq("employeeId", employeeId)).collect()).map((tool) => tool.toolId);
         const tools = await Promise.all(toolsIds.map((toolId) => ctx.db.get(toolId)));
-
-        // Filter null tools
         const filteredTools = tools.filter((tool) => tool !== null);
+
+        // Get skills
+        const employeeSkills = await ctx.db
+            .query("employeeToSkills")
+            .withIndex("by_employeeId", (q) => q.eq("employeeId", employeeId))
+            .collect();
+
+        const enrichedSkills = await Promise.all(
+            employeeSkills.map(async (empSkill) => {
+                const skill = await ctx.db.get(empSkill.skillId);
+                if (!skill) return null;
+                return {
+                    ...empSkill,
+                    skill,
+                };
+            })
+        );
+
+        const filteredSkills = enrichedSkills.filter(es => es !== null && es.skill !== null);
 
         return {
             ...employee,
-            team: team ? { _id: team._id, name: team.name } : undefined,
-            tools: filteredTools,
+            team: { _id: team._id, name: team.name },
+            tools: filteredTools.map(t => ({ _id: t._id, name: t.name, description: t.description })),
+            skills: filteredSkills.map(s => ({ _id: s!.skill._id, name: s!.skill.name, description: s!.skill.description })),
         };
     },
 });

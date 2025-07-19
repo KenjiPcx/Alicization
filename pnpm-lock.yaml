@@ -50,6 +50,9 @@ importers:
       '@convex-dev/crons':
         specifier: ^0.1.9
         version: 0.1.9(convex@1.25.2(react@19.1.0))
+      '@convex-dev/rag':
+        specifier: ^0.3.2
+        version: 0.3.2(@ai-sdk/provider@1.1.3)(@convex-dev/workpool@0.2.16(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))
       '@convex-dev/workflow':
         specifier: ^0.2.5
         version: 0.2.5(@convex-dev/workpool@0.2.16(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))
@@ -428,6 +431,15 @@ packages:
     resolution: {integrity: sha512-TV7hFli9iDekLQt95HgL1YfwdjG7TnVR2E+6meWo0VztdXqYN14aqwvEOcaadtDhFfedGx32xHZBFzvfgQZkYQ==}
     peerDependencies:
       convex: ~1.16.5 || >=1.17.0 <1.35.0
+
+  '@convex-dev/rag@0.3.2':
+    resolution: {integrity: sha512-pQlkI7nTJQeaUjxpVL8hUcKWZN/Uh7Bygt/yLJXtbEaISK1Z84kB2C1SwBBq8H5y8BmANHDtWyjsNzEymAvALw==}
+    peerDependencies:
+      '@ai-sdk/provider': ^1.1.3
+      '@convex-dev/workpool': ^0.2.14
+      ai: ^4.3.16
+      convex: ^1.24.8
+      convex-helpers: ^0.1.94
 
   '@convex-dev/workflow@0.2.5':
     resolution: {integrity: sha512-g3wiMj3twonm4MogFwu0mh5RLlaG07qjwo9IP4hhjZhJSoqmgSLGeRr7BWQ4Q512Kg2NRztkdhIP46NV0TBTHQ==}
@@ -4735,6 +4747,14 @@ snapshots:
     dependencies:
       convex: 1.25.2(react@19.1.0)
       cron-parser: 4.9.0
+
+  '@convex-dev/rag@0.3.2(@ai-sdk/provider@1.1.3)(@convex-dev/workpool@0.2.16(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))':
+    dependencies:
+      '@ai-sdk/provider': 1.1.3
+      '@convex-dev/workpool': 0.2.16(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))
+      ai: 4.3.16(react@19.1.0)(zod@3.25.67)
+      convex: 1.25.2(react@19.1.0)
+      convex-helpers: 0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67)
 
   '@convex-dev/workflow@0.2.5(@convex-dev/workpool@0.2.16(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0)))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))':
     dependencies:

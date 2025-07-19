@@ -13,8 +13,8 @@ import { FullEmployee } from "@/lib/types";
 import dedent from "dedent";
 
 
-export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools }: Partial<FullEmployee>) => {
-    if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !tools) {
+export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools, skills }: Partial<FullEmployee>) => {
+    if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !tools || !skills) {
         throw new Error("Missing required fields");
     }
 
@@ -51,7 +51,12 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
 
     ## Role Specific Tools
     Here are your role specific tools to help you do your work 
-    ${tools.map((tool) => tool.name).join(", ")}
+    ${tools.map((tool) => `- ${tool.name}: ${tool.description} (toolId: ${tool._id})`).join("\n")}
+
+    # Skills
+    You have skills, which are just workflows to use the tools to perform specialized tasks.
+    Here are the skills that you have learned so far, there should be company file documentation you can search for on more details to perform the skill, search for it dynamically.
+    ${skills.map((skill) => `- ${skill.name}: ${skill.description} (skillId: ${skill._id})`).join("\n")}
 
     ## More tool details
     If a tool ever fails, you should try to fix the issue and continue the task. If you can't fix the issue, you should inform the user and ask for their help.

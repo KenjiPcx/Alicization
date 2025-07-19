@@ -46,53 +46,9 @@ export function ChatSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex flex-row justify-between items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex flex-row gap-2 items-center px-2 text-lg font-semibold hover:bg-muted rounded-md cursor-pointer"
-                >
-                  {currentMode}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem
-                  onClick={() => {
-                    setOpenMobile(false);
-                    setCurrentMode('Chat');
-                  }}
-                >
-                  Chatbot
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setOpenMobile(false);
-                    setCurrentMode('Files');
-                  }}
-                >
-                  Files
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setOpenMobile(false);
-                    setCurrentMode('Config');
-                  }}
-                >
-                  Config
-                </DropdownMenuItem>
-                {/* Development helper - remove in production */}
-                <DropdownMenuItem
-                  onClick={async () => {
-                    setOpenMobile(false);
-                    await resetOnboarding();
-                  }}
-                  className="text-orange-600"
-                >
-                  Reset Onboarding (Dev)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-row gap-2 items-center px-2 text-lg font-semibold hover:bg-muted rounded-md cursor-pointer">
+              {currentMode}
+            </div>
 
             <Tooltip>
               <TooltipTrigger asChild>

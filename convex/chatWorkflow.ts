@@ -1,14 +1,9 @@
-import { WorkflowId, WorkflowManager } from "@convex-dev/workflow";
-import { components, internal } from "./_generated/api";
+import { WorkflowId } from "@convex-dev/workflow";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
-
-export const workflow = new WorkflowManager(components.workflow, {
-    workpoolOptions: {
-        maxParallelism: 100,
-    },
-});
+import { workflow } from "./setup";
 
 /**
  * Chat workflow that orchestrates the entire chat system:

@@ -70,6 +70,14 @@ export const vKpi = v.object({
   statusMessage: v.optional(v.string()),
 })
 
+export const vProficiencyLevels = v.union(
+  v.literal("newbie"),
+  v.literal("novice"),
+  v.literal("competent"),
+  v.literal("proficient"),
+  v.literal("expert"),
+)
+
 export const applicationTables = {
   // Store extra metadata for a user beyond the user managed by the auth package
   usersMetadata: defineTable({
@@ -166,14 +174,46 @@ export const applicationTables = {
   }).index("by_employeeId", ["employeeId"])
     .index("by_toolId", ["toolId"]),
 
+  // Skills that employees can have
+  skills: defineTable({
+    name: v.string(),
+    description: v.string(),
+    userId: v.id("users"), // User who owns/created this skill
+    createdAt: v.number(),
+    proficiencyLevel: vProficiencyLevels,
+    stats: v.optional(v.object({
+      executionCount: v.number(),
+      averageExecutionTime: v.number(),
+      averageExecutionSuccessRate: v.number(),
+    })), // For optimization in the future
+    imageStorage: v.optional(v.object({
+      storageId: v.id("_storage"),
+      url: v.string(),
+    })),
+  }).index("by_userId", ["userId"]),
+
+  // Junction table for employee skills
+  employeeToSkills: defineTable({
+    employeeId: v.id("employees"),
+    skillId: v.id("skills"),
+    dateAcquired: v.number(), // When the employee acquired this skill
+    notes: v.optional(v.string()), // Optional notes about how they learned it or specific expertise
+  }).index("by_employeeId", ["employeeId"])
+    .index("by_skillId", ["skillId"])
+    .index("by_employeeId_skillId", ["employeeId", "skillId"]),
+
   // Entities that agents can act on
   companyFiles: defineTable({
+    artifactGroupId: v.optional(v.string()),
+    type: v.union(v.literal("artifact"), v.literal("information")),
     name: v.string(),
-    mimeType: v.string(),
+    mimeType: v.optional(v.string()),
     size: v.number(),
     aiSummary: v.optional(v.string()),
-    userId: v.id("users"),
+    companyId: v.id("companies"),
+    userId: v.optional(v.id("users")),
     employeeId: v.optional(v.id("employees")),
+    skillId: v.optional(v.id("skills")),
     storageId: v.id("_storage"),
     embeddingStatus: v.union(
       v.literal("pending"),
@@ -185,7 +225,8 @@ export const applicationTables = {
     embeddingProgress: v.optional(v.number()),
     embeddingMessage: v.optional(v.string()),
   })
-    .index("by_employeeId", ["employeeId"]),
+    .index("by_employeeId", ["employeeId"])
+    .index("by_artifactGroupId", ["artifactGroupId"]),
 
   companyFileEmbeddingChunks: defineTable({
     companyFileId: v.id("companyFiles"),
@@ -229,7 +270,6 @@ export const applicationTables = {
   backgroundJobStatuses: defineTable({
     toolCallId: v.string(),
     threadId: v.string(),
-    messageId: v.string(),
     metadata: v.optional(v.object({
       toolName: v.string(),
       toolParameters: v.any(),

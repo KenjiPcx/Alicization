@@ -55,26 +55,12 @@ export const generateTextArtifact = internalAction({
         })
 
         let draftContent = "";
-        let encounteredReasoning = false;
         let encounteredTextDelta = false;
+
         // Wait for the stream to finish
         // These mutations will persist the changes to the artifact in the database
         for await (const chunk of fullStream) {
-            if (chunk.type === "reasoning") {
-
-                // We want to update the tool status with the progress of the reasoning phase
-                if (!encounteredReasoning) {
-                    await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
-                        backgroundJobStatusId,
-                        status: "running",
-                        message: "Planning to write the best possible artifact...",
-                        progress: 50,
-                    });
-                    encounteredReasoning = true;
-                }
-
-            } else if (chunk.type === "text-delta") {
-
+            if (chunk.type === "text-delta") {
                 // Same with the text delta phase
                 if (!encounteredTextDelta) {
                     await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {

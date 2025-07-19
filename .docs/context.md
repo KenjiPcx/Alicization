@@ -208,7 +208,7 @@ User: "Looks good but change line 15. Reference: def-456"
 
 ## Current State
 
-The system now features both a comprehensive human collaboration system and a modern game-like HUD interface. Users can:
+The system now features a comprehensive human collaboration system, a modern game-like HUD interface, and a detailed employee profile system. Users can:
 
 ### Game Interface
 - Use the speed dial for quick access to tasks, settings, and future features
@@ -221,6 +221,19 @@ The system now features both a comprehensive human collaboration system and a mo
 - Get human review on work before proceeding  
 - Ask clarifying questions when requirements are unclear
 - Request permissions for actions requiring authorization
+
+### Employee Profile System
+- View comprehensive employee profiles in a GitHub-style interface
+- Display gamified employee stats with XP and leveling system
+- Manage employee skills with proficiency tracking
+- View assigned tools and access permissions
+- Organize skills by categories with visual proficiency indicators
+
+### Micro Apps System
+- Dynamic generative UI components for specialized data dashboards
+- Role-based access control (CEO, Employee, HR) with different available apps
+- Seamlessly integrated with AI agent tooling for contextual data interaction
+- Support for KPI dashboards, company configuration, and employee management interfaces
 
 ### Human Collaboration Tool Preview
 
@@ -249,16 +262,282 @@ Created a visual tool preview component (`HumanCollabPreview`) that provides ric
 
 The component follows the existing hacker/gamer aesthetic while using warm beige tones to clearly indicate human involvement in the workflow. Includes full dark mode support with appropriate color adjustments for both light and dark themes.
 
+## Employee Skills Management System
+
+### Overview
+Implemented a comprehensive skills management system that allows dynamic skill tracking and proficiency development for AI employees. The system supports skill sharing, categorization, and gamified progression tracking.
+
+### Database Schema
+
+**Skills Table**:
+- `name`: Skill name (e.g., "React Development", "Project Management")
+- `description`: Detailed description of the skill
+- `proficiencyLevel`: Current proficiency level (learning, competent, proficient, expert)
+- `isShareable`: Whether the skill can be shared across employees
+- `userId`: Owner of the skill
+- `createdAt`: Creation timestamp
+- `stats`: Optional performance metrics (execution count, average time, success rate)
+
+**Employee-to-Skills Junction Table**:
+- `employeeId`: Reference to employee
+- `skillId`: Reference to skill
+- `proficiencyLevel`: Employee's proficiency (learning, competent, proficient, expert)
+- `dateAcquired`: When the employee acquired this skill
+- `notes`: Optional notes about learning or expertise
+
+### Features
+
+**Skill Management**:
+- Create, update, and delete skills
+- Mark skills as shareable across employees
+- Track individual proficiency levels and performance statistics
+- Support dynamic skill learning and documentation
+
+**Employee Skill Tracking**:
+- Assign skills to employees with proficiency levels
+- Track skill acquisition dates
+- Add notes about learning progress or specific expertise
+- Visual proficiency indicators with color coding
+
+**Gamification Elements**:
+- XP system based on skill proficiency levels
+- Employee leveling system (Level = total skill points / 10)
+- Visual progress bars and achievement indicators
+- Color-coded proficiency badges
+
+**Profile Interface**:
+- GitHub-style employee profiles
+- All skills displayed with acquisition dates and proficiency indicators
+- Proficiency overview charts showing skill distribution
+- Tools and access permissions display
+- Role-based badges (CEO, Supervisor, etc.)
+
+### Technical Implementation
+
+**Backend (Convex)**:
+- `convex/skills.ts`: Comprehensive CRUD operations for skills
+- `convex/employees.ts`: Enhanced with skills data joining
+- Type-safe queries with proper user authorization
+- Efficient database indexing for performance
+
+**Frontend Components**:
+- `components/micro-apps/office/employee-config.tsx`: Main profile interface
+- GitHub-inspired layout with modern gaming aesthetics
+- Responsive design with dark mode support
+- Interactive skill management interface
+
+**Integration**:
+- Seamlessly integrated with office micro app system
+- Accessible through employee context in conversations
+- Real-time data updates via Convex queries
+- Proper error handling and loading states
+
+### Benefits
+
+- **Dynamic Learning**: No hardcoded workflow tools - agents learn and document skills organically
+- **Job-Based Organization**: Skills are naturally grouped by employee roles rather than artificial categories
+- **Performance Metrics**: Optional statistics tracking for future optimization and learning analysis
+- **Visual Feedback**: Gamified interface makes skill development engaging
+- **Collaboration**: Shareable skills enable knowledge transfer between employees
+- **Simplified Management**: Streamlined schema focused on practical skill tracking and proficiency
+
+## Dynamic Skill Learning System
+
+### Overview
+Implemented a revolutionary dynamic skill learning system that allows employees to learn new workflows organically when users teach them, eliminating the need for hardcoded workflow tools.
+
+### How It Works
+
+**User Teaches a Skill**:
+1. User says "let me teach you a skill" followed by detailed workflow description
+2. Employee agent calls `learnSkill` tool with comprehensive parameters
+3. System creates skill record and assigns it to the employee
+4. Automatically generates structured documentation artifact
+5. Documentation gets saved to company files for institutional knowledge
+
+**Skill Learning Process**:
+- **Skill Creation**: Creates skill record with proficiency level and shareability settings
+- **Employee Assignment**: Links skill to employee with acquisition date and notes
+- **Documentation Generation**: Creates comprehensive workflow documentation with:
+  - Overview and prerequisites
+  - Step-by-step process instructions
+  - Common issues and troubleshooting
+  - Tips and best practices
+  - References to related skills
+
+**Automatic Documentation Saving**:
+- Extended artifacts system with `saveAsDocumentation` flag
+- Automatically saves skill documentation to company files
+- Builds searchable institutional knowledge base
+- Enables knowledge sharing across employees
+
+### Technical Implementation
+
+**Learn Skill Tool** (`lib/ai/tools/advanced/learn-skill.ts`):
+- Context-injected tool with proper error handling
+- Creates skill and employee-skill association
+- Generates structured documentation prompt
+- Triggers artifact creation with auto-save
+
+**Enhanced Artifacts System** (`lib/ai/tools/base/artifacts.ts`):
+- Added `saveAsDocumentation` parameter to both create and update tools
+- Automatically saves artifacts to company files when flag is true
+- Eliminates need for separate file creation tools
+
+**Internal Database Operations** (`convex/skills.ts`):
+- Added internal mutations for agent tool usage
+- `internalCreateSkill`: Creates skills from agent context
+- `internalAddSkillToEmployee`: Assigns skills with proper validation
+
+**Employee Tools Integration** (`lib/ai/tools/office/employee.ts`):
+- Integrated learn skill tool into all employee toolsets
+- Available to all employees for organic skill development
+
+### Benefits
+
+- **Organic Learning**: No hardcoded workflows - agents learn naturally
+- **Scalable Knowledge**: Unlimited skill development with documentation
+- **Institutional Memory**: All learned skills become company knowledge
+- **Dynamic Growth**: Skills evolve based on actual business needs
+- **Knowledge Sharing**: Shareable skills enable cross-training
+- **Performance Tracking**: Stats field ready for optimization metrics
+
+### User Experience Updates
+
+**Employee Profile Interface**:
+- Updated empty states with helpful guidance
+- Skills: "Say 'let me teach you a skill' to teach this employee a new workflow"
+- Tools: "Contact HR to assign tools and access permissions"
+- Removed add/assign buttons in favor of natural language interaction
+
+This system transforms static AI employees into dynamic learners who grow their capabilities organically through user interaction, building a living knowledge base that scales with the business.
+
+## Micro Apps System
+
+### Overview
+Implemented a dynamic micro apps system that provides specialized generative UI components for data dashboards and management interfaces. These micro apps are context-aware, role-based applications that agents can open to provide rich interactive experiences for specific business functions.
+
+### Architecture
+
+**Generative UI Approach**:
+- Micro apps are dynamically generated UI components rather than static pages
+- Created on-demand by AI agents based on contextual needs
+- Seamlessly integrated into the chat interface as interactive artifacts
+- Support for complex data visualization and management workflows
+
+**Role-Based Access Control**:
+- **CEO**: Full access to all micro apps (KPI Dashboard, Company Config, Employee Config)
+- **Employee**: Limited access (KPI Dashboard, Employee Config)
+- **HR**: Specialized access for people management
+- Access levels enforced at the tool level with proper validation
+
+### Available Micro Apps
+
+#### 1. KPI Dashboard
+**Purpose**: Real-time performance monitoring and analytics
+**Features**:
+- Live metrics display for business performance
+- Interactive charts and graphs
+- Key performance indicator tracking
+- Data visualization for decision making
+- Customizable dashboard views
+
+#### 2. Company Configuration (CEO Only)
+**Purpose**: High-level company settings and management
+**Features**:
+- Company-wide policy management
+- Organizational structure configuration
+- System-level settings and preferences
+- Strategic planning interfaces
+- Administrative controls
+
+#### 3. Employee Configuration
+**Purpose**: Individual employee management and profiles
+**Features**:
+- Comprehensive employee profile viewing
+- Skills management and tracking
+- Tool assignment and access control
+- Performance monitoring and analytics
+- Training and development tracking
+
+### Technical Implementation
+
+**Tool Integration** (`lib/ai/tools/advanced/office-micro-app.ts`):
+- `createOpenOfficeMicroAppTool`: Factory function for role-specific micro app access
+- Context-injected with kpiScopeAndId for proper data scoping
+- Type-safe parameters with Zod validation
+- Custom title support for specialized use cases
+
+**Parameters**:
+- `name`: Enum of available micro app types based on role
+- `title`: Optional custom title for the micro app interface
+- Returns microAppType and scoping information for UI rendering
+
+**Agent Integration**:
+- Available to all AI employees through their tool sets
+- Context-aware recommendations based on conversation needs
+- Automatic micro app suggestions for relevant data interactions
+- Seamless handoff from chat to specialized interfaces
+
+### User Experience
+
+**Natural Language Activation**:
+- Agents can open micro apps contextually during conversations
+- Example: "Let me open the KPI dashboard to show you our performance"
+- Users can also directly request specific micro apps
+- Intelligent app selection based on conversation context
+
+**Interface Integration**:
+- Micro apps appear as rich artifacts in the chat interface
+- Maintain conversation context while providing specialized functionality
+- Support for both read-only viewing and interactive management
+- Smooth transitions between chat and micro app interactions
+
+**Responsive Design**:
+- Mobile-friendly interfaces for all micro apps
+- Adaptive layouts based on available screen space
+- Touch-optimized controls for mobile devices
+- Consistent design language with the main application
+
+### Benefits
+
+- **Contextual**: Agents open relevant interfaces based on conversation needs
+- **Efficient**: Specialized UIs for complex data interactions
+- **Secure**: Role-based access ensures appropriate permissions
+- **Scalable**: Easy to add new micro app types as business needs evolve
+- **Integrated**: Seamless experience within the chat workflow
+- **Generative**: Dynamic UI creation based on real-time data and context
+
+### Future Enhancements
+
+**Planned Micro Apps**:
+- Project management dashboards
+- Financial reporting interfaces
+- Customer relationship management
+- Inventory and resource tracking
+- Performance analytics and reporting
+
+**Technical Improvements**:
+- Real-time collaboration within micro apps
+- Advanced data visualization libraries
+- Mobile app support for micro app interfaces
+- API integrations for external data sources
+- Advanced customization and personalization options
+
 ## Next Steps
 
 ### Immediate
 - Connect stats HUD to real backend metrics (agent count, revenue, efficiency)
 - Implement respond/dismiss functionality for user tasks
-- Add priority levels and timeout handling for collaboration requests
+- Backend implementation for artifact saveAsDocumentation functionality
+- Enhance micro app data integration with real-time business metrics
 
 ### Future Features
-- Rich media support for complex reviews
-- Request delegation to other team members
-- Advanced analytics dashboard
-- Company profile and leveling system
-- Performance-based rewards and achievements 
+- Skill performance tracking and optimization
+- Skill recommendation system based on job roles
+- Skill certification and validation workflows
+- Advanced skill analytics and progression tracking
+- Cross-employee skill transfer and mentoring
+- Expand micro apps system with project management and CRM interfaces
+- Real-time collaborative editing within micro apps
+- Mobile-optimized micro app experiences 

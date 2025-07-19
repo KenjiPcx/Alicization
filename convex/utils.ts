@@ -71,6 +71,24 @@ export async function patchTeam(
     return false;
 }
 
+/**
+ * Type-safe update helper for company files
+ */
+export async function patchCompanyFile(
+    ctx: MutationCtx,
+    companyFileId: Id<"companyFiles">,
+    updates: Partial<Omit<Doc<"companyFiles">, "_id" | "_creationTime" | "userId">>
+): Promise<boolean> {
+    const filteredUpdates = filterUndefined(updates);
+
+    if (Object.keys(filteredUpdates).length > 0) {
+        await ctx.db.patch(companyFileId, filteredUpdates);
+        return true;
+    }
+
+    return false;
+}
+
 // Note: For other tables, create specific update functions above
 // This provides better type safety and IntelliSense
 

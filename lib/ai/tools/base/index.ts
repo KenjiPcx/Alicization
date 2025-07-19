@@ -2,7 +2,7 @@ import { useInterpreter, useInterpreterPrompt } from "./interpreter";
 import { useWebSearchPrompt, webSearch } from "./web-search";
 import { createArtifact, updateArtifact, useArtifactsPrompt } from "./artifacts";
 import { useBrowser } from "./browser-use";
-import { privateKnowledgeSearch, usePrivateKnowledgeSearchPrompt } from "./private-search";
+import { privateKnowledgeSearch, usePrivateKnowledgeSearchPrompt } from "../advanced/company-file-search";
 import dedent from "dedent";
 
 export const baseToolsPrompt = dedent`

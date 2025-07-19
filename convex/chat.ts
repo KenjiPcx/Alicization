@@ -1,16 +1,15 @@
 
 import { v } from "convex/values";
 import { paginationOptsValidator, } from "convex/server";
-import { action, httpAction, internalAction, internalMutation, mutation, query } from "./_generated/server";
+import { action, httpAction, internalAction, mutation, query } from "./_generated/server";
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import type { Id } from "./_generated/dataModel";
 import { employeeAgent } from "@/lib/ai/agents/employee-agent";
 import { vStreamArgs } from "@convex-dev/agent/validators";
 import { anthropicProviderOptions } from "@/lib/ai/model";
-import z from "zod";
 import dedent from "dedent";
-import { cleanupWorkflowHelper, workflow } from "./chatWorkflow";
+import { cleanupWorkflowHelper } from "./chatWorkflow";
+import { workflow } from "./setup";
 
 export const createThread = mutation({
     args: {
@@ -183,95 +182,6 @@ export const streamMessageAsync = mutation({
         }
     },
 });
-
-export const continueStreamMessageWithToolResults = internalAction({
-    args: {
-        threadId: v.string(),
-        userId: v.string(),
-    },
-    handler: async (ctx, { threadId, userId }) => {
-        // Fetch currently ongoing tool calls
-        const unprocessedBackgroundJobs = await ctx.runQuery(internal.backgroundJobStatuses.getUnprocessedBackgroundJobs, {
-            threadId,
-        });
-
-        if (unprocessedBackgroundJobs.length === 0) return;
-
-        const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
-        const { object: backgroundJobStatusIdsToNotify } = await thread.generateObject({
-            system: dedent`
-                You are the supervisor agent's internal async job queue manager.
-                The supervisor fired off requests asynchronously to the executor agents or tools to perform.
-                You are called each time a tool call is completed, but we are not sure if we should wait for more tool calls results to be ready or to notify the supervisor of the available ones.
-                Essentially, each time you notify the supervisor, you might be interrupting his stream of thought, for example, if 10 tool calls come and you send them each time, the supervisor will be interrupted 10 times and has to replan each time.
-                We should bulk tool calls results semantically based on the number of pending tool calls, the supervisor's plan and the current context of the conversation.
-                You should only notify of tool calls that are ready to be notified or already failed.
-
-                For example, a quick way to tell if we should wait for more tool calls is to check the messageId in unprocessed tool calls, if many tool calls have the same messageId, we should wait for all of them.
-                If a tool call has failed, and a lot of other tool calls are still running, you can notify the supervisor to retry.
-                Use your best judgement to determine if we should wait for more tool calls or to notify the supervisor.
-            `,
-            prompt: dedent`
-                Here are the tool calls that are not processed:
-                ${JSON.stringify(unprocessedBackgroundJobs.map((toolCall) => {
-                return {
-                    _id: toolCall._id,
-                    messageId: toolCall.messageId,
-                    toolName: toolCall.metadata?.toolName,
-                    toolParameters: toolCall.metadata?.toolParameters,
-                    status: toolCall.status,
-                    result: toolCall.result,
-                }
-            }), null, 2)}
-
-                Return their _ids.
-            `,
-            schema: z.object({
-                toolCallStatusIds: z.array(z.string()),
-            }),
-        }, {
-            storageOptions: {
-                saveAnyInputMessages: false,
-                saveOutputMessages: false,
-            }
-        })
-
-        // Change status to completed
-        await ctx.runMutation(internal.backgroundJobStatuses.markBackgroundJobsAsProcessed, {
-            backgroundJobStatusIds: backgroundJobStatusIdsToNotify.toolCallStatusIds.map((toolId) => toolId as Id<"backgroundJobStatuses">),
-        });
-
-        const { thread: thread2 } = await employeeAgent.continueThread(ctx, { threadId, userId });
-        // Add tool results back to the thread
-        const result = await thread2.streamText(
-            {
-                prompt: dedent`
-                Here are some tool calls that are ready to be notified:
-                ${JSON.stringify(unprocessedBackgroundJobs.filter(toolCall => backgroundJobStatusIdsToNotify.toolCallStatusIds.includes(toolCall._id))
-                    .map((toolCall) => {
-                        return {
-                            _id: toolCall._id,
-                            messageId: toolCall.messageId,
-                            toolName: toolCall.metadata?.toolName,
-                            toolParameters: toolCall.metadata?.toolParameters,
-                            status: toolCall.status,
-                            result: toolCall.result,
-                        }
-                    }), null, 2)}
-            `, providerOptions: anthropicProviderOptions, maxSteps: 20
-            },
-            {
-                saveStreamDeltas: { chunking: "line", throttleMs: 500 },
-                storageOptions: {
-                    saveAnyInputMessages: false,
-                    saveOutputMessages: true,
-                }
-            },
-        );
-        console.log("Kenji got stream", result);
-        await result.consumeStream();
-    },
-})
 
 export const sendMessageHttpStream = httpAction(async (ctx, request) => {
     const {
