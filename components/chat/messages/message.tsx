@@ -22,6 +22,7 @@ import {
   DocumentPreview,
   DocumentToolCall,
   DocumentToolResult,
+  HumanCollabPreview,
   InterpreterPreview,
   MemorySearchPreview,
   MemorySetPreview,
@@ -234,6 +235,7 @@ const PurePreviewMessage = ({
                           case 'setPlanAndTodos':
                           case 'selectNextTodo':
                           case 'completeCurrentTodoAndMoveToNextTodo':
+                          case 'setTaskStatus':
                             return <TodoListPreview
                               args={args}
                               toolCallId={toolCallId}
@@ -254,6 +256,11 @@ const PurePreviewMessage = ({
                             />;
                           case 'useInterpreter':
                             return <InterpreterPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
+                          case 'requestHumanInput':
+                            return <HumanCollabPreview
                               args={args}
                               toolCallId={toolCallId}
                             />;
@@ -310,6 +317,7 @@ const PurePreviewMessage = ({
                           case 'setPlanAndTodos':
                           case 'selectNextTodo':
                           case 'completeCurrentTodoAndMoveToNextTodo':
+                          case 'setTaskStatus':
                             return <TodoListPreview
                               args={{}}
                               toolCallId={toolCallId}
@@ -333,6 +341,12 @@ const PurePreviewMessage = ({
                             />;
                           case 'useInterpreter':
                             return <InterpreterPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              result={result}
+                            />;
+                          case 'requestHumanInput':
+                            return <HumanCollabPreview
                               args={args}
                               toolCallId={toolCallId}
                               result={result}

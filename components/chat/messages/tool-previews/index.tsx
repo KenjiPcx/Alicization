@@ -8,6 +8,7 @@ import { MemorySetPreview } from './memory-set-preview';
 import { MemorySearchPreview } from './memory-search-preview';
 import { DocumentSkeleton } from './document-skeleton';
 import { InterpreterPreview } from './interpreter-preview';
+import { HumanCollabPreview } from './human-collab-preview';
 
 export {
     DocumentToolCall,
@@ -21,4 +22,5 @@ export {
     MemorySearchPreview,
     DocumentSkeleton,
     InterpreterPreview,
+    HumanCollabPreview,
 };

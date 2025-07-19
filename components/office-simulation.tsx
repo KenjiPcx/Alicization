@@ -2,7 +2,6 @@ import { useCallback, useEffect } from 'react';
 import type { EmployeeData, TeamData } from '@/lib/types';
 import OfficeScene from './office-scene';
 import ChatDialog from './dialogs/chat-dialog';
-import SettingsDialog from './dialogs/settings-dialog';
 import { useOfficeStore } from '@/lib/store/office-store';
 import { useAppStore } from '@/lib/store/app-store';
 import { useChatStore } from '@/lib/store/chat-store';
@@ -11,13 +10,15 @@ import { api } from '@/convex/_generated/api';
 import { useOfficeData } from '@/hooks/use-office-data';
 import type { Id } from '@/convex/_generated/dataModel';
 
+interface OfficeSimulationProps {
+    debugMode?: boolean;
+}
+
 // Main Office Simulation Component
-export default function OfficeSimulation() {
+export default function OfficeSimulation({ debugMode = false }: OfficeSimulationProps) {
     const {
         activeChatParticipant,
         setActiveChatParticipant,
-        debugMode,
-        toggleDebugMode,
     } = useOfficeStore();
 
     const {
@@ -121,11 +122,6 @@ export default function OfficeSimulation() {
                 teams={teams}
                 employees={employees}
                 desks={desks}
-            />
-
-            <SettingsDialog
-                debugMode={debugMode}
-                toggleDebugMode={toggleDebugMode}
             />
 
             <ChatDialog

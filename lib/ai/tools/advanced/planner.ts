@@ -22,6 +22,7 @@ export type PlannerToolResult = {
     task?: {
         title: string;
         description: string;
+        status?: "pending" | "in-progress" | "completed" | "blocked";
         plan?: string;
         todos: Array<{ title: string; status: "pending" | "in-progress" | "completed" }>;
     };
@@ -46,9 +47,8 @@ export const usePlannerToolsPrompt = dedent`
     **Replanning:** Call setPlanAndTodos again with updated plan and remaining todos (omit title/description).
 
     **Blocking for Input:** When you need external input (user approval, data from other agents, etc.):
-    1. Call setTaskStatus with status="blocked" and explain what you're waiting for
-    2. The task will pause and resume when external input is provided
-    3. External input will be added as new todos to continue work
+    1. Call the tools to request input from whoever you need to get input from
+    2. Call setTaskStatus with status="blocked" and explain what you're waiting for to pause the execution
 
     **Manual Completion:** If you finish early or need to end the task manually, call setTaskStatus with status="completed".
 
@@ -357,6 +357,7 @@ export const setTaskStatus = createTool({
                     task: {
                         title: latestTask.title,
                         description: latestTask.description,
+                        status,
                         todos: latestTask.todos,
                     },
                 };

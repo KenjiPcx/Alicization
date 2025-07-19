@@ -1,30 +1,40 @@
 import { Label } from "@radix-ui/react-dropdown-menu";
 import { Dialog, DialogTrigger } from "../ui/dialog";
-
 import { DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { ModeToggle } from "../layout/mode-toggle";
 import { Button } from "../ui/button";
 import { useState } from "react";
+import { useConvexAuth } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 interface SettingsDialogProps {
     debugMode: boolean;
     toggleDebugMode: () => void;
+    trigger?: React.ReactNode;
 }
 
-export default function SettingsDialog({ debugMode, toggleDebugMode }: SettingsDialogProps) {
+export default function SettingsDialog({ debugMode, toggleDebugMode, trigger }: SettingsDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const { isAuthenticated } = useConvexAuth();
+    const { signOut } = useAuthActions();
+    const router = useRouter();
+
+    const handleSignOut = async () => {
+        await signOut();
+        router.push("/signin");
+        setIsOpen(false);
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    zIndex: 10,
-                    backgroundColor: 'var(--background)',
-                    color: 'var(--foreground)',
-                }}>Open Settings</Button>
+                {trigger || (
+                    <Button variant="outline">
+                        Settings
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -37,10 +47,25 @@ export default function SettingsDialog({ debugMode, toggleDebugMode }: SettingsD
                     </div>
                     <div className="flex flex-col gap-2">
                         <Label>Debug Mode</Label>
-                        <Button onClick={toggleDebugMode} variant="outline">Toggle Debug Mode ({debugMode ? 'On' : 'Off'})</Button>
+                        <Button onClick={toggleDebugMode} variant="outline">
+                            Toggle Debug Mode ({debugMode ? 'On' : 'Off'})
+                        </Button>
                     </div>
+                    {isAuthenticated && (
+                        <div className="flex flex-col gap-2">
+                            <Label>Account</Label>
+                            <Button
+                                onClick={handleSignOut}
+                                variant="destructive"
+                                className="flex items-center gap-2"
+                            >
+                                <LogOut className="h-4 w-4" />
+                                Sign Out
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
