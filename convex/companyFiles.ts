@@ -1,46 +1,48 @@
 import { v } from "convex/values";
-import { httpAction, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import { embed } from "ai";
 import { embeddingModel } from "@/lib/ai/model";
-import type { Doc } from "./_generated/dataModel";
+import type { DataModel, Doc, Id } from "./_generated/dataModel";
+import { patchCompanyFile } from "./utils";
+import { rag } from "./setup";
 
 export const createCompanyFile = internalMutation({
     args: {
+        artifactGroupId: v.optional(v.string()),
+        type: v.union(v.literal("artifact"), v.literal("information")),
         name: v.string(),
         mimeType: v.string(),
         size: v.number(),
-        userId: v.id("users"),
+        companyId: v.id("companies"),
+        userId: v.optional(v.id("users")),
         employeeId: v.optional(v.id("employees")),
+        skillId: v.optional(v.id("skills")),
         storageId: v.id("_storage"),
     },
     handler: async (ctx, args) => {
-        const { name, mimeType, userId, storageId, employeeId, size } = args;
-
-        const needToEmbed = mimeType.startsWith('text/') || mimeType.startsWith('application/pdf');
         const companyFileId = await ctx.db.insert("companyFiles", {
-            name,
-            mimeType,
-            userId,
-            size,
-            storageId,
-            employeeId,
-            embeddingStatus: needToEmbed ? "pending" : "not-applicable",
-            embeddingProgress: needToEmbed ? 0 : undefined,
-            embeddingMessage: needToEmbed ? "Scheduling embedding job" : undefined,
+            ...args,
+            embeddingStatus: "pending",
+            embeddingProgress: 0,
+            embeddingMessage: "Scheduling embedding job",
         });
 
-        // if (needToEmbed) {
-        //     ctx.scheduler.runAfter(0, internal.ai.rag.ingestFile.ingestFile, {
-        //         storageId,
-        //         companyFileId,
-        //         fileName: name,
-        //         mimeType,
-        //     });
-        // }
-
         return companyFileId;
+    },
+})
+
+export const updateCompanyFile = internalMutation({
+    args: {
+        companyFileId: v.id("companyFiles"),
+        name: v.optional(v.string()),
+        mimeType: v.optional(v.string()),
+        size: v.optional(v.number()),
+        storageId: v.id("_storage"),
+    },
+    handler: async (ctx, args) => {
+        await patchCompanyFile(ctx, args.companyFileId, args);
     },
 })
 
@@ -113,46 +115,77 @@ export const fillCompanyFileSummaryAndTags = internalAction({
     },
 })
 
-export const uploadCompanyFile = httpAction(async (ctx, request) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-        throw new Error("User not authenticated");
-    }
+export const getCompanyFileByArtifactGroupId = internalQuery({
+    args: {
+        artifactGroupId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const { artifactGroupId } = args;
+        return await ctx.db.query("companyFiles")
+            .withIndex("by_artifactGroupId", (q) => q.eq("artifactGroupId", artifactGroupId))
+            .first();
+    },
+})
 
-    // Step 1: Parse as FormData to preserve filename
-    const formData = await request.formData();
-    const file = formData.get("file") as File; // assuming the field name is "file"
+export const convertArtifactToCompanyFile = internalAction({
+    args: {
+        artifactGroupId: v.string(),
+        companyId: v.id("companies"),
+        userId: v.optional(v.id("users")),
+        skillId: v.optional(v.id("skills")),
+    },
+    handler: async (ctx, args) => {
+        const { artifactGroupId, companyId, userId, skillId } = args;
+        const artifact = await ctx.runQuery(internal.artifacts.getLatestArtifactByGroupId, {
+            artifactGroupId,
+        });
 
-    if (!file) {
-        return new Response("No file uploaded", { status: 400 });
-    }
+        if (!artifact || !artifact.content) throw new Error("Artifact not found");
 
-    // Step 2: Store the file
-    const storageId = await ctx.storage.store(file);
+        const markdownBlob = new Blob([artifact.content], { type: "text/markdown" });
+        const storageId = await ctx.storage.store(markdownBlob);
 
-    // Step 3: Save the storage ID to the database via a mutation
-    const companyFileId = await ctx.runMutation(
-        internal.companyFiles.createCompanyFile,
-        {
+        const companyFileId = await ctx.runMutation(internal.companyFiles.createCompanyFile, {
+            artifactGroupId,
+            type: "artifact",
+            companyId,
+            name: artifact.title,
+            mimeType: "text/markdown",
+            size: artifact.content.length,
             storageId,
             userId,
-            name: file.name,
-            mimeType: file.type,
-            size: file.size,
-            employeeId: undefined,
-        }
-    );
+            skillId,
+        });
 
-    return new Response(JSON.stringify({ companyFileId }), {
-        status: 200,
-        // CORS headers
-        headers: new Headers({
-            // e.g. https://mywebsite.com, configured on your Convex dashboard
-            "Access-Control-Allow-Origin": process.env.CLIENT_ORIGIN as string,
-            Vary: "origin",
-        }),
-    });
+        // Can do it like this since the file is quite small, just one page
+        await rag.add(ctx, {
+            namespace: companyId, // All files belong to the company
+            key: companyFileId,
+            title: artifact.title,
+            text: artifact.content,
+            onComplete: internal.companyFiles.ingestionComplete,
+        })
+    },
 })
+
+export const ingestionComplete = rag.defineOnComplete<DataModel>(
+    async (ctx, { replacedEntry, entry, error }) => {
+        if (error) {
+            await rag.delete(ctx, { entryId: entry.entryId });
+            return;
+        }
+        if (replacedEntry) {
+            await rag.delete(ctx, { entryId: replacedEntry.entryId });
+        }
+
+        await ctx.runMutation(internal.companyFiles.updateCompanyFileEmbeddingStatus, {
+            companyFileId: entry.key as Id<"companyFiles">,
+            embeddingStatus: "completed",
+            embeddingProgress: 100,
+            embeddingMessage: "Ingestion complete",
+        });
+    }
+);
 
 export const deleteCompanyFile = mutation({
     args: {
@@ -265,3 +298,110 @@ export const searchCompanyFileEmbeddingChunks = internalAction({
         return chunksWithScore;
     },
 })
+
+export const getCompanyFileContent = query({
+    args: {
+        companyFileId: v.id("companyFiles"),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+
+        if (!userId) {
+            throw new Error("User not authenticated");
+        }
+
+        const companyFile = await ctx.db.get(args.companyFileId);
+        if (!companyFile) {
+            throw new Error("Company file not found");
+        }
+
+        // Get the file URL from storage
+        const fileUrl = await ctx.storage.getUrl(companyFile.storageId);
+        if (!fileUrl) {
+            throw new Error("File content not found");
+        }
+
+        return {
+            ...companyFile,
+            fileUrl,
+        };
+    },
+});
+
+export const getEmployeeDrive = query({
+    args: {
+        employeeId: v.id("employees"),
+        skillId: v.optional(v.id("skills")),
+    },
+    handler: async (ctx, args) => {
+        const userId = await getAuthUserId(ctx);
+
+        if (!userId) {
+            throw new Error("User not authenticated");
+        }
+
+        if (!args.employeeId) {
+            return [];
+        }
+
+        // Get all skills for this employee
+        const employeeSkills = await ctx.db.query("employeeToSkills")
+            .withIndex("by_employeeId", (q) => q.eq("employeeId", args.employeeId))
+            .collect();
+
+        const skillIds = employeeSkills.map(es => es.skillId);
+
+        // Build comprehensive query for ALL company files accessible to this employee
+        let allFiles = [];
+
+        // 1. Files directly assigned to employee
+        const directFiles = await ctx.db.query("companyFiles")
+            .withIndex("by_employeeId", (q) => q.eq("employeeId", args.employeeId))
+            .filter((q) => q.eq("userId", userId as string))
+            .collect();
+
+        allFiles.push(...directFiles);
+
+        // 2. Files linked to employee's skills
+        if (skillIds.length > 0) {
+            for (const skillId of skillIds) {
+                const skillFiles = await ctx.db.query("companyFiles")
+                    .filter((q) => q.and(
+                        q.eq(q.field("skillId"), skillId),
+                        q.eq("userId", userId as string)
+                    ))
+                    .collect();
+                allFiles.push(...skillFiles);
+            }
+        }
+
+        // Remove duplicates by file ID
+        const uniqueFiles = allFiles.filter((file, index, self) =>
+            index === self.findIndex(f => f._id === file._id)
+        );
+
+        // If skillId filter is provided, filter by that specific skill
+        const filteredFiles = args.skillId
+            ? uniqueFiles.filter(file => file.skillId === args.skillId)
+            : uniqueFiles;
+
+        // Get skill information for each file
+        const filesWithSkills = await Promise.all(
+            filteredFiles.map(async (file) => {
+                if (file.skillId) {
+                    const skill = await ctx.db.get(file.skillId);
+                    return {
+                        ...file,
+                        skill,
+                    };
+                }
+                return {
+                    ...file,
+                    skill: null,
+                };
+            })
+        );
+
+        return filesWithSkills.sort((a, b) => b._creationTime - a._creationTime);
+    },
+});

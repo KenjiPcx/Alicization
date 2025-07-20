@@ -24,6 +24,7 @@ import {
   DocumentToolResult,
   HumanCollabPreview,
   InterpreterPreview,
+  LearnSkillPreview,
   MemorySearchPreview,
   MemorySetPreview,
   MicroAppResult,
@@ -136,6 +137,9 @@ const PurePreviewMessage = ({
               }
 
               if (type === 'text') {
+                if (part.text.includes("undefined")) {
+                  console.log("part.text check for the undefined one here", part.text);
+                }
                 if (mode === 'view') {
                   return (
                     <div key={key} className="flex flex-row gap-2 items-start">
@@ -164,7 +168,7 @@ const PurePreviewMessage = ({
                             message.role === 'user',
                         })}
                       >
-                        <Markdown>{sanitizeText(part.text)}</Markdown>
+                        <Markdown>{part.text}</Markdown>
                       </div>
                     </div>
                   );
@@ -264,6 +268,11 @@ const PurePreviewMessage = ({
                               args={args}
                               toolCallId={toolCallId}
                             />;
+                          case 'learnSkill':
+                            return <LearnSkillPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
                           default:
                             return null;
                         }
@@ -351,6 +360,12 @@ const PurePreviewMessage = ({
                               toolCallId={toolCallId}
                               result={result}
                             />;
+                          case 'learnSkill':
+                            return <LearnSkillPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              result={result}
+                            />;
                           case 'searchKnowledgeBase':
                             return (
                               <div className="flex flex-col gap-2">
@@ -405,10 +420,25 @@ export const PreviewMessage = memo(
   PurePreviewMessage,
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.message.id !== nextProps.message.id) return false;
     if (prevProps.requiresScrollPadding !== nextProps.requiresScrollPadding)
       return false;
-    if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
+
+    // Compare key message properties that change during streaming
+    const prevMsg = prevProps.message;
+    const nextMsg = nextProps.message;
+
+    if (prevMsg.id !== nextMsg.id) return false;
+    console.log("prevMsg.parts", prevMsg.parts, "Length", prevMsg.parts?.length);
+    console.log("nextMsg.parts", nextMsg.parts, "Length", nextMsg.parts?.length);
+    console.log("equal", equal(prevMsg.parts, nextMsg.parts), prevMsg.parts?.length, nextMsg.parts?.length);
+
+    if (prevMsg.parts?.length !== nextMsg.parts?.length) return false;
+    if (!equal(prevMsg.parts, nextMsg.parts)) return false;
+    if (prevMsg.content !== nextMsg.content) return false;
+    if (prevMsg.role !== nextMsg.role) return false;
+    if ((prevMsg as any).status !== (nextMsg as any).status) return false;
+    if ((prevMsg as any).finishReason !== (nextMsg as any).finishReason) return false;
+
     if (!equal(prevProps.vote, nextProps.vote)) return false;
 
     return true;

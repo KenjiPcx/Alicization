@@ -1,6 +1,6 @@
 import { components, internal } from "@/convex/_generated/api";
 import { Agent } from "@convex-dev/agent";
-import { model } from "@/lib/ai/model";
+import { embeddingModel, model } from "@/lib/ai/model";
 import dedent from "dedent";
 import { internalAction } from "@/convex/_generated/server";
 import { smoothStream } from "ai";
@@ -35,6 +35,7 @@ print(f"Factorial of 5 is: {factorial(5)}")
 export const codeWriterAgent = new Agent(components.agent, {
     name: "Code Writer Agent",
     chat: model,
+    textEmbedding: embeddingModel,
     instructions: codeWriterPrompt,
     contextOptions: {
         searchOptions: {

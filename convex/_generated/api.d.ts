@@ -24,12 +24,14 @@ import type * as companies from "../companies.js";
 import type * as companyFiles from "../companyFiles.js";
 import type * as crons from "../crons.js";
 import type * as employees from "../employees.js";
+import type * as file from "../file.js";
 import type * as http from "../http.js";
 import type * as interpreter from "../interpreter.js";
 import type * as kpis from "../kpis.js";
 import type * as memories from "../memories.js";
 import type * as onboarding from "../onboarding.js";
 import type * as seed from "../seed.js";
+import type * as setup from "../setup.js";
 import type * as skills from "../skills.js";
 import type * as tags from "../tags.js";
 import type * as tasks from "../tasks.js";
@@ -72,12 +74,14 @@ declare const fullApi: ApiFromModules<{
   companyFiles: typeof companyFiles;
   crons: typeof crons;
   employees: typeof employees;
+  file: typeof file;
   http: typeof http;
   interpreter: typeof interpreter;
   kpis: typeof kpis;
   memories: typeof memories;
   onboarding: typeof onboarding;
   seed: typeof seed;
+  setup: typeof setup;
   skills: typeof skills;
   tags: typeof tags;
   tasks: typeof tasks;
@@ -1092,13 +1096,13 @@ export declare const components: {
         "internal",
         {
           beforeMessageId?: string;
+          embedding?: Array<number>;
+          embeddingModel?: string;
           limit: number;
           messageRange?: { after: number; before: number };
           searchAllMessagesForUserId?: string;
           text?: string;
           threadId?: string;
-          vector?: Array<number>;
-          vectorModel?: string;
           vectorScoreThreshold?: number;
         },
         Array<{
@@ -1649,6 +1653,18 @@ export declare const components: {
       >;
     };
     streams: {
+      abort: FunctionReference<
+        "mutation",
+        "internal",
+        { reason: string; streamId: string },
+        boolean
+      >;
+      abortByOrder: FunctionReference<
+        "mutation",
+        "internal",
+        { order: number; reason: string; threadId: string },
+        boolean
+      >;
       addDelta: FunctionReference<
         "mutation",
         "internal",
@@ -1804,13 +1820,18 @@ export declare const components: {
       list: FunctionReference<
         "query",
         "internal",
-        { threadId: string },
+        {
+          startOrder?: number;
+          statuses?: Array<"streaming" | "finished" | "aborted">;
+          threadId: string;
+        },
         Array<{
           agentName?: string;
           model?: string;
           order: number;
           provider?: string;
           providerOptions?: Record<string, Record<string, any>>;
+          status: "streaming" | "finished" | "aborted";
           stepOrder: number;
           streamId: string;
           userId?: string;

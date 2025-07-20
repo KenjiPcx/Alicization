@@ -1,6 +1,6 @@
 import { components, internal } from "@/convex/_generated/api";
 import { Agent } from "@convex-dev/agent";
-import { model } from "@/lib/ai/model";
+import { embeddingModel, model } from "@/lib/ai/model";
 import dedent from "dedent";
 import { internalAction } from "@/convex/_generated/server";
 import { smoothStream, streamText } from "ai";
@@ -13,11 +13,12 @@ const writerPrompt = dedent`
 export const writerAgent = new Agent(components.agent, {
     name: "Writer Agent",
     chat: model,
+    textEmbedding: embeddingModel,
     instructions: writerPrompt,
     contextOptions: {
         searchOptions: {
-            textSearch: true,
-            vectorSearch: true,
+            // textSearch: true,
+            // vectorSearch: true,
             limit: 5,
         }
     },
@@ -39,27 +40,60 @@ export const generateTextArtifact = internalAction({
             progress: 25,
         });
 
-        const { fullStream } = await writerAgent.streamText(ctx, {
-            threadId,
-            userId,
-        }, {
-            prompt: latestArtifactContent ? dedent`
-                The current artifact is: ${latestArtifactContent}
-                Update the artifact with the following feedback: 
-                ${prompt}
-            ` : prompt,
-            experimental_transform: smoothStream({
-                delayInMs: 1500,
-                chunking: "line",
+        // Use AI SDK directly with conditional parameters
+        const { fullStream } = latestArtifactContent
+            ? streamText({
+                model,
+                system: writerPrompt,
+                messages: [
+                    {
+                        role: "user",
+                        content: `Here is the current artifact:\n\n${latestArtifactContent}`
+                    },
+                    {
+                        role: "user",
+                        content: `Please update the artifact with the following feedback:\n\n${prompt}`
+                    }
+                ],
+                experimental_transform: smoothStream({
+                    delayInMs: 500,
+                    chunking: "line",
+                })
             })
-        })
+            : await writerAgent.streamText(ctx, {
+                threadId,
+                userId,
+            }, {
+                model,
+                system: writerPrompt,
+                prompt,
+                experimental_transform: smoothStream({
+                    delayInMs: 500,
+                    chunking: "line",
+                })
+            })
 
         let draftContent = "";
         let encounteredTextDelta = false;
+        let batchCounter = 0;
+        let batchedChunk = "";
 
+        console.log("Generating text artifact")
         // Wait for the stream to finish
         // These mutations will persist the changes to the artifact in the database
         for await (const chunk of fullStream) {
+            console.log("Kenji chunk", chunk);
+            if (chunk.type === "error") {
+                console.error("Error generating text artifact", chunk.error);
+                await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                    backgroundJobStatusId,
+                    status: "failed",
+                    message: `Error generating artifact: ${chunk.error}`,
+                    progress: 100,
+                });
+                throw new Error(`Error generating text artifact: ${chunk.error}`);
+            }
+
             if (chunk.type === "text-delta") {
                 // Same with the text delta phase
                 if (!encounteredTextDelta) {
@@ -72,13 +106,49 @@ export const generateTextArtifact = internalAction({
                     encounteredTextDelta = true;
                 }
 
+                // Batch the chunks to avoid too many mutations
+                batchCounter++;
+                batchedChunk += chunk.textDelta;
+                if (batchCounter % 15 === 0) {
+                    await ctx.runMutation(internal.artifacts.handleArtifactTextChunk, {
+                        artifactId,
+                        content: batchedChunk,
+                    });
+                    batchedChunk = "";
+                }
+
                 draftContent += chunk.textDelta;
-                await ctx.runMutation(internal.artifacts.handleArtifactTextChunk, {
-                    artifactId,
-                    content: chunk.textDelta,
-                });
             }
         }
+
+        // CRITICAL FIX: Send any remaining batched content
+        if (batchedChunk.length > 0) {
+            await ctx.runMutation(internal.artifacts.handleArtifactTextChunk, {
+                artifactId,
+                content: batchedChunk,
+            });
+        }
+
+        // Check if we actually generated content
+        if (draftContent.trim().length === 0) {
+            await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+                backgroundJobStatusId,
+                status: "failed",
+                message: "No content was generated. Please try again with a different prompt.",
+                progress: 100,
+            });
+            throw new Error("No content was generated");
+        }
+
+        // Update status to completed
+        await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
+            backgroundJobStatusId,
+            status: "completed",
+            message: "Artifact generated successfully!",
+            progress: 100,
+        });
+
+        console.log("Generated text artifact");
 
         return draftContent;
     },

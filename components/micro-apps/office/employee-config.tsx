@@ -6,6 +6,7 @@ import { Id } from '@/convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EmployeeConfigProps {
     title: string;
@@ -31,7 +32,7 @@ import {
 export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProps) {
     // Fetch employee data with skills and tools
     const employeeData = useQuery(api.employees.getEmployeeById,
-        employeeId ? { employeeId } : "skip"
+        employeeId ? { employeeId, includeImages: true } : "skip"
     );
 
     if (!employeeId) {
@@ -66,49 +67,8 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
 
     const { skills = [], tools = [] } = employeeData;
 
-    // Calculate skill stats
-    const skillsByProficiency = skills.reduce((acc: Record<string, number>, skillData) => {
-        acc[skillData.proficiencyLevel] = (acc[skillData.proficiencyLevel] || 0) + 1;
-        return acc;
-    }, {});
-
-    // Calculate overall level based on skills
-    const totalSkillPoints = skills.reduce((sum, skillData) => {
-        const proficiencyPoints = {
-            learning: 1,
-            competent: 2,
-            proficient: 3,
-            expert: 4
-        };
-        return sum + proficiencyPoints[skillData.proficiencyLevel];
-    }, 0);
-
-    const currentLevel = Math.floor(totalSkillPoints / 10) + 1;
-    const currentLevelPoints = totalSkillPoints % 10;
-    const nextLevelPoints = 10;
-
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
-    };
-
-    const getProficiencyColor = (level: string) => {
-        switch (level) {
-            case 'learning': return 'bg-yellow-500';
-            case 'competent': return 'bg-blue-500';
-            case 'proficient': return 'bg-green-500';
-            case 'expert': return 'bg-purple-500';
-            default: return 'bg-gray-500';
-        }
-    };
-
-    const getProficiencyLabel = (level: string) => {
-        switch (level) {
-            case 'learning': return 'Learning';
-            case 'competent': return 'Competent';
-            case 'proficient': return 'Proficient';
-            case 'expert': return 'Expert';
-            default: return level;
-        }
     };
 
     return (
@@ -170,43 +130,26 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                         </div>
                     </div>
 
-                    {/* Level and XP */}
-                    <Card className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-200 dark:border-purple-800">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Trophy className="h-5 w-5 text-purple-500" />
-                                <span className="font-semibold">Level {currentLevel}</span>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                                {currentLevelPoints}/{nextLevelPoints} XP
-                            </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${(currentLevelPoints / nextLevelPoints) * 100}%` }}
-                            />
-                        </div>
-                    </Card>
+
                 </div>
             </div>
 
-            {/* Background and Personality */}
+            {/* Background and Personality - Condensed */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <User className="h-4 w-4" />
                         About
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-0">
                     <div>
-                        <h4 className="font-semibold mb-2">Background</h4>
-                        <p className="text-muted-foreground">{employeeData.background}</p>
+                        <h4 className="font-medium text-sm mb-1">Background</h4>
+                        <p className="text-muted-foreground text-sm">{employeeData.background}</p>
                     </div>
                     <div>
-                        <h4 className="font-semibold mb-2">Personality</h4>
-                        <p className="text-muted-foreground">{employeeData.personality}</p>
+                        <h4 className="font-medium text-sm mb-1">Personality</h4>
+                        <p className="text-muted-foreground text-sm">{employeeData.personality}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -224,45 +167,52 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                         <div className="text-center py-8 text-muted-foreground">
                             <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <p>No skills learned yet</p>
-                            <p className="text-sm mt-2">Say "let me teach you a skill" to teach this employee a new workflow, or contact HR to assign existing skills.</p>
+                            <p className="text-sm mt-2">Say &quot;let me teach you a skill&quot; to teach this employee a new workflow, or contact HR to assign existing skills.</p>
                         </div>
                     ) : (
-                        <div className="space-y-6">
-                            {/* Proficiency Overview */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {Object.entries(skillsByProficiency).map(([level, count]) => (
-                                    <div key={level} className="text-center p-3 rounded-lg bg-muted">
-                                        <div className={`w-3 h-3 rounded-full mx-auto mb-2 ${getProficiencyColor(level)}`} />
-                                        <div className="font-bold">{count}</div>
-                                        <div className="text-xs text-muted-foreground">{getProficiencyLabel(level)}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* All Skills */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <TooltipProvider>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {skills.map((skillData) => (
-                                    <div key={skillData._id} className="flex items-center justify-between p-3 rounded-lg border">
-                                        <div className="flex-1">
-                                            <div className="font-medium">{skillData.skill?.name}</div>
-                                            <div className="text-xs text-muted-foreground">{skillData.skill?.description}</div>
-                                            {skillData.notes && (
-                                                <div className="text-xs text-blue-600 mt-1">{skillData.notes}</div>
-                                            )}
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                Acquired: {new Date(skillData.dateAcquired).toLocaleDateString()}
+                                    <Tooltip key={skillData._id}>
+                                        <TooltipTrigger asChild>
+                                            <Card className="p-4 hover:shadow-md transition-shadow cursor-help">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center flex-shrink-0">
+                                                        {skillData.imageUrl ? (
+                                                            <img
+                                                                src={skillData.imageUrl}
+                                                                alt={skillData.name}
+                                                                className="w-8 h-8 object-cover rounded"
+                                                            />
+                                                        ) : (
+                                                            <Brain className="w-6 h-6 text-cyan-400" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-semibold text-sm truncate">
+                                                            {skillData.name || 'Unknown Skill'}
+                                                        </h4>
+                                                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                                            {skillData.description || 'No description available'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-xs">
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold">
+                                                    {skillData.name || 'Unknown Skill'}
+                                                </h4>
+                                                <p className="text-sm">
+                                                    {skillData.description || 'No description available'}
+                                                </p>
                                             </div>
-                                        </div>
-                                        <Badge
-                                            variant="secondary"
-                                            className={`${getProficiencyColor(skillData.proficiencyLevel)} text-white ml-3`}
-                                        >
-                                            {getProficiencyLabel(skillData.proficiencyLevel)}
-                                        </Badge>
-                                    </div>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 ))}
                             </div>
-                        </div>
+                        </TooltipProvider>
                     )}
                 </CardContent>
             </Card>
@@ -283,22 +233,40 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                             <p className="text-sm mt-2">Contact HR to assign tools and access permissions to this employee.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {tools.map((tool) => (
-                                <Card key={tool._id} className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <h4 className="font-semibold">{tool.name}</h4>
-                                            <p className="text-sm text-muted-foreground mb-2">{tool.description}</p>
-                                            <Badge variant="outline" className="text-xs">
-                                                {tool.type.toUpperCase()}
-                                            </Badge>
-                                        </div>
-                                        <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
+                        <TooltipProvider>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {tools.map((tool) => (
+                                    <Tooltip key={tool._id}>
+                                        <TooltipTrigger asChild>
+                                            <Card className="p-4 hover:shadow-md transition-shadow cursor-help">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Settings className="w-4 h-4 text-blue-500" />
+                                                            <h4 className="font-semibold">{tool.name}</h4>
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.description}</p>
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {(tool as any).type?.toUpperCase() || 'TOOL'}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                                                </div>
+                                            </Card>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-xs">
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold">{tool.name}</h4>
+                                                <p className="text-sm">{tool.description}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Type: {(tool as any).type || 'Unknown'}
+                                                </p>
+                                            </div>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ))}
+                            </div>
+                        </TooltipProvider>
                     )}
                 </CardContent>
             </Card>

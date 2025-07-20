@@ -198,6 +198,8 @@ export const generateArtifact = internalAction({
             backgroundJobStatusId,
         }
 
+        console.log("payload", payload);
+
         let artifactContent = "";
         // Generate the artifact based on the kind
         switch (kind) {

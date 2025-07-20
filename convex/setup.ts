@@ -10,6 +10,6 @@ export const rag = new RAG(components.rag, {
 
 export const workflow = new WorkflowManager(components.workflow, {
     workpoolOptions: {
-        maxParallelism: 100,
+        maxParallelism: 50,
     },
 });

@@ -1,6 +1,6 @@
 import { components, internal } from "@/convex/_generated/api";
 import { Agent } from "@convex-dev/agent";
-import { imageModel, model } from "@/lib/ai/model";
+import { embeddingModel, imageModel, model } from "@/lib/ai/model";
 import dedent from "dedent";
 import { internalAction } from "@/convex/_generated/server";
 import { experimental_generateImage } from "ai";
@@ -10,6 +10,7 @@ import { artifactGeneratorArgsValidator, base64ToBlob } from "./utils";
 export const imageGeneratorAgent = new Agent(components.agent, {
     name: "Image Generator Agent",
     chat: model,
+    textEmbedding: embeddingModel,
     instructions: dedent`
         You are an expert image generator. You are given a prompt and you need to generate an image based on the prompt.
     `,

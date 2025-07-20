@@ -46,6 +46,7 @@ export function DocumentPreview({
   args,
   toolCallId,
 }: DocumentPreviewProps) {
+  console.log("KEnji im calling documet tool call preview", toolCallId);
   const { openArtifactMicroApp, isVisible } = useMicroApp();
   const [autoOpened, setAutoOpened] = useState(false);
   const hitboxRef = useRef<HTMLDivElement>(null);
@@ -101,7 +102,7 @@ export function DocumentPreview({
         });
       }
     }
-  }, [status, isVisible, openArtifactMicroApp, autoOpened, toolCallId, previewArtifact]);
+  }, []);
 
   // If we have the artifact visible, show the tool result
   if (isVisible && previewArtifact) {

@@ -163,7 +163,7 @@ export const applicationTables = {
     isSupervisor: v.boolean(), // If the employee is a supervisor
     isCEO: v.boolean(), // If the employee is the CEO of the company
     deskIndex: v.optional(v.number()), // Which desk position in their team (0-based)
-    companyId: v.optional(v.id("companies")), // Temp optional for development
+    companyId: v.id("companies"), // Temp optional for development
   }).index("by_teamId", ["teamId"])
     .index("by_userId", ["userId"]),
 
@@ -186,10 +186,7 @@ export const applicationTables = {
       averageExecutionTime: v.number(),
       averageExecutionSuccessRate: v.number(),
     })), // For optimization in the future
-    imageStorage: v.optional(v.object({
-      storageId: v.id("_storage"),
-      url: v.string(),
-    })),
+    imageStorageId: v.id("_storage"),
   }).index("by_userId", ["userId"]),
 
   // Junction table for employee skills

@@ -5,8 +5,8 @@ import { internalAction } from "./_generated/server";
 import { employeeAgent } from "@/lib/ai/agents/employee-agent";
 import { anthropicProviderOptions } from "@/lib/ai/model";
 import { api } from "./_generated/api";
-import { createEmployeeTools } from "@/lib/ai/tools/office/employee";
-import { createCEOTools } from "@/lib/ai/tools/office/ceo";
+import { resolveEmployeeTools } from "@/lib/ai/tools/office/employee";
+import { resolveCEOTools } from "@/lib/ai/tools/office/ceo";
 import { advancedToolsPrompt } from "@/lib/ai/tools/advanced";
 import { baseToolsPrompt } from "@/lib/ai/tools/base";
 import { FullEmployee } from "@/lib/types";
@@ -98,7 +98,9 @@ export const streamMessage = internalAction({
         const streamOptions = {
             system: systemPrompt({ ...employee }),
             providerOptions: anthropicProviderOptions,
-            tools: employee.isCEO ? await createCEOTools(ctx, threadId, userId, employeeId, teamId) : await createEmployeeTools(ctx, threadId, employeeId, userId, teamId),
+            tools: employee.isCEO ?
+                await resolveCEOTools({ ctx, threadId, userId, employeeId, teamId, companyId: employee.companyId }) :
+                await resolveEmployeeTools({ ctx, threadId, employeeId, userId, teamId, companyId: employee.companyId }),
             maxSteps: 25,
             ...(prompt ? { prompt } : { promptMessageId })
         };

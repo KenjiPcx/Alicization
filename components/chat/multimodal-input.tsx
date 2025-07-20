@@ -15,6 +15,8 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { useAction } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from '../icons';
 import { PreviewAttachment } from './preview-attachment';
@@ -59,6 +61,7 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const uploadFileAction = useAction(api.file.uploadFile);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -132,29 +135,25 @@ function PureMultimodalInput({
   ]);
 
   const uploadFile = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
+      // Convert file to ArrayBuffer
+      const bytes = await file.arrayBuffer();
+
+      const result = await uploadFileAction({
+        filename: file.name,
+        mimeType: file.type,
+        bytes,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, contentType } = data;
-
-        return {
-          url,
-          name: pathname,
-          contentType: contentType,
-        };
-      }
-      const { error } = await response.json();
-      toast.error(error);
+      return {
+        url: result.url,
+        name: file.name,
+        contentType: file.type,
+      };
     } catch (error) {
+      console.error('Error uploading file:', error);
       toast.error('Failed to upload file, please try again!');
+      return undefined;
     }
   };
 
@@ -244,7 +243,15 @@ function PureMultimodalInput({
           className="flex flex-row gap-2 overflow-x-scroll items-end"
         >
           {attachments.map((attachment) => (
-            <PreviewAttachment key={attachment.url} attachment={attachment} />
+            <PreviewAttachment
+              key={attachment.url}
+              attachment={attachment}
+              onRemove={() => {
+                setAttachments(currentAttachments =>
+                  currentAttachments.filter(a => a.url !== attachment.url)
+                );
+              }}
+            />
           ))}
 
           {uploadQueue.map((filename) => (

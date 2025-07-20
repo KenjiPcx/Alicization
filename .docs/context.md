@@ -460,6 +460,18 @@ Implemented a dynamic micro apps system that provides specialized generative UI 
 - Performance monitoring and analytics
 - Training and development tracking
 
+#### 4. Employee Drive
+**Purpose**: Comprehensive file and resource management for employees
+**Features**:
+- Access to both documentation and data files
+- Skill-based file organization and browsing
+- Search and filter capabilities across all file types
+- AI-generated workflow documentation
+- Team drive data files and environment resources
+- Company knowledge base access
+- Real-time searchability status
+- File type indicators (Documentation vs Data Files)
+
 ### Technical Implementation
 
 **Tool Integration** (`lib/ai/tools/advanced/office-micro-app.ts`):

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Attachment } from 'ai';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages/messages';
@@ -52,7 +52,11 @@ const PureChat = ({
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const { modelId, initialVisibilityType } = useChatStore();
 
+  // Memoize the UI messages transformation to prevent unnecessary re-renders
+  const uiMessages = useMemo(() => toUIMessages(messages), [messages]);
+
   useEffect(() => {
+    console.log("messages", messages);
     const latestStatus = messages[messages.length - 1]?.status;
     if (latestStatus) {
       if (latestStatus === 'success' || latestStatus === 'failed') {
@@ -78,7 +82,7 @@ const PureChat = ({
           chatId={threadId}
           status={status}
           votes={votes}
-          messages={toUIMessages(messages)}
+          messages={uiMessages}
           isReadonly={isReadonly}
           chatMode={chatMode}
           loadMoreMessages={() => {
@@ -102,7 +106,7 @@ const PureChat = ({
               }}
               attachments={attachments}
               setAttachments={setAttachments}
-              messages={toUIMessages(messages)}
+              messages={uiMessages}
               append={async () => {
                 await handleSubmit();
                 return null;
@@ -126,7 +130,7 @@ const PureChat = ({
         }}
         attachments={attachments}
         setAttachments={setAttachments}
-        messages={toUIMessages(messages)}
+        messages={uiMessages}
         append={async () => {
           await handleSubmit();
           return null;

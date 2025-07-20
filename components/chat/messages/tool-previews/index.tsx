@@ -9,6 +9,7 @@ import { MemorySearchPreview } from './memory-search-preview';
 import { DocumentSkeleton } from './document-skeleton';
 import { InterpreterPreview } from './interpreter-preview';
 import { HumanCollabPreview } from './human-collab-preview';
+import { LearnSkillPreview } from './learn-skill-preview';
 
 export {
     DocumentToolCall,
@@ -23,4 +24,5 @@ export {
     DocumentSkeleton,
     InterpreterPreview,
     HumanCollabPreview,
+    LearnSkillPreview,
 };

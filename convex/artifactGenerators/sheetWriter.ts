@@ -1,5 +1,5 @@
 import { Agent } from "@convex-dev/agent";
-import { model } from "@/lib/ai/model";
+import { embeddingModel, model } from "@/lib/ai/model";
 import dedent from "dedent";
 import { internalAction } from "@/convex/_generated/server";
 import { smoothStream } from "ai";
@@ -13,7 +13,19 @@ const sheetWriterPrompt = dedent`
 export const sheetWriterAgent = new Agent(components.agent, {
     name: "Sheet Writer Agent",
     chat: model,
+    textEmbedding: embeddingModel,
     instructions: sheetWriterPrompt,
+    contextOptions: {
+        searchOptions: {
+            textSearch: true,
+            vectorSearch: true,
+            limit: 5,
+        }
+    },
+    storageOptions: {
+        saveAnyInputMessages: false,
+        saveOutputMessages: false,
+    }
 });
 
 

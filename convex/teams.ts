@@ -62,7 +62,7 @@ export const createTeam = internalMutation({
         description: v.string(),
         deskCount: v.optional(v.number()),
         clusterPosition: v.optional(v.array(v.number())),
-        companyId: v.optional(v.id("companies")),
+        companyId: v.id("companies"),
         userId: v.id("users"),
     },
     handler: async (ctx, args): Promise<Id<"teams">> => {

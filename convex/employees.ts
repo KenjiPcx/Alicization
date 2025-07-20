@@ -165,7 +165,7 @@ export const createEmployee = internalMutation({
         isSupervisor: v.boolean(),
         isCEO: v.boolean(),
         deskIndex: v.optional(v.number()),
-        companyId: v.optional(v.id("companies")),
+        companyId: v.id("companies"),
         userId: v.id("users"),
     },
     handler: async (ctx, args): Promise<Doc<"employees">> => {
@@ -249,8 +249,11 @@ export const getEmployeesByTeam = query({
 });
 
 export const getEmployeeById = query({
-    args: { employeeId: v.id("employees") },
-    handler: async (ctx, { employeeId }) => {
+    args: {
+        employeeId: v.id("employees"),
+        includeImages: v.optional(v.boolean())
+    },
+    handler: async (ctx, { employeeId, includeImages }) => {
         const employee = await ctx.db.get(employeeId);
         if (!employee) return null;
 
@@ -275,6 +278,7 @@ export const getEmployeeById = query({
                 return {
                     ...empSkill,
                     skill,
+                    skillImageUrl: includeImages ? (await ctx.storage.getUrl(skill.imageStorageId)) : undefined,
                 };
             })
         );
@@ -285,7 +289,7 @@ export const getEmployeeById = query({
             ...employee,
             team: { _id: team._id, name: team.name },
             tools: filteredTools.map(t => ({ _id: t._id, name: t.name, description: t.description })),
-            skills: filteredSkills.map(s => ({ _id: s!.skill._id, name: s!.skill.name, description: s!.skill.description })),
+            skills: filteredSkills.map(s => ({ _id: s!.skill._id, name: s!.skill.name, description: s!.skill.description, imageUrl: s!.skillImageUrl })),
         };
     },
 });

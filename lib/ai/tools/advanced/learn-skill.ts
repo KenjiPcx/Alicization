@@ -38,9 +38,9 @@ export const useLearnSkillPrompt = dedent`
     - learnSkill: Create a new skill when users teach you workflows
     
     **Learn new skills workflow:**
-    - User says "let me teach you a skill" or similar
-    - You create an artifact to write out the workflow for the skill in markdown format
-    - User describes a detailed workflow or process
+    - User says "let me teach you a skill" or similar and then describes the workflow
+    - You create a text artifact to write out the workflow in markdown and collaborate with the user to refine the artifact
+    - User tells you that you they are satisfied with the text in the artifact
     - Then you call the learnSkill tool to learn the skill
     
     **Guidelines:**
@@ -61,7 +61,7 @@ const resolveLearnSkillTool = ({
     employeeId,
     companyId
 }: ResolveToolProps) => tool({
-    description: "Learn a new skill when the user teaches you a workflow. Creates skill record and generates documentation that gets saved to company files for institutional knowledge. Only call this tool after confirming the workflow details with the user.",
+    description: "Learn a new skill when the user teaches you a workflow. Creates skill record and generates documentation that gets saved to company files for institutional knowledge. Only call this tool after confirming the workflow details with the user. Always ask for user confirmation before calling this tool.",
     parameters: z.object({
         artifactGroupId: z.string().describe("The ID of the artifact group to save the documentation to. This is the ID of the artifact group in the database."),
         skillName: z.string().describe("Clear, descriptive name for the skill (e.g., 'Customer Onboarding Process', 'Bug Triage Workflow')"),
@@ -80,7 +80,7 @@ const resolveLearnSkillTool = ({
                 });
 
                 // First, create the skill record
-                const skillId = await ctx.runMutation(internal.skills.internalCreateSkill, {
+                const { skillId, imageUrl } = await ctx.runAction(internal.skills.internalCreateSkillWithIcon, {
                     name: skillName,
                     description: skillDescription,
                     userId,
@@ -123,6 +123,7 @@ const resolveLearnSkillTool = ({
 
                 return {
                     skillId,
+                    imageUrl,
                 };
             },
             {

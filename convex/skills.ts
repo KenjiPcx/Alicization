@@ -1,30 +1,13 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { vProficiencyLevels } from "./schema";
+import { experimental_generateImage as generateImage } from 'ai';
+import { iconModel } from "@/lib/ai/model";
 
 // ========== SKILLS CRUD OPERATIONS ==========
-
-export const createSkill = mutation({
-    args: {
-        name: v.string(),
-        description: v.string(),
-    },
-    handler: async (ctx, args): Promise<Doc<"skills">> => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("Not authenticated");
-
-        const skillId = await ctx.db.insert("skills", {
-            ...args,
-            proficiencyLevel: "newbie",
-            userId,
-            createdAt: Date.now(),
-        });
-
-        return await ctx.db.get(skillId) as Doc<"skills">;
-    },
-});
 
 export const updateSkill = mutation({
     args: {
@@ -323,17 +306,76 @@ export const internalCreateSkill = internalMutation({
         name: v.string(),
         description: v.string(),
         userId: v.id("users"),
+        imageStorageId: v.id("_storage"),
     },
     handler: async (ctx, args): Promise<Id<"skills">> => {
-    const skillId = await ctx.db.insert("skills", {
+        const skillId = await ctx.db.insert("skills", {
             ...args,
             proficiencyLevel: "newbie",
             createdAt: Date.now(),
         });
 
-        // TODO: Add a bg job to generate an image for the skill
-
         return skillId;
+    },
+});
+
+export const internalCreateSkillWithIcon = internalAction({
+    args: {
+        name: v.string(),
+        description: v.string(),
+        userId: v.id("users"),
+    },
+    handler: async (ctx, args): Promise<{ skillId: Id<"skills">, imageUrl: string }> => {
+        const { storageId } = await ctx.runAction(internal.skills.generateSkillIcon, {
+            skillName: args.name,
+            skillDescription: args.description,
+        });
+
+        const skillId = await ctx.runMutation(internal.skills.internalCreateSkill, {
+            ...args,
+            imageStorageId: storageId,
+        });
+
+        const imageUrl = await ctx.storage.getUrl(storageId);
+
+        return { skillId, imageUrl: imageUrl! };
+    },
+});
+
+export const generateSkillIcon = internalAction({
+    args: {
+        skillName: v.string(),
+        skillDescription: v.string(),
+    },
+    handler: async (ctx, args): Promise<{ success: boolean, storageId: Id<"_storage"> }> => {
+        // Create a detailed prompt for skill icon generation
+        const iconPrompt = `Create a modern, minimalist skill icon for "${args.skillName}": ${args.skillDescription}. 
+            Style: Clean vector art, single focused symbol, vibrant neon colors (cyan, purple, pink), 
+            dark background, professional tech aesthetic, no text, simple geometric shapes, 
+            suitable for a skill badge in a gamified learning platform. 
+            The icon should represent the core concept of the skill clearly and be easily recognizable at small sizes.`;
+
+        // Generate the image
+        const { image } = await generateImage({
+            model: iconModel,
+            prompt: iconPrompt,
+            size: '1024x1024',
+        });
+
+        // Convert image to blob and store in Convex
+        const imageBlob = new Blob([image.uint8Array], { type: 'image/png' });
+        const storageId = await ctx.storage.store(imageBlob);
+
+        return { success: true, storageId };
+    },
+});
+
+export const getSkillById = internalQuery({
+    args: {
+        skillId: v.id("skills"),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.skillId);
     },
 });
 

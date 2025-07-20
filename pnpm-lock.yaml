@@ -42,8 +42,8 @@ importers:
         specifier: ^6.38.0
         version: 6.38.0
       '@convex-dev/agent':
-        specifier: ^0.1.14
-        version: 0.1.14(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))(react@19.1.0)
+        specifier: ^0.1.15
+        version: 0.1.15(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))(react@19.1.0)
       '@convex-dev/auth':
         specifier: ^0.0.81
         version: 0.0.81(@auth/core@0.37.4)(convex@1.25.2(react@19.1.0))(react@19.1.0)
@@ -405,8 +405,8 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^2.2.0
 
-  '@convex-dev/agent@0.1.14':
-    resolution: {integrity: sha512-mxJ/iyWTfxWmB5BAC3/Sh6sQMblpwASsoMEShG9UBdVBMRaaJK8bDPB/jAKAqPehctSv481PYTcSeWRB5ZeR8Q==}
+  '@convex-dev/agent@0.1.15':
+    resolution: {integrity: sha512-Dp5mmlBfubY0OG+HwKItzDJT1HyZyPX/OOxuqONOiEZy8Cn08bUH4ojEhPW8dyj3Z2BbJViq5MSb8U8jM3OdwA==}
     peerDependencies:
       ai: ^4.3.16
       convex: ^1.23.0
@@ -4717,7 +4717,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 2.6.0
 
-  '@convex-dev/agent@0.1.14(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))(react@19.1.0)':
+  '@convex-dev/agent@0.1.15(ai@4.3.16(react@19.1.0)(zod@3.25.67))(convex-helpers@0.1.99(convex@1.25.2(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.2(react@19.1.0))(react@19.1.0)':
     dependencies:
       ai: 4.3.16(react@19.1.0)(zod@3.25.67)
       convex: 1.25.2(react@19.1.0)
