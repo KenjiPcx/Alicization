@@ -2,7 +2,7 @@ import { useInterpreter, useInterpreterPrompt } from "./interpreter";
 import { useWebSearchPrompt, webSearch } from "./web-search";
 import { createArtifact, updateArtifact, useArtifactsPrompt } from "./artifacts";
 import { useBrowser } from "./browser-use";
-import { resolveCompanyFileSearchTool, useCompanyFileSearchPrompt } from "../advanced/company-file-search";
+import { resolveCompanyFileSearchTool, useCompanyFileSearchPrompt } from "./company-file-search";
 import dedent from "dedent";
 import { ResolveToolProps } from "../../tool-utils";
 

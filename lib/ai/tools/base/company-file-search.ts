@@ -6,8 +6,6 @@ import dedent from "dedent";
 import { rag } from "@/convex/setup";
 import { SearchResult } from "@convex-dev/rag";
 import { tool } from "ai";
-import { Id } from "@/convex/_generated/dataModel";
-import { ActionCtx } from "@/convex/_generated/server";
 
 export const useCompanyFileSearchPrompt = dedent`
     <Use Company File Search Docs>
@@ -41,7 +39,8 @@ export const resolveCompanyFileSearchTool = ({
                 const { results, text, entries } = await rag.search(ctx, {
                     namespace: companyId,
                     query: args.query,
-                    limit: 10,
+                    limit: 5,
+                    chunkContext: { before: 1, after: 1 },
                     vectorScoreThreshold: 0.5, // Only return results with a score >= 0.5
                 });
 

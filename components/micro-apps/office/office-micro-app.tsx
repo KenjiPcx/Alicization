@@ -14,7 +14,7 @@ import type { ScopeAndId, Vote } from '@/lib/types';
 import KPIClientMicroUI from '@/micro-apps/office/kpi-client';
 import CompanyConfigMicroUI from '@/micro-apps/office/company-config';
 import EmployeeConfigMicroUI from '@/micro-apps/office/hr-config';
-import EmployeeDriveMicroUI from '@/micro-apps/office/employee-documentation';
+import EmployeeDriveMicroUI from '@/micro-apps/office/employee-drive';
 import { Id } from '@/convex/_generated/dataModel';
 
 interface OfficeMicroAppProps {

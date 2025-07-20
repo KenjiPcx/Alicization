@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
 import { workflow } from "./setup";
+import { vAttachment } from "./schema";
 
 /**
  * Chat workflow that orchestrates the entire chat system:
@@ -25,9 +26,10 @@ export const chatWorkflow = workflow.define({
         userId: v.id("users"),
         employeeId: v.id("employees"),
         teamId: v.id("teams"),
+        attachments: v.optional(v.array(vAttachment)),
     },
     handler: async (step, args): Promise<{ status: string; message: string; todoProcessingRound?: number }> => {
-        const { threadId, userId, employeeId, teamId, chatConfig } = args;
+        const { threadId, userId, employeeId, teamId, chatConfig, attachments } = args;
 
         // Step 1: Handle the initial user message
         // This is the first action that has a 10min timeout / 25 steps timeout
@@ -41,6 +43,7 @@ export const chatWorkflow = workflow.define({
             promptMessageId: chatConfig.type === "start-chat" ? chatConfig.promptMessageId : undefined,
             prompt: chatConfig.type === "continue-task" ? chatConfig.prompt : undefined,
             blocking: true,
+            attachments,
         }, {
             retry: false,
             name: "Initial message",

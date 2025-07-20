@@ -1,5 +1,5 @@
 import React from 'react';
-import EmployeeDrive from '@/components/micro-apps/office/employee-documentation';
+import EmployeeDrive from '@/components/micro-apps/office/employee-drive';
 import { Id } from '@/convex/_generated/dataModel';
 
 interface EmployeeDriveMicroUIProps {

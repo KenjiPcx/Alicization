@@ -39,18 +39,25 @@ const PureChat = ({
   );
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<"ready" | "submitted" | MessageDoc["status"]>('ready');
+  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const { modelId, initialVisibilityType } = useChatStore();
+
   const handleSubmit = useCallback(async () => {
     setStatus('submitted');
-    await sendMessage({ threadId, prompt, employeeId: mainParticipantId, teamId, sender: { type: "user" } })
+    await sendMessage({
+      threadId,
+      prompt,
+      employeeId: mainParticipantId,
+      teamId,
+      sender: { type: "user" },
+      attachments
+    })
     setPrompt('');
-  }, [threadId, prompt, sendMessage, mainParticipantId, teamId]);
+  }, [threadId, prompt, sendMessage, mainParticipantId, teamId, attachments]);
 
   const votes = useQuery(api.votes.getVotesByThreadId, {
     threadId,
   });
-
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const { modelId, initialVisibilityType } = useChatStore();
 
   // Memoize the UI messages transformation to prevent unnecessary re-renders
   const uiMessages = useMemo(() => toUIMessages(messages), [messages]);

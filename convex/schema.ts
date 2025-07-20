@@ -78,6 +78,12 @@ export const vProficiencyLevels = v.union(
   v.literal("expert"),
 )
 
+export const vAttachment = v.object({
+  url: v.string(),
+  name: v.optional(v.string()),
+  contentType: v.optional(v.string()),
+})
+
 export const applicationTables = {
   // Store extra metadata for a user beyond the user managed by the auth package
   usersMetadata: defineTable({
@@ -124,6 +130,8 @@ export const applicationTables = {
       v.literal("group") // Custom group chat with selected employees
     )),
     name: v.optional(v.string()), // Custom name for group chats
+
+    attachments: v.optional(v.array(vAttachment)),
   }).index("by_threadId", ["threadId"])
     .index("by_userId_chatOwnerId", ["userId", "chatOwnerId"]),
 
@@ -205,13 +213,14 @@ export const applicationTables = {
     type: v.union(v.literal("artifact"), v.literal("information")),
     name: v.string(),
     mimeType: v.optional(v.string()),
-    size: v.number(),
+    size: v.optional(v.number()), // TODO: Remove this field
     aiSummary: v.optional(v.string()),
     companyId: v.id("companies"),
     userId: v.optional(v.id("users")),
     employeeId: v.optional(v.id("employees")),
     skillId: v.optional(v.id("skills")),
-    storageId: v.id("_storage"),
+    storageId: v.optional(v.id("_storage")), // TODO: Remove this field
+    fileUrl: v.optional(v.string()),
     embeddingStatus: v.union(
       v.literal("pending"),
       v.literal("in-progress"),
@@ -224,18 +233,6 @@ export const applicationTables = {
   })
     .index("by_employeeId", ["employeeId"])
     .index("by_artifactGroupId", ["artifactGroupId"]),
-
-  companyFileEmbeddingChunks: defineTable({
-    companyFileId: v.id("companyFiles"),
-    metadata: v.string(),
-    text: v.string(),
-    page: v.optional(v.number()),
-    embedding: v.array(v.float64()),
-  }).vectorIndex("by_embedding", {
-    vectorField: "embedding",
-    dimensions: 1536,
-    filterFields: ["companyFileId", "page"],
-  }).index("by_companyFileId", ["companyFileId"]),
 
   tags: defineTable({
     name: v.string(),

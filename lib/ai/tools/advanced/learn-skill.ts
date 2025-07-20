@@ -110,6 +110,7 @@ const resolveLearnSkillTool = ({
                 await ctx.runAction(internal.companyFiles.convertArtifactToCompanyFile, {
                     artifactGroupId,
                     skillId,
+                    employeeId,
                     companyId,
                     userId,
                 });

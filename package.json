@@ -29,6 +29,7 @@
     "@convex-dev/rag": "^0.3.2",
     "@convex-dev/workflow": "^0.2.5",
     "@e2b/code-interpreter": "^1.5.1",
+    "@mastra/rag": "^1.0.3",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",

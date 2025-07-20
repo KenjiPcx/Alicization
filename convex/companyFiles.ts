@@ -2,9 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
-import { embed } from "ai";
-import { embeddingModel } from "@/lib/ai/model";
-import type { DataModel, Doc, Id } from "./_generated/dataModel";
+import type { DataModel, Id } from "./_generated/dataModel";
 import { patchCompanyFile } from "./utils";
 import { rag } from "./setup";
 
@@ -14,12 +12,13 @@ export const createCompanyFile = internalMutation({
         type: v.union(v.literal("artifact"), v.literal("information")),
         name: v.string(),
         mimeType: v.string(),
-        size: v.number(),
+        size: v.optional(v.number()),
         companyId: v.id("companies"),
         userId: v.optional(v.id("users")),
         employeeId: v.optional(v.id("employees")),
         skillId: v.optional(v.id("skills")),
-        storageId: v.id("_storage"),
+        storageId: v.optional(v.id("_storage")),
+        fileUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const companyFileId = await ctx.db.insert("companyFiles", {
@@ -131,11 +130,12 @@ export const convertArtifactToCompanyFile = internalAction({
     args: {
         artifactGroupId: v.string(),
         companyId: v.id("companies"),
+        employeeId: v.id("employees"),
         userId: v.optional(v.id("users")),
         skillId: v.optional(v.id("skills")),
     },
     handler: async (ctx, args) => {
-        const { artifactGroupId, companyId, userId, skillId } = args;
+        const { artifactGroupId, companyId, userId, skillId, employeeId } = args;
         const artifact = await ctx.runQuery(internal.artifacts.getLatestArtifactByGroupId, {
             artifactGroupId,
         });
@@ -155,6 +155,7 @@ export const convertArtifactToCompanyFile = internalAction({
             storageId,
             userId,
             skillId,
+            employeeId,
         });
 
         // Can do it like this since the file is quite small, just one page
@@ -163,6 +164,12 @@ export const convertArtifactToCompanyFile = internalAction({
             key: companyFileId,
             title: artifact.title,
             text: artifact.content,
+            filterValues: [
+                { name: "category", value: "artifact" },
+                { name: "contentType", value: "text/markdown" },
+                { name: "teamId", value: companyId },
+                { name: "employeeId", value: employeeId },
+            ],
             onComplete: internal.companyFiles.ingestionComplete,
         })
     },
@@ -198,55 +205,16 @@ export const deleteCompanyFile = mutation({
             throw new Error("Company file not found");
         }
 
-        // Delete the chunks
-        const chunks = await ctx.db.query("companyFileEmbeddingChunks")
-            .withIndex("by_companyFileId", (q) => q.eq("companyFileId", companyFileId))
-            .collect();
-        chunks.forEach(async chunk => await ctx.db.delete(chunk._id));
+        // Delete the chunks through RAG component
+        await rag.add(ctx, {
+            key: companyFileId,
+            namespace: companyFile.companyId,
+            text: "",
+            onComplete: internal.companyFiles.ingestionComplete,
+        })
 
         // Delete the company file
         await ctx.db.delete(companyFileId);
-
-        // Delete the file from storage
-        await ctx.storage.delete(companyFile.storageId);
-    },
-})
-
-// Embedding chunks
-export const insertCompanyFileEmbeddingChunk = internalMutation({
-    args: {
-        companyFileId: v.id("companyFiles"),
-        metadata: v.string(),
-        text: v.string(),
-        page: v.optional(v.number()),
-        embedding: v.array(v.float64()),
-    },
-    handler: async (ctx, args) => {
-        const { companyFileId, metadata, text, page, embedding } = args;
-        await ctx.db.insert("companyFileEmbeddingChunks", {
-            companyFileId,
-            metadata,
-            text,
-            page,
-            embedding,
-        });
-    },
-})
-
-export const getCompanyFileEmbeddingChunks = internalQuery({
-    args: {
-        ids: v.array(v.id("companyFileEmbeddingChunks")),
-    },
-    handler: async (ctx, args) => {
-        const results = [];
-        for (const id of args.ids) {
-            const doc = await ctx.db.get(id);
-            if (doc === null) {
-                continue;
-            }
-            results.push(doc);
-        }
-        return results;
     },
 })
 
@@ -267,38 +235,6 @@ export const updateCompanyFileEmbeddingStatus = internalMutation({
     },
 })
 
-export const searchCompanyFileEmbeddingChunks = internalAction({
-    args: {
-        query: v.string(),
-    },
-    handler: async (ctx, args) => {
-        const { query } = args;
-
-        const { embedding } = await embed({
-            value: query,
-            model: embeddingModel,
-        });
-
-        const results = await ctx.vectorSearch("companyFileEmbeddingChunks", "by_embedding", {
-            vector: embedding,
-            limit: 10,
-        });
-
-        const chunks: Array<Doc<"companyFileEmbeddingChunks">> = await ctx.runQuery(
-            internal.companyFiles.getCompanyFileEmbeddingChunks, {
-            ids: results.map(result => result._id),
-        });
-
-        // Merge score into the chunks
-        const chunksWithScore = chunks.map((chunk, index) => ({
-            ...chunk,
-            score: results[index]._score,
-        }));
-
-        return chunksWithScore;
-    },
-})
-
 export const getCompanyFileContent = query({
     args: {
         companyFileId: v.id("companyFiles"),
@@ -316,7 +252,7 @@ export const getCompanyFileContent = query({
         }
 
         // Get the file URL from storage
-        const fileUrl = await ctx.storage.getUrl(companyFile.storageId);
+        const fileUrl = companyFile.fileUrl ? companyFile.fileUrl : companyFile.storageId ? await ctx.storage.getUrl(companyFile.storageId) : undefined;
         if (!fileUrl) {
             throw new Error("File content not found");
         }
@@ -360,20 +296,21 @@ export const getEmployeeDrive = query({
             .filter((q) => q.eq("userId", userId as string))
             .collect();
 
+        console.log("directFiles", directFiles);
+
         allFiles.push(...directFiles);
 
         // 2. Files linked to employee's skills
         if (skillIds.length > 0) {
             for (const skillId of skillIds) {
                 const skillFiles = await ctx.db.query("companyFiles")
-                    .filter((q) => q.and(
-                        q.eq(q.field("skillId"), skillId),
-                        q.eq("userId", userId as string)
-                    ))
+                    .filter((q) => q.eq(q.field("skillId"), skillId))
                     .collect();
                 allFiles.push(...skillFiles);
             }
         }
+
+        console.log("allFiles", allFiles);
 
         // Remove duplicates by file ID
         const uniqueFiles = allFiles.filter((file, index, self) =>

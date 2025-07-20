@@ -10,6 +10,9 @@ import { DocumentSkeleton } from './document-skeleton';
 import { InterpreterPreview } from './interpreter-preview';
 import { HumanCollabPreview } from './human-collab-preview';
 import { LearnSkillPreview } from './learn-skill-preview';
+import { FileIngestionPreview } from './file-ingestion-preview';
+import { KnowledgeSearchPreview } from './knowledge-search-preview';
+import { KnowledgeSearchResults } from './knowledge-search-results';
 
 export {
     DocumentToolCall,
@@ -25,4 +28,7 @@ export {
     InterpreterPreview,
     HumanCollabPreview,
     LearnSkillPreview,
+    FileIngestionPreview,
+    KnowledgeSearchPreview,
+    KnowledgeSearchResults,
 };

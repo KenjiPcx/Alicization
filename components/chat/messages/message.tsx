@@ -30,7 +30,10 @@ import {
   MicroAppResult,
   TodoListPreview,
   WebSearchPreview,
-  WebSearchResults
+  WebSearchResults,
+  FileIngestionPreview,
+  KnowledgeSearchPreview,
+  KnowledgeSearchResults
 } from './tool-previews';
 
 const PurePreviewMessage = ({
@@ -273,6 +276,16 @@ const PurePreviewMessage = ({
                               args={args}
                               toolCallId={toolCallId}
                             />;
+                          case 'saveAttachment':
+                            return <FileIngestionPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
+                          case 'companyFileSearch':
+                            return <KnowledgeSearchPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                            />;
                           default:
                             return null;
                         }
@@ -366,30 +379,16 @@ const PurePreviewMessage = ({
                               toolCallId={toolCallId}
                               result={result}
                             />;
-                          case 'searchKnowledgeBase':
-                            return (
-                              <div className="flex flex-col gap-2">
-                                <h3 className="text-sm font-medium">
-                                  Search Results
-                                </h3>
-                                {result.map((r: {
-                                  id: string;
-                                  result: {
-                                    metadata: {
-                                      sectionSummary: string;
-                                    };
-                                  };
-                                }) => {
-                                  return (
-                                    <div key={r.id}>
-                                      <h4 className="text-sm font-medium">
-                                        {r.result.metadata.sectionSummary}
-                                      </h4>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
+                          case 'saveAttachment':
+                            return <FileIngestionPreview
+                              args={args}
+                              toolCallId={toolCallId}
+                              result={result}
+                            />;
+                          case 'companyFileSearch':
+                            return <KnowledgeSearchResults
+                              results={result}
+                            />;
                           default:
                             return <pre>{JSON.stringify(result, null, 2)}</pre>;
                         }

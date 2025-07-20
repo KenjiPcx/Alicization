@@ -1,7 +1,7 @@
 
 import { v } from "convex/values";
 import { paginationOptsValidator, } from "convex/server";
-import { action, httpAction, internalAction, mutation, query } from "./_generated/server";
+import { action, httpAction, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { api, components, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { employeeAgent } from "@/lib/ai/agents/employee-agent";
@@ -10,6 +10,8 @@ import { anthropicProviderOptions } from "@/lib/ai/model";
 import dedent from "dedent";
 import { cleanupWorkflowHelper } from "./chatWorkflow";
 import { workflow } from "./setup";
+import { Attachment } from "ai";
+import { vAttachment } from "./schema";
 
 export const createThread = mutation({
     args: {
@@ -68,8 +70,9 @@ export const kickoffWorkflow = internalAction({
             type: v.literal("continue-task"),
             prompt: v.string(),
         })),
+        attachments: v.optional(v.array(vAttachment)),
     },
-    handler: async (ctx, { threadId, userId, employeeId, teamId, chatConfig }) => {
+    handler: async (ctx, { threadId, userId, employeeId, teamId, chatConfig, attachments }) => {
         const workflowId = await workflow.start(ctx,
             internal.chatWorkflow.chatWorkflow,
             {
@@ -78,6 +81,7 @@ export const kickoffWorkflow = internalAction({
                 userId,
                 employeeId,
                 teamId,
+                attachments,
             },
         );
 
@@ -99,8 +103,9 @@ export const streamMessageAsync = mutation({
             employeeDetails: v.string(),
             userTaskId: v.optional(v.id("userTasks")), // Agents always have a request ref
         })),
+        attachments: v.optional(v.array(vAttachment)),
     },
-    handler: async (ctx, { prompt, threadId, employeeId, teamId, sender }) => {
+    handler: async (ctx, { prompt, threadId, employeeId, teamId, sender, attachments }) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
@@ -108,6 +113,14 @@ export const streamMessageAsync = mutation({
         const existingTask = await ctx.runQuery(internal.tasks.internalGetLatestTask, {
             threadId,
         });
+
+        // Save attachments to the hidden chat context
+        if (attachments && attachments.length > 0) {
+            await ctx.runMutation(internal.chat.saveAttachmentsToChat, {
+                threadId,
+                attachments,
+            });
+        }
 
         if (existingTask) {
             if (existingTask.status === "in-progress") {
@@ -122,7 +135,7 @@ export const streamMessageAsync = mutation({
                     todo: todoTitle,
                 });
             }
-            
+
             // If existing task was blocked, then we need to launch a new workflow to ask it to continue processing the input
             // Assume that blocked means that previous workflow already ended, so we start a new one
             if (existingTask.status === "blocked") {
@@ -138,6 +151,7 @@ export const streamMessageAsync = mutation({
                             ${prompt}
                         `,
                     },
+                    attachments,
                 });
             }
 
@@ -155,10 +169,15 @@ export const streamMessageAsync = mutation({
         }
 
         else {
+            const content = convertAttachmentsToContent(attachments, prompt)
+
             // Save the message and use the saved message ID
             const { messageId } = await employeeAgent.saveMessage(ctx, {
                 threadId,
-                prompt,
+                message: {
+                    role: "user",
+                    content,
+                },
                 skipEmbeddings: true,
             });
 
@@ -178,6 +197,7 @@ export const streamMessageAsync = mutation({
                     type: "start-chat",
                     promptMessageId: messageId,
                 },
+                attachments,
             });
         }
     },
@@ -398,3 +418,80 @@ export const updateChatVisibilityByThreadId = mutation({
         await ctx.db.patch(chat._id, { visibility });
     },
 });
+
+export const getHiddenChatState = internalQuery({
+    args: {
+        threadId: v.string(),
+    },
+    handler: async (ctx, { threadId }) => {
+        const chat = await ctx.db.query("chats").withIndex("by_threadId", (q) => q.eq("threadId", threadId)).first();
+        if (!chat) throw new Error("Chat not found");
+
+        return {
+            attachments: chat.attachments,
+        };
+    },
+});
+
+export const saveAttachmentsToChat = internalMutation({
+    args: {
+        threadId: v.string(),
+        attachments: v.array(vAttachment),
+    },
+    handler: async (ctx, { threadId, attachments }) => {
+        const chat = await ctx.db.query("chats").withIndex("by_threadId", (q) => q.eq("threadId", threadId)).first();
+        if (!chat) throw new Error("Chat not found");
+
+        const newAttachments = [...(chat.attachments || []), ...attachments];
+        await ctx.db.patch(chat._id, { attachments: newAttachments });
+    },
+});
+
+// Utility function to convert attachments schema to content format
+export const convertAttachmentsToContent = (
+    attachments: Attachment[] | undefined,
+    prompt: string | undefined
+): Array<
+    | { type: "text"; text: string }
+    | { type: "image"; image: string; mimeType?: string }
+    | { type: "file"; data: string; filename?: string; mimeType: string }
+> => {
+    const content: Array<
+        | { type: "text"; text: string }
+        | { type: "image"; image: string; mimeType?: string }
+        | { type: "file"; data: string; filename?: string; mimeType: string }
+    > = [];
+
+    // Add attachments first
+    if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+            // Check if it's an image based on contentType
+            if (attachment.contentType?.startsWith('image/')) {
+                content.push({
+                    type: "image",
+                    image: attachment.url,
+                    mimeType: attachment.contentType,
+                });
+            } else if (attachment.contentType) {
+                // For non-image files, add them as file attachments
+                content.push({
+                    type: "file",
+                    data: attachment.url,
+                    filename: attachment.name,
+                    mimeType: attachment.contentType,
+                });
+            }
+            // For attachments without contentType, skip or add as text reference
+        }
+    }
+
+    // Add the text prompt
+    if (prompt) {
+        content.push({
+            type: "text",
+            text: prompt,
+        });
+    }
+
+    return content;
+}

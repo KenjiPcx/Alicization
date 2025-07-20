@@ -4,16 +4,23 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { employeeAgent } from "@/lib/ai/agents/employee-agent";
 import { anthropicProviderOptions } from "@/lib/ai/model";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { resolveEmployeeTools } from "@/lib/ai/tools/office/employee";
 import { resolveCEOTools } from "@/lib/ai/tools/office/ceo";
 import { advancedToolsPrompt } from "@/lib/ai/tools/advanced";
 import { baseToolsPrompt } from "@/lib/ai/tools/base";
 import { FullEmployee } from "@/lib/types";
 import dedent from "dedent";
+import { Attachment } from "ai";
+import { convertAttachmentsToContent } from "./chat";
+import { vAttachment } from "./schema";
 
+interface SystemPromptProps {
+    attachments?: Attachment[];
+    employee: Partial<FullEmployee>;
+}
 
-export const systemPrompt = ({ name, jobTitle, jobDescription, background, personality, team, tools, skills }: Partial<FullEmployee>) => {
+export const systemPrompt = ({ attachments, employee: { name, jobTitle, jobDescription, background, personality, team, tools, skills } }: SystemPromptProps) => {
     if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !tools || !skills) {
         throw new Error("Missing required fields");
     }
@@ -60,6 +67,10 @@ export const systemPrompt = ({ name, jobTitle, jobDescription, background, perso
 
     ## More tool details
     If a tool ever fails, you should try to fix the issue and continue the task. If you can't fix the issue, you should inform the user and ask for their help.
+
+    # Attachments
+    Here are some recent attachments filenames and their urls that you were given:
+    ${attachments?.map((attachment) => `- ${attachment.name}: ${attachment.url} (contentType: ${attachment.contentType})`).join("\n") || "No attachments"}
 `)
 }
 
@@ -72,8 +83,9 @@ export const streamMessage = internalAction({
         employeeId: v.id("employees"),
         teamId: v.id("teams"),
         blocking: v.boolean(),
+        attachments: v.optional(v.array(vAttachment)),
     },
-    handler: async (ctx, { threadId, prompt, promptMessageId, userId, employeeId, teamId, blocking = false }) => {
+    handler: async (ctx, { threadId, prompt, promptMessageId, userId, employeeId, teamId, blocking = false, attachments }) => {
         // Validate that exactly one of prompt or promptMessageId is provided
         if ((prompt && promptMessageId) || (!prompt && !promptMessageId)) {
             throw new Error("Must provide exactly one of 'prompt' or 'promptMessageId'");
@@ -95,22 +107,43 @@ export const streamMessage = internalAction({
         const { thread } = await employeeAgent.continueThread(ctx, { threadId, userId });
 
         // Prepare streamText options
-        const streamOptions = {
-            system: systemPrompt({ ...employee }),
+        const hiddenChatState = await ctx.runQuery(internal.chat.getHiddenChatState, {
+            threadId,
+        });
+
+        const baseOptions = {
+            system: systemPrompt({ attachments: hiddenChatState.attachments, employee }),
             providerOptions: anthropicProviderOptions,
             tools: employee.isCEO ?
                 await resolveCEOTools({ ctx, threadId, userId, employeeId, teamId, companyId: employee.companyId }) :
                 await resolveEmployeeTools({ ctx, threadId, employeeId, userId, teamId, companyId: employee.companyId }),
             maxSteps: 25,
-            ...(prompt ? { prompt } : { promptMessageId })
         };
 
-        const result = await thread.streamText(
-            streamOptions,
-            {
+        let result;
+
+        // If we have attachments or are using a prompt directly, use the message format with content
+        if ((attachments && attachments.length > 0) || prompt) {
+            const content = convertAttachmentsToContent(attachments, prompt);
+
+            result = await thread.streamText({
+                ...baseOptions,
+                messages: [{
+                    role: "user",
+                    content,
+                }],
+            }, {
                 saveStreamDeltas: { chunking: "line", throttleMs: 500 },
-            },
-        );
+            });
+        } else {
+            // Use the existing promptMessageId approach for backwards compatibility
+            result = await thread.streamText({
+                ...baseOptions,
+                promptMessageId,
+            }, {
+                saveStreamDeltas: { chunking: "line", throttleMs: 500 },
+            });
+        }
 
         if (blocking) {
             for await (const chunk of result.fullStream) {

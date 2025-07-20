@@ -155,9 +155,9 @@ export default function EmployeeDrive({ title, employeeId }: EmployeeDriveProps)
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Skills</SelectItem>
-                            {employeeData.skills?.map((skillData: any) => (
-                                <SelectItem key={skillData._id} value={skillData.skill?._id || skillData._id}>
-                                    {skillData.skill?.name || 'Unknown Skill'}
+                            {employeeData.skills?.map((skillData) => (
+                                <SelectItem key={skillData._id} value={skillData._id}>
+                                    {skillData.name || 'Unknown Skill'}
                                 </SelectItem>
                             ))}
                         </SelectContent>

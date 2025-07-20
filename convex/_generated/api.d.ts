@@ -21,6 +21,7 @@ import type * as chat from "../chat.js";
 import type * as chatNode from "../chatNode.js";
 import type * as chatWorkflow from "../chatWorkflow.js";
 import type * as companies from "../companies.js";
+import type * as companyFileNode from "../companyFileNode.js";
 import type * as companyFiles from "../companyFiles.js";
 import type * as crons from "../crons.js";
 import type * as employees from "../employees.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   chatNode: typeof chatNode;
   chatWorkflow: typeof chatWorkflow;
   companies: typeof companies;
+  companyFileNode: typeof companyFileNode;
   companyFiles: typeof companyFiles;
   crons: typeof crons;
   employees: typeof employees;
