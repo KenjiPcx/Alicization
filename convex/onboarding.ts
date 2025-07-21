@@ -174,7 +174,8 @@ export const getCEO = query({
         return await ctx.db.query("employees")
             .filter((q) => q.and(
                 q.eq(q.field("userId"), userId),
-                q.eq(q.field("isCEO"), true)
+                q.eq(q.field("builtInRole"), "ceo"),
+                q.eq(q.field("companyId"), companyId)
             ))
             .first();
     },
@@ -226,6 +227,7 @@ export const getOrCreateCEO = action({
                 deskIndex: args.deskIndex,
                 companyId: args.companyId,
                 status: "info",
+                builtInRole: "ceo",
             }))._id;
         }
 
@@ -241,6 +243,7 @@ export const getOrCreateCEO = action({
             statusMessage: args.statusMessage,
             isSupervisor: args.isSupervisor,
             isCEO: args.isCEO,
+            builtInRole: "ceo",
             deskIndex: args.deskIndex,
             companyId: args.companyId,
             userId: userId,

@@ -38,7 +38,7 @@ import type * as tags from "../tags.js";
 import type * as tasks from "../tasks.js";
 import type * as teams from "../teams.js";
 import type * as threadTitles from "../threadTitles.js";
-import type * as tools from "../tools.js";
+import type * as toolsets from "../toolsets.js";
 import type * as usage from "../usage.js";
 import type * as userTasks from "../userTasks.js";
 import type * as utils from "../utils.js";
@@ -89,7 +89,7 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   teams: typeof teams;
   threadTitles: typeof threadTitles;
-  tools: typeof tools;
+  toolsets: typeof toolsets;
   usage: typeof usage;
   userTasks: typeof userTasks;
   utils: typeof utils;

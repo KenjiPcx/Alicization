@@ -46,7 +46,7 @@ function assignRandomStatuses(employees: EmployeeData[]): EmployeeData[] {
 
     return employees.map((emp) => {
         // CEO always has 'info' status with a message
-        if (emp.isCEO) {
+        if (emp.builtInRole === 'ceo') {
             return {
                 ...emp,
                 status: 'info' as StatusType,
@@ -78,7 +78,7 @@ function assignRandomStatuses(employees: EmployeeData[]): EmployeeData[] {
 }
 
 interface SceneContentsProps {
-    handleEmployeeClick: (employee: EmployeeData) => void;
+    handleEmployeeClick: (employee: Omit<EmployeeData, 'companyId'>) => void;
     handleTeamClick: (team: TeamData) => void;
     debugMode: boolean;
     teams: TeamData[];
@@ -103,7 +103,7 @@ function SceneContents({
     const desksByTeam = useMemo(() => {
         const grouped: Record<string, Array<DeskLayoutData>> = {};
         for (const desk of desks) {
-            if (desk.team === 'Management') continue;
+            if (desk.team === 'CEO') continue;
             if (!grouped[desk.team]) {
                 grouped[desk.team] = [];
             }
@@ -180,7 +180,7 @@ function SceneContents({
         }));
     }, [employees]);
     const ceoDeskData = useMemo(
-        () => desks.find((d) => d.team === 'Management'),
+        () => desks.find((d) => d.team === 'CEO'),
         [desks],
     );
 

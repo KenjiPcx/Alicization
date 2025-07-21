@@ -3,7 +3,7 @@ import { mutation, query, action, internalMutation } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { vEmployeeStatuses } from "./schema";
+import { vBuiltInRoles, vEmployeeStatuses } from "./schema";
 import { patchEmployee } from "./utils";
 
 // Helper to generate random names
@@ -120,11 +120,11 @@ export const seedEmployees = action({
 
         // Create employees for each team
         for (const team of teams) {
-            const teamSize = team.name === "Management" ? 1 : 6; // Management only has CEO, others have 6
+            const teamSize = team.name === "CEO" ? 1 : 6; // CEO only has 1 employee, others have 6
 
             for (let i = 0; i < teamSize; i++) {
-                const isSupervisor = i === 0 && team.name !== "Management";
-                const isCEO = team.name === "Management";
+                const isSupervisor = i === 0 && team.name !== "CEO";
+                const isCEO = team.name === "CEO";
 
                 const employeeData = generateEmployeeData(team.name, isSupervisor, isCEO);
 
@@ -164,6 +164,7 @@ export const createEmployee = internalMutation({
         statusMessage: v.optional(v.string()),
         isSupervisor: v.boolean(),
         isCEO: v.boolean(),
+        builtInRole: v.optional(vBuiltInRoles),
         deskIndex: v.optional(v.number()),
         companyId: v.id("companies"),
         userId: v.id("users"),
@@ -196,6 +197,7 @@ export const updateEmployee = mutation({
         statusMessage: v.optional(v.string()),
         isSupervisor: v.optional(v.boolean()),
         isCEO: v.optional(v.boolean()),
+        builtInRole: v.optional(vBuiltInRoles),
         deskIndex: v.optional(v.number()),
         companyId: v.optional(v.id("companies")),
     },
@@ -260,10 +262,13 @@ export const getEmployeeById = query({
         const team = await ctx.db.get(employee.teamId);
         if (!team) throw new Error("Team not found");
 
-        // Get tools
-        const toolsIds = (await ctx.db.query("employeeToTools").withIndex("by_employeeId", (q) => q.eq("employeeId", employeeId)).collect()).map((tool) => tool.toolId);
-        const tools = await Promise.all(toolsIds.map((toolId) => ctx.db.get(toolId)));
-        const filteredTools = tools.filter((tool) => tool !== null);
+        // Get toolsets
+        const toolsetIds = (await ctx.db.query("employeeToToolsets")
+            .withIndex("by_employeeId", (q) => q.eq("employeeId", employeeId))
+            .collect())
+            .map((assignment) => assignment.toolsetId);
+        const toolsets = await Promise.all(toolsetIds.map((toolsetId) => ctx.db.get(toolsetId)));
+        const filteredToolsets = toolsets.filter((toolset) => toolset !== null);
 
         // Get skills
         const employeeSkills = await ctx.db
@@ -288,8 +293,19 @@ export const getEmployeeById = query({
         return {
             ...employee,
             team: { _id: team._id, name: team.name },
-            tools: filteredTools.map(t => ({ _id: t._id, name: t.name, description: t.description })),
-            skills: filteredSkills.map(s => ({ _id: s!.skill._id, name: s!.skill.name, description: s!.skill.description, imageUrl: s!.skillImageUrl })),
+            toolsets: filteredToolsets.map(t => ({
+                _id: t._id,
+                name: t.name,
+                description: t.description,
+                type: t.type,
+                toolsetConfig: t.toolsetConfig,
+            })),
+            skills: filteredSkills.map(s => ({
+                _id: s!.skill._id,
+                name: s!.skill.name,
+                description: s!.skill.description,
+                imageUrl: s!.skillImageUrl,
+            })),
         };
     },
 });
@@ -311,5 +327,54 @@ export const setEmployeeCompanyId = mutation({
     },
     handler: async (ctx, { employeeId, companyId }) => {
         await ctx.db.patch(employeeId, { companyId });
+    },
+});
+
+export const getEmployeesByCompany = query({
+    args: {
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, args) => {
+        const { companyId } = args;
+
+        const userId = await getAuthUserId(ctx);
+        if (!userId) throw new Error("Not authenticated");
+
+        // Get all employees for the company
+        const employees = await ctx.db.query("employees")
+            .filter((q) => q.eq(q.field("companyId"), companyId))
+            .collect();
+
+        // Only return employees that belong to the authenticated user
+        const userEmployees = employees.filter(employee => employee.userId === userId);
+
+        // Get team and toolset information for each employee
+        const enrichedEmployees = await Promise.all(
+            userEmployees.map(async (employee) => {
+                // Get team
+                const team = await ctx.db.get(employee.teamId);
+
+                // Get toolsets
+                const toolsetIds = (await ctx.db.query("employeeToToolsets")
+                    .withIndex("by_employeeId", (q) => q.eq("employeeId", employee._id))
+                    .collect())
+                    .map((assignment) => assignment.toolsetId);
+                const toolsets = await Promise.all(toolsetIds.map((toolsetId) => ctx.db.get(toolsetId)));
+                const filteredToolsets = toolsets.filter((toolset) => toolset !== null);
+
+                return {
+                    ...employee,
+                    team: team ? { _id: team._id, name: team.name } : null,
+                    toolsets: filteredToolsets.map(t => ({
+                        _id: t._id,
+                        name: t.name,
+                        description: t.description,
+                        type: t.type,
+                    })),
+                };
+            })
+        );
+
+        return enrichedEmployees;
     },
 });

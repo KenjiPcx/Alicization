@@ -78,6 +78,37 @@ export const vProficiencyLevels = v.union(
   v.literal("expert"),
 )
 
+export const vBuiltInRoles = v.union(
+  v.literal("ceo"),     // Chief Executive Officer
+  v.literal("coo"),     // Chief Operating Officer  
+  v.literal("chro"),    // Chief Human Resources Officer
+  v.literal("cfo"),     // Chief Financial Officer
+  v.literal("cmo"),     // Chief Marketing Officer
+  v.literal("cso"),     // Chief Sales Officer
+  v.literal("cto"),     // Chief Technology Officer
+  v.literal("office-manager"), // Office Manager
+)
+
+export const vToolsetTypes = v.union(
+  v.literal("builtin"),
+  v.literal("mcp"),
+)
+
+export const vMcpConnectionTypes = v.union(
+  v.literal("sse"),
+  v.literal("stdio"),
+)
+
+export const vMcpConfig = v.object({
+  connectionType: vMcpConnectionTypes,
+  connectionUrl: v.optional(v.string()), // For SSE connections
+  runCommand: v.optional(v.string()), // For stdio connections
+  args: v.optional(v.array(v.string())), // Command arguments for stdio
+  env: v.optional(v.object({
+    apiKey: v.string(),
+  })), // Environment variables
+})
+
 export const vAttachment = v.object({
   url: v.string(),
   name: v.optional(v.string()),
@@ -169,18 +200,20 @@ export const applicationTables = {
     status: vEmployeeStatuses,
     statusMessage: v.string(),
     isSupervisor: v.boolean(), // If the employee is a supervisor
-    isCEO: v.boolean(), // If the employee is the CEO of the company
+    isCEO: v.optional(v.boolean()), // TODO: Remove this field
+    builtInRole: v.optional(vBuiltInRoles), // Built-in system roles (CEO, HR, IT, Office Manager)
     deskIndex: v.optional(v.number()), // Which desk position in their team (0-based)
     companyId: v.id("companies"), // Temp optional for development
   }).index("by_teamId", ["teamId"])
-    .index("by_userId", ["userId"]),
+    .index("by_userId", ["userId"])
+    .index("by_builtInRole", ["builtInRole"]),
 
-  // Employees can have tools assigned to them
-  employeeToTools: defineTable({
+  // Employees can have toolsets assigned to them
+  employeeToToolsets: defineTable({
     employeeId: v.id("employees"),
-    toolId: v.id("tools"),
+    toolsetId: v.id("toolsets"),
   }).index("by_employeeId", ["employeeId"])
-    .index("by_toolId", ["toolId"]),
+    .index("by_toolsetId", ["toolsetId"]),
 
   // Skills that employees can have
   skills: defineTable({
@@ -248,17 +281,26 @@ export const applicationTables = {
   }).index("by_companyFileId", ["companyFileId"])
     .index("by_tagId", ["tagId"]),
 
+  // Toolsets are collections of related tools (e.g. "File Management", "Python Interpreter")
+  toolsets: defineTable({
+    name: v.string(),
+    description: v.string(),
+    category: v.optional(v.string()),
+    type: vToolsetTypes,
+    toolsetConfig: v.optional(vMcpConfig), // Only MCP toolsets need configuration
+    userId: v.id("users"),
+    companyId: v.optional(v.id("companies")), // Toolsets can be company-specific
+    isActive: v.optional(v.boolean()), // Whether the toolset is currently active
+  }).index("by_userId", ["userId"])
+    .index("by_companyId", ["companyId"])
+    .index("by_type", ["type"]),
+
+  // Individual tools within toolsets (e.g. "createArtifact", "uploadFile")
   tools: defineTable({
     name: v.string(),
     description: v.string(),
-    type: v.union(
-      v.literal("mcp"),
-      v.literal("api"),
-      v.literal("prebuilt")
-    ),
-    config: v.any(),
-    userId: v.id("users"),
-  }).index("by_userId", ["userId"]),
+    toolsetId: v.id("toolsets"),
+  }).index("by_toolsetId", ["toolsetId"]),
 
   // For streaming tool updates
   backgroundJobStatuses: defineTable({

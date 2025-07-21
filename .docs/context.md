@@ -536,6 +536,114 @@ Implemented a dynamic micro apps system that provides specialized generative UI 
 - API integrations for external data sources
 - Advanced customization and personalization options
 
+## Toolset Management System
+
+### Overview
+Restructured the system to use **toolsets** instead of individual tools. Toolsets are logical collections of related functionality (like "File Management" or "Python Interpreter") that contain multiple individual tools. This better matches how MCP servers and built-in modules are actually deployed and used.
+
+### Built-in Employee Roles
+Extended the employee schema to support built-in system roles beyond job titles:
+- **CEO**: Full access to all micro apps and company configuration
+- **HR**: Employee management and human resources functions
+- **IT**: Toolset configuration and system administration
+- **Office Manager**: Facility and operational management
+
+These roles provide specific permissions and access to specialized micro apps and toolsets.
+
+### Toolset vs Tool Structure
+
+**Toolsets** (collections of related functionality):
+- **Artifact Management**: Create, update, manage documents/code
+- **Planning System**: Tasks, todos, project management  
+- **Memory Management**: Contextual storage and retrieval
+- **Human Collaboration**: Approval, review, questions
+- **Learning System**: Dynamic skill learning from user teaching
+- **Office Management**: Micro applications and dashboards
+- **File Management**: Upload, organize, company files
+- **KPI Management**: Create, track business metrics
+- **Python Interpreter**: Code execution, data analysis
+- **Web Search**: Research, browsing capabilities
+- **Computer Use**: UI automation, system interaction
+
+**Tools** (individual functions within toolsets):
+- `createArtifact`, `updateArtifact` (within Artifact Management)
+- `uploadFile`, `searchFiles` (within File Management)
+- `createTask`, `addTodo` (within Planning System)
+
+### Toolset Configuration Types
+
+**Built-in Toolsets**:
+- Defined in the codebase (`/lib/ai/tools/`)
+- No configuration required (unlike individual tools)
+- Automatically available with core functionality
+
+**MCP Toolsets**:
+- External integrations via Model Context Protocol
+- Support for SSE (Server-Sent Events) and stdio connections
+- Single configuration per logical grouping of functions
+- Enable integration with external APIs and services
+
+### Company Toolset Config Micro App
+
+**Purpose**: IT manager interface for managing company-wide toolset registry
+**Access**: Available to employees with "it" built-in role and CEOs
+
+**Features**:
+- **Toolset Directory**: View all registered toolsets with type, category, and status
+- **Add Toolset Interface**: Modal forms for configuring new built-in or MCP toolsets
+- **Toolset Statistics**: Dashboard showing total toolsets, built-in vs MCP ratios
+- **Type-specific Configuration**: Simple forms for built-in (no config) vs MCP (connection details)
+
+**Built-in Toolsets Included**:
+- Artifact Management (Content Creation)
+- Planning System (Project Management)
+- Memory Management (Data Management)
+- Human Collaboration (Collaboration)
+- Learning System (Learning)
+- Office Management (Office Management)
+- File Management (Content Management)
+- KPI Management (Analytics)
+
+### Toolset Assignment System
+
+**Assignment Management**:
+- IT managers assign toolsets (not individual tools) to employees
+- Employees get access to all tools within assigned toolsets
+- Assignment at the capability level ("File Management access")
+- Simplified permission model
+
+**Database Structure**:
+- `toolsets` table with simplified configuration (only MCP needs config)
+- `tools` table for individual functions within toolsets
+- `employeeToToolsets` junction table for assignments
+- Type-safe schema with proper separation of concerns
+
+**API Functions**:
+- `assignToolsetToEmployee`: Assign toolset capabilities to employees
+- `removeToolsetFromEmployee`: Remove toolset access
+- `getToolsetsForEmployee`: Get all toolsets assigned to an employee
+- `getEmployeesWithToolset`: Get all employees with specific toolset access
+- `getToolsInToolset`: Get individual tools within a toolset
+
+### Migration System
+
+**Migration Functions**:
+- `migrateToolsToToolsets`: Converts old tool structure to toolsets
+- `cleanupOldToolsData`: Removes old data after successful migration
+- Intelligent mapping of old tools to appropriate toolsets
+- Preserves all existing assignments and configurations
+
+### Benefits
+
+- **Intuitive Model**: Matches how tools are actually deployed (MCP servers, modules)
+- **Simplified Assignment**: "Give Sarah file management" vs 12 individual functions
+- **Better Organization**: Related functionality grouped logically
+- **Easier Configuration**: One config per logical capability
+- **Reduced Complexity**: Less granular permission management
+- **Scalable**: Easy to add new toolsets and MCP integrations
+- **Type Safety**: Proper TypeScript types throughout
+- **Migration Support**: Smooth transition from old structure
+
 ## Next Steps
 
 ### Immediate
@@ -543,6 +651,10 @@ Implemented a dynamic micro apps system that provides specialized generative UI 
 - Implement respond/dismiss functionality for user tasks
 - Backend implementation for artifact saveAsDocumentation functionality
 - Enhance micro app data integration with real-time business metrics
+- Test toolset assignment workflow end-to-end
+- Assign IT role to an employee and test Company Toolset Config micro app
+- Seed built-in toolsets for existing companies
+- Test MCP toolset integration
 
 ### Future Features
 - Skill performance tracking and optimization
@@ -552,4 +664,9 @@ Implemented a dynamic micro apps system that provides specialized generative UI 
 - Cross-employee skill transfer and mentoring
 - Expand micro apps system with project management and CRM interfaces
 - Real-time collaborative editing within micro apps
-- Mobile-optimized micro app experiences 
+- Mobile-optimized micro app experiences
+- Toolset usage analytics and performance monitoring
+- Automated toolset recommendations based on employee roles
+- Toolset versioning and update management
+- Additional built-in toolsets (Python Interpreter, Web Search, Computer Use)
+- MCP toolset marketplace and discovery 

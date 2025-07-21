@@ -32,11 +32,7 @@ export type Task = Doc<"tasks">;
 
 // Compound types
 export type FullEmployee = Employee & {
-    tools: {
-        _id: Id<"tools">;
-        name: string;
-        description: string;
-    }[];
+    toolsets: Pick<Toolset, "_id" | "name" | "description" | "type" | "toolsetConfig">[];
     skills: {
         _id: Id<"skills">;
         name: string;
@@ -72,3 +68,5 @@ export type DeskLayoutData = {
     rotationY: number;
     team: string;
 }
+
+export type Toolset = Doc<"toolsets">

@@ -7,21 +7,25 @@ import { anthropicProviderOptions } from "@/lib/ai/model";
 import { api, internal } from "./_generated/api";
 import { resolveEmployeeTools } from "@/lib/ai/tools/office/employee";
 import { resolveCEOTools } from "@/lib/ai/tools/office/ceo";
+import { resolveCHROTools } from "@/lib/ai/tools/office/chro";
+import { resolveCTOTools } from "@/lib/ai/tools/office/cto";
+import { resolveCOOTools } from "@/lib/ai/tools/office/coo";
+import { resolveCFOTools } from "@/lib/ai/tools/office/cfo";
 import { advancedToolsPrompt } from "@/lib/ai/tools/advanced";
 import { baseToolsPrompt } from "@/lib/ai/tools/base";
 import { FullEmployee } from "@/lib/types";
 import dedent from "dedent";
-import { Attachment } from "ai";
+import { Attachment, experimental_createMCPClient } from "ai";
 import { convertAttachmentsToContent } from "./chat";
 import { vAttachment } from "./schema";
 
 interface SystemPromptProps {
     attachments?: Attachment[];
-    employee: Partial<FullEmployee>;
+    employee: FullEmployee;
 }
 
-export const systemPrompt = ({ attachments, employee: { name, jobTitle, jobDescription, background, personality, team, tools, skills } }: SystemPromptProps) => {
-    if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !tools || !skills) {
+export const systemPrompt = ({ attachments, employee: { name, jobTitle, jobDescription, background, personality, team, toolsets, skills } }: SystemPromptProps) => {
+    if (!name || !jobTitle || !jobDescription || !background || !personality || !team || !toolsets || !skills) {
         throw new Error("Missing required fields");
     }
 
@@ -58,7 +62,7 @@ export const systemPrompt = ({ attachments, employee: { name, jobTitle, jobDescr
 
     ## Role Specific Tools
     Here are your role specific tools to help you do your work 
-    ${tools.map((tool) => `- ${tool.name}: ${tool.description} (toolId: ${tool._id})`).join("\n")}
+    ${toolsets.map((toolset) => `- ${toolset.name}: ${toolset.description} (toolsetId: ${toolset._id})`).join("\n")}
 
     # Skills
     You have skills, which are just workflows to use the tools to perform specialized tasks.
@@ -111,12 +115,70 @@ export const streamMessage = internalAction({
             threadId,
         });
 
+        // Resolve tools based on built-in role
+        const resolveToolsForRole = async () => {
+            const toolProps = { ctx, threadId, userId, employeeId, teamId, companyId: employee.companyId };
+
+            switch (employee.builtInRole) {
+                case "ceo":
+                    return await resolveCEOTools(toolProps);
+                case "coo":
+                    return await resolveCOOTools(toolProps);
+                case "cto":
+                    return await resolveCTOTools(toolProps);
+                case "chro":
+                    return await resolveCHROTools(toolProps);
+                case "cfo":
+                    return await resolveCFOTools(toolProps);
+                default:
+                    return await resolveEmployeeTools(toolProps);
+            }
+        };
+
+        // Resolve MCP toolsets
+        // Get all MCP tool sets and wait for them to resolve
+        const mcpToolSetsClients = await Promise.all(
+            employee.toolsets
+                .filter(toolset => toolset.type === "mcp" && toolset.toolsetConfig?.connectionType === "sse")
+                .map(async toolset => {
+                    const client = await experimental_createMCPClient({
+                        transport: {
+                            type: "sse",
+                            url: toolset.toolsetConfig!.connectionUrl!,
+                            ...(toolset.toolsetConfig?.env?.apiKey ? {
+                                headers: {
+                                    "Authorization": `Bearer ${toolset.toolsetConfig.env.apiKey}`
+                                }
+                            } : {}),
+                        }
+                    })
+                    return client;
+                })
+        );
+
+        console.log("MCP toolsets clients", mcpToolSetsClients);
+
+        // Get all tools from all MCP clients
+        const allMcpTools = await Promise.all(
+            mcpToolSetsClients.map(client => client.tools())
+        );
+
+        // Merge all tools into a single object
+        const mergedMcpTools = Object.assign({}, ...allMcpTools);
+
+        console.log("All MCP tools count:", allMcpTools.map(tools => Object.keys(tools).length));
+        console.log("Merged MCP tools keys:", Object.keys(mergedMcpTools));
+
         const baseOptions = {
-            system: systemPrompt({ attachments: hiddenChatState.attachments, employee }),
+            system: systemPrompt({
+                attachments: hiddenChatState.attachments,
+                employee: employee
+            }),
             providerOptions: anthropicProviderOptions,
-            tools: employee.isCEO ?
-                await resolveCEOTools({ ctx, threadId, userId, employeeId, teamId, companyId: employee.companyId }) :
-                await resolveEmployeeTools({ ctx, threadId, employeeId, userId, teamId, companyId: employee.companyId }),
+            tools: {
+                ...(await resolveToolsForRole()),
+                ...mergedMcpTools
+            },
             maxSteps: 25,
         };
 
@@ -132,6 +194,10 @@ export const streamMessage = internalAction({
                     role: "user",
                     content,
                 }],
+                onFinish: async () => {
+                    // Close all MCP toolsets
+                    await Promise.all(mcpToolSetsClients.map(client => client.close()));
+                }
             }, {
                 saveStreamDeltas: { chunking: "line", throttleMs: 500 },
             });

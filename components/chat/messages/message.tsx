@@ -19,6 +19,7 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import { SourceCard, type SourceDataType } from '../source-card';
 import { useChatStore } from '@/lib/store/chat-store';
 import {
+  DefaultToolPreview,
   DocumentPreview,
   DocumentToolCall,
   DocumentToolResult,
@@ -390,7 +391,12 @@ const PurePreviewMessage = ({
                               results={result}
                             />;
                           default:
-                            return <pre>{JSON.stringify(result, null, 2)}</pre>;
+                            return <DefaultToolPreview
+                              toolName={toolName}
+                              args={args}
+                              result={result}
+                              toolCallId={toolCallId}
+                            />;
                         }
                       })()}
                     </div>

@@ -60,6 +60,14 @@ export interface ResolveToolProps {
     companyId: Id<"companies">;
 }
 
+export interface MCPToolConfigs {
+    tools: {
+        name: string;
+        description: string;
+        config: Record<string, any>;
+    }
+}
+
 export interface ToolErrorOptions {
     /**
      * The operation being attempted (e.g., "Artifact creation", "Company update")

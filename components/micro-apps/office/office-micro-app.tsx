@@ -15,6 +15,8 @@ import KPIClientMicroUI from '@/micro-apps/office/kpi-client';
 import CompanyConfigMicroUI from '@/micro-apps/office/company-config';
 import EmployeeConfigMicroUI from '@/micro-apps/office/hr-config';
 import EmployeeDriveMicroUI from '@/micro-apps/office/employee-drive';
+import CompanyToolsetConfig from '@/components/micro-apps/office/company-toolset-config';
+import HREmployeeManagement from '@/components/micro-apps/office/hr-employee-management';
 import { Id } from '@/convex/_generated/dataModel';
 
 interface OfficeMicroAppProps {
@@ -116,6 +118,22 @@ export function OfficeMicroApp({
             title={title}
             toolCallId={microAppData.toolCallId || ''}
             employeeId={microAppData.employeeId}
+          />
+        );
+
+      case 'company-toolset-config':
+        return (
+          <CompanyToolsetConfig
+            title={title}
+            companyId={microAppData.companyId}
+          />
+        );
+
+      case 'employee-directory-config':
+        return (
+          <HREmployeeManagement
+            title={title}
+            companyId={microAppData.companyId}
           />
         );
 

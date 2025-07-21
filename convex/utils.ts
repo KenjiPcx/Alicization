@@ -89,6 +89,24 @@ export async function patchCompanyFile(
     return false;
 }
 
+/**
+ * Type-safe update helper for tools
+ */
+export async function patchTool(
+    ctx: MutationCtx,
+    toolId: Id<"tools">,
+    updates: Partial<Omit<Doc<"tools">, "_id" | "_creationTime" | "userId">>
+): Promise<boolean> {
+    const filteredUpdates = filterUndefined(updates);
+
+    if (Object.keys(filteredUpdates).length > 0) {
+        await ctx.db.patch(toolId, filteredUpdates);
+        return true;
+    }
+
+    return false;
+}
+
 // Note: For other tables, create specific update functions above
 // This provides better type safety and IntelliSense
 

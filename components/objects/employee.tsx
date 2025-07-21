@@ -21,7 +21,7 @@ import { getRandomItem } from "@/lib/utils";
 
 interface EmployeeProps extends Omit<EmployeeData, 'initialPosition'> {
     position: [number, number, number];
-    onClick: (employee: EmployeeData) => void;
+    onClick: (employee: Omit<EmployeeData, 'companyId'>) => void;
     floorSize: number; // Keep floorSize for bounds checks maybe?
     debugMode?: boolean; // Add optional debugMode prop
 }

@@ -1,3 +1,4 @@
+import { DefaultToolPreview } from './default-tool-preview';
 import { DocumentToolCall, DocumentToolResult } from './document';
 import { DocumentPreview } from './document-preview';
 import { MicroAppResult } from './micro-app-result';
@@ -15,6 +16,7 @@ import { KnowledgeSearchPreview } from './knowledge-search-preview';
 import { KnowledgeSearchResults } from './knowledge-search-results';
 
 export {
+    DefaultToolPreview,
     DocumentToolCall,
     DocumentToolResult,
     DocumentPreview,

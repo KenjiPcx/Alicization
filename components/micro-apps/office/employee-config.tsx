@@ -26,7 +26,8 @@ import {
     ChevronRight,
     Shield,
     Crown,
-    Settings
+    Settings,
+    Globe
 } from 'lucide-react';
 
 export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProps) {
@@ -65,7 +66,7 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
         );
     }
 
-    const { skills = [], tools = [] } = employeeData;
+    const { skills = [], toolsets = [] } = employeeData;
 
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -122,7 +123,7 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                         </div>
                         <div className="flex items-center gap-1">
                             <Zap className="h-4 w-4" />
-                            <span>{tools.length} Tools</span>
+                            <span>{toolsets.length} Toolsets</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Brain className="h-4 w-4" />
@@ -217,37 +218,41 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                 </CardContent>
             </Card>
 
-            {/* Tools Section */}
+            {/* Toolsets Section */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Settings className="h-5 w-5" />
-                        Tools & Access ({tools.length})
+                        Toolsets & Access ({toolsets.length})
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {tools.length === 0 ? (
+                    {toolsets.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No tools assigned yet</p>
-                            <p className="text-sm mt-2">Contact HR to assign tools and access permissions to this employee.</p>
+                            <p>No toolsets assigned yet</p>
+                            <p className="text-sm mt-2">Contact IT to assign toolsets and access permissions to this employee.</p>
                         </div>
                     ) : (
                         <TooltipProvider>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {tools.map((tool) => (
-                                    <Tooltip key={tool._id}>
+                                {toolsets.map((toolset) => (
+                                    <Tooltip key={toolset._id}>
                                         <TooltipTrigger asChild>
                                             <Card className="p-4 hover:shadow-md transition-shadow cursor-help">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Settings className="w-4 h-4 text-blue-500" />
-                                                            <h4 className="font-semibold">{tool.name}</h4>
+                                                            {toolset.type === "builtin" ? (
+                                                                <Settings className="w-4 h-4 text-blue-500" />
+                                                            ) : (
+                                                                <Globe className="w-4 h-4 text-green-500" />
+                                                            )}
+                                                            <h4 className="font-semibold">{toolset.name}</h4>
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.description}</p>
+                                                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{toolset.description}</p>
                                                         <Badge variant="outline" className="text-xs">
-                                                            {(tool as any).type?.toUpperCase() || 'TOOL'}
+                                                            {toolset.type === "builtin" ? "Built-in" : "MCP"}
                                                         </Badge>
                                                     </div>
                                                     <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-2" />
@@ -256,10 +261,10 @@ export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProp
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="max-w-xs">
                                             <div className="space-y-2">
-                                                <h4 className="font-semibold">{tool.name}</h4>
-                                                <p className="text-sm">{tool.description}</p>
+                                                <h4 className="font-semibold">{toolset.name}</h4>
+                                                <p className="text-sm">{toolset.description}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Type: {(tool as any).type || 'Unknown'}
+                                                    Type: {toolset.type === "builtin" ? "Built-in" : "MCP"}
                                                 </p>
                                             </div>
                                         </TooltipContent>
