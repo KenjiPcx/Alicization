@@ -36,6 +36,14 @@ interface AppState {
     isBuilderMode: boolean;
     setBuilderMode: (isBuilderMode: boolean) => void;
 
+    // Dragging state for locking orbit controls
+    isDragging: boolean;
+    setIsDragging: (isDragging: boolean) => void;
+
+    // Camera animation state
+    isAnimatingCamera: boolean;
+    setAnimatingCamera: (isAnimating: boolean) => void;
+
     // Grid display settings (prevent duplicate grids)
     gridDisplayMode: 'none' | 'debug' | 'builder' | 'both';
     setGridDisplayMode: (mode: 'none' | 'debug' | 'builder' | 'both') => void;
@@ -66,6 +74,12 @@ export const useAppStore = create<AppState>()(
 
         isBuilderMode: false,
         setBuilderMode: (isBuilderMode: boolean) => set({ isBuilderMode }),
+
+        isDragging: false,
+        setIsDragging: (isDragging: boolean) => set({ isDragging }),
+
+        isAnimatingCamera: false,
+        setAnimatingCamera: (isAnimating: boolean) => set({ isAnimatingCamera: isAnimating }),
 
         gridDisplayMode: 'none',
         setGridDisplayMode: (mode: 'none' | 'debug' | 'builder' | 'both') => set({ gridDisplayMode: mode }),

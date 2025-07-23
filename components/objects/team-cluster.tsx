@@ -1,15 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Id } from '@/convex/_generated/dataModel';
 import { useMutation } from 'convex/react';
 import * as THREE from 'three';
-import Desk from './desk';
-import type { DeskLayoutData, TeamData } from '@/lib/types';
-import { DraggableObjectWrapper } from './draggable-object';
 import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
+import type { TeamData, DeskLayoutData } from '@/lib/types';
+import Desk from './desk';
+import { DraggableObjectWrapper } from './draggable-object';
+import { useDragDrop } from '@/hooks/use-drag-drop';
 
 interface TeamClusterProps {
     team: TeamData;
-    desks: ReadonlyArray<DeskLayoutData>;
+    desks: DeskLayoutData[];
     handleTeamClick: (team: TeamData) => void;
     companyId?: Id<"companies">;
     isDragEnabled?: boolean;
@@ -25,10 +26,14 @@ export default function TeamCluster({
     // State for hover is localized here
     const [isHovered, setIsHovered] = useState(false);
     const [officeObjectId, setOfficeObjectId] = useState<Id<"officeObjects"> | null>(null);
+    const lastDragTime = useRef(0);
 
     // Mutations
     const getOrCreateOfficeObject = useMutation(api.officeObjects.getOrCreateOfficeObject);
     const updateOfficeObjectPosition = useMutation(api.officeObjects.updateOfficeObjectPosition);
+
+    // Access drag state to prevent clicks during drag operations
+    const { dragState } = useDragDrop(isDragEnabled);
 
     // Initialize office object on mount
     useEffect(() => {
@@ -59,6 +64,9 @@ export default function TeamCluster({
             return;
         }
 
+        // Record when drag ended to prevent immediate clicks
+        lastDragTime.current = performance.now();
+
         try {
             await updateOfficeObjectPosition({
                 id: officeObjectId,
@@ -70,13 +78,34 @@ export default function TeamCluster({
         }
     }, [officeObjectId, team.name, updateOfficeObjectPosition]);
 
+    // Enhanced click handler that prevents clicks during/after drag operations
+    const handleSafeTeamClick = useCallback((event: any) => {
+        event.stopPropagation();
+
+        // Prevent clicks if we're currently dragging any object
+        if (dragState.isDragging) {
+            return;
+        }
+
+        // Prevent clicks shortly after drag operations to avoid accidental clicks
+        const timeSinceLastDrag = performance.now() - lastDragTime.current;
+        if (timeSinceLastDrag < 200) { // 200ms grace period
+            return;
+        }
+
+        // Only allow clicks when not in drag mode or when companyId is not available
+        if (!isDragEnabled || !officeObjectId || !companyId) {
+            handleTeamClick(team);
+        }
+    }, [dragState.isDragging, isDragEnabled, officeObjectId, companyId, team, handleTeamClick]);
+
     // Use team's clusterPosition for initial positioning
     const initialPosition = team.clusterPosition
         ? new THREE.Vector3(team.clusterPosition[0], team.clusterPosition[1], team.clusterPosition[2])
         : undefined;
 
-    // Only enable local hover effects when drag mode is disabled
-    const shouldEnableLocalHover = !isDragEnabled || !officeObjectId;
+    // Only enable local hover effects when drag mode is disabled or companyId is not available
+    const shouldEnableLocalHover = !isDragEnabled || !officeObjectId || !companyId;
 
     return (
         <DraggableObjectWrapper
@@ -89,7 +118,7 @@ export default function TeamCluster({
         >
             <group
                 // Key is applied where this component is used (.map in OfficeScene)
-                onClick={(e) => { e.stopPropagation(); handleTeamClick(team); }}
+                onClick={handleSafeTeamClick}
                 onPointerOver={(e) => {
                     e.stopPropagation();
                     if (shouldEnableLocalHover) {

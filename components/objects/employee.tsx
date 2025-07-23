@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Box, Edges } from "@react-three/drei";
 import {
@@ -26,7 +26,7 @@ interface EmployeeProps extends Omit<EmployeeData, 'initialPosition'> {
     debugMode?: boolean; // Add optional debugMode prop
 }
 
-export function Employee({
+const Employee = memo(function Employee({
     _id: id,
     _creationTime,
     userId,
@@ -358,4 +358,6 @@ export function Employee({
             )}
         </>
     );
-}
+});
+
+export { Employee };

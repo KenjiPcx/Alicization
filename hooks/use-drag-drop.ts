@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getGridData } from '@/lib/pathfinding/a-star-pathfinding';
+import { useAppStore } from '@/lib/store/app-store';
 
 export interface DraggableObject {
     object3D: THREE.Object3D;
@@ -19,6 +20,8 @@ export interface DragState {
 
 export function useDragDrop(enabled: boolean = true) {
     const { camera, gl, scene } = useThree();
+    const setIsDragging = useAppStore((state) => state.setIsDragging);
+
     const [dragState, setDragState] = useState<DragState>({
         isDragging: false,
         draggedObject: null,
@@ -31,6 +34,8 @@ export function useDragDrop(enabled: boolean = true) {
     const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
     const planeIntersect = useRef(new THREE.Vector3());
     const draggableObjects = useRef<DraggableObject[]>([]);
+    const lastHoverCheck = useRef(0);
+    const hoverThrottleMs = 16; // ~60fps for hover detection
 
     // Snap position to pathfinding grid
     const snapToGrid = useCallback((position: THREE.Vector3): THREE.Vector3 => {
@@ -57,7 +62,6 @@ export function useDragDrop(enabled: boolean = true) {
         draggableObjects.current.push(draggableObject);
         // Add user data for identification
         draggableObject.object3D.userData.draggable = draggableObject;
-        console.log('✅ Registered draggable object:', draggableObject.objectId);
     }, []);
 
     // Unregister a draggable object
@@ -80,14 +84,14 @@ export function useDragDrop(enabled: boolean = true) {
     const findDraggableIntersection = useCallback((mousePos: THREE.Vector2): DraggableObject | null => {
         raycaster.current.setFromCamera(mousePos, camera);
 
-        // Instead of only checking registered objects, check all objects in the scene
-        // and traverse up to find if any parent is a registered draggable object
-        const intersects = raycaster.current.intersectObjects(scene.children, true);
+        // PERFORMANCE: Only check registered draggable objects instead of entire scene
+        const objects3D = draggableObjects.current.map(obj => obj.object3D);
+        const intersects = raycaster.current.intersectObjects(objects3D, true);
 
         if (intersects.length > 0) {
             // For each intersection, traverse up the hierarchy to find a draggable object
             for (const intersect of intersects) {
-                let current = intersect.object;
+                let current: THREE.Object3D | null = intersect.object;
 
                 // Traverse up the parent chain
                 while (current) {
@@ -106,7 +110,7 @@ export function useDragDrop(enabled: boolean = true) {
         }
 
         return null;
-    }, [camera, scene]);
+    }, [camera]);
 
     // Handle mouse down
     const handleMouseDown = useCallback((event: MouseEvent) => {
@@ -116,7 +120,6 @@ export function useDragDrop(enabled: boolean = true) {
         const intersectedDraggable = findDraggableIntersection(mouse.current);
 
         if (intersectedDraggable && intersectedDraggable.object3D && intersectedDraggable.object3D.position) {
-            console.log('🔥 Starting drag for:', intersectedDraggable.objectId);
 
             // Calculate intersection with floor plane for drag offset
             raycaster.current.setFromCamera(mouse.current, camera);
@@ -131,11 +134,12 @@ export function useDragDrop(enabled: boolean = true) {
                 dragOffset,
                 hoveredObject: null,
             });
+            setIsDragging(true);
 
             // Change cursor
             gl.domElement.style.cursor = 'grabbing';
         }
-    }, [enabled, camera, gl, getMousePosition, findDraggableIntersection]);
+    }, [enabled, camera, gl, getMousePosition, findDraggableIntersection, setIsDragging]);
 
     // Handle mouse move
     const handleMouseMove = useCallback((event: MouseEvent) => {
@@ -144,7 +148,7 @@ export function useDragDrop(enabled: boolean = true) {
         mouse.current = getMousePosition(event);
 
         if (dragState.isDragging && dragState.draggedObject && dragState.draggedObject.object3D) {
-            // Update dragged object position
+            // Update dragged object position (no throttling during drag for smooth movement)
             raycaster.current.setFromCamera(mouse.current, camera);
             raycaster.current.ray.intersectPlane(plane.current, planeIntersect.current);
 
@@ -155,6 +159,13 @@ export function useDragDrop(enabled: boolean = true) {
             const snappedPosition = snapToGrid(newPosition);
             dragState.draggedObject.object3D.position.copy(snappedPosition);
         } else {
+            // Throttle hover detection to improve performance
+            const now = performance.now();
+            if (now - lastHoverCheck.current < hoverThrottleMs) {
+                return; // Skip this hover check
+            }
+            lastHoverCheck.current = now;
+
             // Handle hover highlighting
             const intersectedDraggable = findDraggableIntersection(mouse.current);
 
@@ -175,7 +186,6 @@ export function useDragDrop(enabled: boolean = true) {
         if (!enabled) return;
 
         if (dragState.isDragging && dragState.draggedObject) {
-            console.log('💾 Drag ended, saving position for:', dragState.draggedObject.objectId);
 
             // Call onDragEnd callback with final position
             if (dragState.draggedObject.onDragEnd) {
@@ -189,10 +199,11 @@ export function useDragDrop(enabled: boolean = true) {
             dragOffset: new THREE.Vector3(),
             hoveredObject: dragState.hoveredObject,
         });
+        setIsDragging(false);
 
         // Reset cursor
         gl.domElement.style.cursor = 'default';
-    }, [enabled, gl, dragState]);
+    }, [enabled, gl, dragState, setIsDragging]);
 
     // Set up event listeners
     useEffect(() => {

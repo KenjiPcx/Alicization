@@ -30,7 +30,16 @@ export function SpeedDial({
     className,
 }: SpeedDialProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const { isBuilderMode, setBuilderMode, debugMode, setDebugMode } = useAppStore();
+    const { isBuilderMode, setBuilderMode, debugMode, setDebugMode, isAnimatingCamera, setAnimatingCamera } = useAppStore();
+
+    // Handle builder mode toggle - let the scene handle animation
+    const handleBuilderModeToggle = () => {
+        if (isAnimatingCamera) return; // Prevent clicks during animation
+
+        setAnimatingCamera(true); // Start animation state
+        setBuilderMode(!isBuilderMode); // This will trigger the animation in OfficeScene
+        setIsOpen(false); // Close the speed dial
+    };
 
     const speedDialItems = [
         {
@@ -44,11 +53,12 @@ export function SpeedDial({
         {
             icon: Hammer,
             label: "Builder Mode",
-            onClick: () => setBuilderMode(!isBuilderMode),
+            onClick: handleBuilderModeToggle,
             color: isBuilderMode
                 ? "bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white"
                 : "bg-slate-500 hover:bg-slate-600 dark:bg-slate-700 dark:hover:bg-slate-800 text-white",
             component: "button" as const,
+            disabled: isAnimatingCamera, // Disable during animation
         },
         {
             icon: Settings,

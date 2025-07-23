@@ -1,8 +1,8 @@
 'use client';
 
 import { Box, OrbitControls } from '@react-three/drei';
-import { useMemo, memo, useRef, useEffect, createRef, useCallback } from 'react';
-import type * as THREE from 'three';
+import { useMemo, memo, useRef, useEffect, createRef, useCallback, useState } from 'react';
+import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { useAppStore } from '@/lib/store/app-store';
 import { useChatActions } from '@/lib/store/chat-store';
@@ -95,8 +95,11 @@ function SceneContents({
     desks,
     companyId,
 }: SceneContentsProps) {
-    const { isBuilderMode, debugMode, setIsChatModalOpen, setActiveChatParticipant } = useAppStore();
+    const { isBuilderMode, debugMode, setIsChatModalOpen, setActiveChatParticipant, isAnimatingCamera, setAnimatingCamera, isDragging } = useAppStore();
     const { getLatestThreadId, setThreadId } = useChatActions();
+
+    // Use animation state to prevent scene updates during transitions
+    const sceneBuilderMode = isAnimatingCamera ? false : isBuilderMode;
 
     const orbitControlsRef = useRef<any>(null);
     const floorRef = useRef<THREE.Mesh>(null);
@@ -208,20 +211,65 @@ function SceneContents({
         return () => clearInterval(checkRefsInterval);
     }, [desksByTeam]);
 
-    // Reset camera when builder mode changes
+    // Camera animation when builder mode changes
     useEffect(() => {
-        if (orbitControlsRef.current && isBuilderMode) {
-            // Set top-down view for builder mode
-            orbitControlsRef.current.object.position.set(0, 50, 0);
-            orbitControlsRef.current.object.lookAt(0, 0, 0);
-            orbitControlsRef.current.object.updateProjectionMatrix();
-            orbitControlsRef.current.update();
-        } else if (orbitControlsRef.current && !isBuilderMode) {
-            // Reset to standard perspective view
-            orbitControlsRef.current.object.position.set(0, 25, 30);
-            orbitControlsRef.current.object.lookAt(0, 0, 0);
-            orbitControlsRef.current.object.updateProjectionMatrix();
-            orbitControlsRef.current.update();
+        if (orbitControlsRef.current) {
+            const controls = orbitControlsRef.current;
+            const camera = controls.object;
+
+            if (isBuilderMode) {
+                // Smooth transition to top-down view for builder mode
+                const startPos = camera.position.clone();
+                const endPos = new THREE.Vector3(0, 50, 0);
+                const duration = 500; // ms
+                const startTime = performance.now();
+
+                const animateCamera = () => {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+
+                    camera.position.lerpVectors(startPos, endPos, eased);
+                    camera.lookAt(0, 0, 0);
+                    camera.updateProjectionMatrix();
+                    controls.update();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animateCamera);
+                    } else {
+                        // Animation complete - now activate delayed builder mode
+                        setAnimatingCamera(false);
+                    }
+                };
+
+                animateCamera();
+            } else {
+                // Smooth transition back to standard perspective view
+                const startPos = camera.position.clone();
+                const endPos = new THREE.Vector3(0, 25, 30);
+                const duration = 500; // ms
+                const startTime = performance.now();
+
+                const animateCamera = () => {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+
+                    camera.position.lerpVectors(startPos, endPos, eased);
+                    camera.lookAt(0, 0, 0);
+                    camera.updateProjectionMatrix();
+                    controls.update();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animateCamera);
+                    } else {
+                        // Animation complete - now deactivate delayed builder mode
+                        setAnimatingCamera(false);
+                    }
+                };
+
+                animateCamera();
+            }
         }
     }, [isBuilderMode]);
 
@@ -246,8 +294,8 @@ function SceneContents({
                 position={[15, 20, 10]}
                 intensity={1.5}
                 castShadow
-                shadow-mapSize-width={2048}
-                shadow-mapSize-height={2048}
+                shadow-mapSize-width={sceneBuilderMode ? 1024 : 2048} // Reduce shadow quality in builder mode
+                shadow-mapSize-height={sceneBuilderMode ? 1024 : 2048}
                 shadow-camera-far={50}
                 shadow-camera-left={-HALF_FLOOR - 5}
                 shadow-camera-right={HALF_FLOOR + 5}
@@ -259,12 +307,12 @@ function SceneContents({
 
             <OrbitControls
                 ref={orbitControlsRef}
-                enabled={true} // Always enabled
-                enableRotate={true} // Always allow rotation
-                enablePan={true} // Always allow panning
+                enabled={!isDragging} // Disable controls while dragging an object
+                enableRotate={!isDragging} // Always allow rotation
+                enablePan={!isDragging} // Always allow panning
                 enableZoom={true} // Always allow zoom
-                maxPolarAngle={isBuilderMode ? Math.PI / 3 : Math.PI} // Limit rotation in builder mode
-                minPolarAngle={isBuilderMode ? 0 : 0} // Allow looking straight down in builder mode
+                maxPolarAngle={sceneBuilderMode ? Math.PI / 3 : Math.PI} // Limit rotation in builder mode
+                minPolarAngle={sceneBuilderMode ? 0 : 0} // Allow looking straight down in builder mode
             />
 
             <Box
@@ -321,7 +369,7 @@ function SceneContents({
                         desks={teamDesks}
                         handleTeamClick={handleTeamClick}
                         companyId={companyId}
-                        isDragEnabled={isBuilderMode}
+                        isDragEnabled={sceneBuilderMode}
                     />
                 </group>
             ))}
@@ -338,7 +386,8 @@ function SceneContents({
                 </group>
             )}
 
-            {employeesForScene.map((emp) => (
+            {/* Only render employees when NOT in builder mode for performance */}
+            {!sceneBuilderMode && employeesForScene.map((emp) => (
                 <Employee
                     key={emp._id}
                     {...emp}
@@ -356,7 +405,7 @@ function SceneContents({
                     position={pos}
                     objectId={`plant-${index}`}
                     companyId={companyId as any}
-                    isDragEnabled={isBuilderMode && !!companyId}
+                    isDragEnabled={sceneBuilderMode && !!companyId}
                 />
             ))}
             {CEO_OFFICE_WALLS.map((wall) => (
@@ -378,7 +427,7 @@ function SceneContents({
                     position={[0, 0, -HALF_FLOOR + 1]}
                     objectId="pantry-main"
                     companyId={companyId as any}
-                    isDragEnabled={isBuilderMode && !!companyId}
+                    isDragEnabled={sceneBuilderMode && !!companyId}
                 />
             </group>
             <group ref={bookshelfRef} name="obstacle-bookshelfGroup">
@@ -387,7 +436,7 @@ function SceneContents({
                     rotationY={0}
                     objectId="bookshelf-main"
                     companyId={companyId as any}
-                    isDragEnabled={isBuilderMode && !!companyId}
+                    isDragEnabled={sceneBuilderMode && !!companyId}
                 />
             </group>
             <group ref={couchRef} name="obstacle-couchGroup">
@@ -396,11 +445,11 @@ function SceneContents({
                     rotationY={0}
                     objectId="couch-main"
                     companyId={companyId as any}
-                    isDragEnabled={isBuilderMode && !!companyId}
+                    isDragEnabled={sceneBuilderMode && !!companyId}
                 />
             </group>
 
-            <SmartGrid />
+            <SmartGrid debugMode={debugMode} isBuilderMode={sceneBuilderMode} />
             {debugMode && <DestinationDebugger />}
         </>
     );
