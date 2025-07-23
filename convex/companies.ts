@@ -1,37 +1,58 @@
-import { internalMutation, query, mutation } from "./_generated/server";
+import { internalMutation, query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { patchCompany } from "./utils";
+import { internal } from "./_generated/api";
+import { CompanyData } from "@/lib/types";
 
 /**
  * Get company with team details
  */
 export const getCompany = query({
     args: v.object({
-        userId: v.id("users"),
         fetchTeam: v.optional(v.boolean()),
+        fetchEmployees: v.optional(v.boolean()),
     }),
-    handler: async (ctx, args) => {
-        const company = await ctx.db
-            .query("companies")
-            .filter((q) => q.eq(q.field("userId"), args.userId))
-            .first();
-
-        if (!company) return null;
-
-        if (args.fetchTeam) {
-            const teams = await ctx.db.query("teams")
-                .filter((q) => q.eq(q.field("userId"), args.userId))
-                .collect();
-
-            return {
-                ...company,
-                teams,
-            };
+    handler: async (ctx, { fetchTeam, fetchEmployees }): Promise<CompanyData> => {
+        const userId = await getAuthUserId(ctx);
+        if (!userId) {
+            throw new Error("User not found");
         }
 
-        return company;
+        return await ctx.runQuery(internal.companies.internalGetCompany, { userId, fetchTeam, fetchEmployees });
+    },
+});
+
+export const internalGetCompany = internalQuery({
+    args: v.object({
+        userId: v.id("users"),
+        fetchTeam: v.optional(v.boolean()),
+        fetchEmployees: v.optional(v.boolean()),
+    }),
+    handler: async (ctx, { userId, fetchTeam, fetchEmployees }): Promise<CompanyData> => {
+        const company = await ctx.db
+            .query("companies")
+            .filter((q) => q.eq(q.field("userId"), userId))
+            .first();
+
+        if (!company) {
+            return { company: null, teams: [], employees: [] };
+        }
+
+        const teams = fetchTeam
+            ? await ctx.db.query("teams")
+                .filter((q) => q.eq(q.field("companyId"), company._id))
+                .collect()
+            : [];
+        const employees = fetchEmployees
+            ? await ctx.db
+                .query("employees")
+                .filter((q) => q.eq(q.field("companyId"), company._id))
+                .collect()
+            : [];
+
+        return { company, teams, employees };
     },
 });
 

@@ -299,7 +299,7 @@ const PurePreviewMessage = ({
                   const { args, result } = toolInvocation;
 
                   return (
-                    <div key={toolCallId}>
+                    <div key={`${toolCallId}-result`}>
                       {(() => {
                         switch (toolName) {
                           case 'openOfficeMicroApp':

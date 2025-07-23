@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { api } from "@/convex/_generated/api";
+import { api, internal } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { tool } from "ai";
 import { ActionCtx } from "@/convex/_generated/server";
@@ -278,11 +278,15 @@ export const resolveCompanyScope = async ({
     ctx,
     userId,
 }: ResolveToolProps): Promise<ScopeAndId> => {
-    const company = await ctx.runQuery(api.companies.getCompany, { userId });
-    if (!company) {
+    const companyData = await ctx.runQuery(internal.companies.internalGetCompany, {
+        userId,
+        fetchTeam: false,
+        fetchEmployees: false
+    });
+    if (!companyData || !companyData.company) {
         throw new Error("No company found. Please create a company first.");
     }
-    return { scope: "company", companyId: company._id };
+    return { scope: "company", companyId: companyData.company._id };
 };
 
 export const resolveTeamScope = (teamId: Id<"teams">): ScopeAndId => {

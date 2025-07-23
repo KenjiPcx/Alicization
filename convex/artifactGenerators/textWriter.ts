@@ -82,7 +82,6 @@ export const generateTextArtifact = internalAction({
         // Wait for the stream to finish
         // These mutations will persist the changes to the artifact in the database
         for await (const chunk of fullStream) {
-            console.log("Kenji chunk", chunk);
             if (chunk.type === "error") {
                 console.error("Error generating text artifact", chunk.error);
                 await ctx.runMutation(internal.backgroundJobStatuses.updateBackgroundJobStatus, {
@@ -109,7 +108,7 @@ export const generateTextArtifact = internalAction({
                 // Batch the chunks to avoid too many mutations
                 batchCounter++;
                 batchedChunk += chunk.textDelta;
-                if (batchCounter % 15 === 0) {
+                if (batchCounter % 5 === 0) {
                     await ctx.runMutation(internal.artifacts.handleArtifactTextChunk, {
                         artifactId,
                         content: batchedChunk,

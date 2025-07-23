@@ -293,7 +293,6 @@ export const getEmployeeDrive = query({
         // 1. Files directly assigned to employee
         const directFiles = await ctx.db.query("companyFiles")
             .withIndex("by_employeeId", (q) => q.eq("employeeId", args.employeeId))
-            .filter((q) => q.eq("userId", userId as string))
             .collect();
 
         console.log("directFiles", directFiles);

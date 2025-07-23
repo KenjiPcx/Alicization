@@ -23,9 +23,9 @@ import { LoaderIcon } from '@/components/icons';
 
 import type { Chat, User } from '@/lib/types';
 import { useChatStore } from '@/lib/store/chat-store';
-import { usePaginatedQuery, useMutation, useAction, useQuery } from 'convex/react';
+import { usePaginatedQuery, useAction, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useOfficeStore } from '@/lib/store/office-store';
+import { useAppStore } from '@/lib/store/app-store';
 
 type EnrichedChat = Chat & {
     thread: {
@@ -73,10 +73,8 @@ const groupChatsByDate = (chats: EnrichedChat[]) => {
 export function SidebarHistory() {
     const { setOpenMobile } = useSidebar();
     const { threadId, setThreadId } = useChatStore();
-    const { activeChatParticipant } = useOfficeStore();
+    const { activeChatParticipant } = useAppStore();
     const user = useQuery(api.auth.currentUser);
-
-    console.log("Rerendering SidebarHistory", activeChatParticipant);
 
     // Use the correct chat owner ID based on the chat type
     const chatOwnerId = activeChatParticipant?.type === 'team'

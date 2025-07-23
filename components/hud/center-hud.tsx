@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useOfficeData } from "@/hooks/use-office-data";
 
 interface CenterHUDProps {
     className?: string;
@@ -12,10 +11,7 @@ interface CenterHUDProps {
 
 export function CenterHUD({ className }: CenterHUDProps) {
     // Get the current user and company
-    const user = useQuery(api.auth.currentUser);
-    const company = useQuery(api.companies.getCompany,
-        user?._id ? { userId: user._id } : "skip"
-    );
+    const { company } = useOfficeData();
 
     // TODO: Replace with real data from your backend
     const levelStats = {

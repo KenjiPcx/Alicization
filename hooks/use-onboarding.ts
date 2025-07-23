@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useChatStore } from '@/lib/store/chat-store';
-import { useOfficeStore } from '@/lib/store/office-store';
 import { CompanyData, CEOData } from '@/components/onboarding/multi-step-onboarding';
 import { useAppStore } from '@/lib/store/app-store';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -10,9 +9,8 @@ import type { Id } from '@/convex/_generated/dataModel';
 export function useOnboarding() {
     const [isLoading, setIsLoading] = useState(false);
 
-    const { setThreadId, setCurrentMode, initialVisibilityType } = useChatStore();
-    const { setActiveChatParticipant } = useOfficeStore();
-    const { setIsChatModalOpen } = useAppStore();
+    const { setCurrentMode, initialVisibilityType, setThreadId } = useChatStore();
+    const { setActiveChatParticipant, setIsChatModalOpen } = useAppStore();
 
     // Convex queries and mutations
     const createCompanyMutation = useMutation(api.companies.createCompany);

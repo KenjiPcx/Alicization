@@ -350,4 +350,121 @@ function markObstacle(centerX: number, centerZ: number, padding: number) {
             walkableGrid[x][z] = false;
         }
     }
+}
+
+// --- Builder Mode Utilities ---
+
+/**
+ * Snaps a world position to the nearest grid center position.
+ * Useful for builder mode when placing objects.
+ * @param worldPos World position to snap
+ * @returns Snapped world position
+ */
+export function snapToGrid(worldPos: THREE.Vector3): THREE.Vector3 {
+    const gridPos = worldToGrid(worldPos.x, worldPos.z);
+    return gridToWorld(gridPos.x, gridPos.z);
+}
+
+/**
+ * Checks if a world position is valid for placing an object (walkable area).
+ * @param worldPos World position to check
+ * @returns True if the position is valid for placement
+ */
+export function isValidPlacementPosition(worldPos: THREE.Vector3): boolean {
+    const gridPos = worldToGrid(worldPos.x, worldPos.z);
+    if (gridPos.x >= 0 && gridPos.x < gridWidth && gridPos.z >= 0 && gridPos.z < gridDepth) {
+        return walkableGrid[gridPos.x][gridPos.z];
+    }
+    return false;
+}
+
+/**
+ * Gets the nearest valid placement position for an object.
+ * @param worldPos Desired world position
+ * @param maxSearchRadius Maximum search radius in grid cells (default: 5)
+ * @returns Nearest valid world position, or null if none found
+ */
+export function getNearestValidPlacement(worldPos: THREE.Vector3, maxSearchRadius = 5): THREE.Vector3 | null {
+    const startGrid = worldToGrid(worldPos.x, worldPos.z);
+
+    // If current position is valid, return it snapped to grid
+    if (isValidPlacementPosition(worldPos)) {
+        return snapToGrid(worldPos);
+    }
+
+    // Search in expanding radius
+    for (let radius = 1; radius <= maxSearchRadius; radius++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) {
+                // Only check perimeter of current radius
+                if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
+
+                const checkX = startGrid.x + dx;
+                const checkZ = startGrid.z + dz;
+
+                if (checkX >= 0 && checkX < gridWidth && checkZ >= 0 && checkZ < gridDepth) {
+                    if (walkableGrid[checkX][checkZ]) {
+                        return gridToWorld(checkX, checkZ);
+                    }
+                }
+            }
+        }
+    }
+
+    return null; // No valid position found
+}
+
+/**
+ * Gets all valid placement positions within a rectangular area.
+ * Useful for showing available placement spots in builder mode.
+ * @param minWorldPos Bottom-left corner of search area
+ * @param maxWorldPos Top-right corner of search area
+ * @returns Array of valid world positions
+ */
+export function getValidPlacementsInArea(minWorldPos: THREE.Vector3, maxWorldPos: THREE.Vector3): THREE.Vector3[] {
+    const minGrid = worldToGrid(minWorldPos.x, minWorldPos.z);
+    const maxGrid = worldToGrid(maxWorldPos.x, maxWorldPos.z);
+
+    const validPositions: THREE.Vector3[] = [];
+
+    for (let x = minGrid.x; x <= maxGrid.x; x++) {
+        for (let z = minGrid.z; z <= maxGrid.z; z++) {
+            if (x >= 0 && x < gridWidth && z >= 0 && z < gridDepth) {
+                if (walkableGrid[x][z]) {
+                    validPositions.push(gridToWorld(x, z));
+                }
+            }
+        }
+    }
+
+    return validPositions;
+}
+
+/**
+ * Checks if an object of a given size can be placed at a position.
+ * @param worldPos Center position to check
+ * @param objectSize Size of the object in world units (assumed square)
+ * @returns True if the object can be placed without overlapping obstacles
+ */
+export function canPlaceObjectAtPosition(worldPos: THREE.Vector3, objectSize: number): boolean {
+    const centerGrid = worldToGrid(worldPos.x, worldPos.z);
+    const halfSizeInCells = Math.ceil(objectSize / (2 * CELL_SIZE));
+
+    // Check all cells that would be occupied by the object
+    for (let dx = -halfSizeInCells; dx <= halfSizeInCells; dx++) {
+        for (let dz = -halfSizeInCells; dz <= halfSizeInCells; dz++) {
+            const checkX = centerGrid.x + dx;
+            const checkZ = centerGrid.z + dz;
+
+            if (checkX < 0 || checkX >= gridWidth || checkZ < 0 || checkZ >= gridDepth) {
+                return false; // Out of bounds
+            }
+
+            if (!walkableGrid[checkX][checkZ]) {
+                return false; // Overlaps with obstacle
+            }
+        }
+    }
+
+    return true;
 } 

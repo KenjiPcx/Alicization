@@ -9,30 +9,28 @@ import {
     User,
     Building2,
     TrendingUp,
-    Plus,
     Menu,
-    X
+    X,
+    Hammer
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import SettingsDialog from "@/components/dialogs/settings-dialog";
+import { useAppStore } from "@/lib/store/app-store";
 
 interface SpeedDialProps {
     onUserTasksClick: () => void;
     pendingTasksCount?: number;
     className?: string;
-    debugMode?: boolean;
-    toggleDebugMode?: () => void;
 }
 
 export function SpeedDial({
     onUserTasksClick,
     pendingTasksCount = 0,
     className,
-    debugMode = false,
-    toggleDebugMode = () => { },
 }: SpeedDialProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const { isBuilderMode, setBuilderMode, debugMode, setDebugMode } = useAppStore();
 
     const speedDialItems = [
         {
@@ -41,6 +39,15 @@ export function SpeedDial({
             onClick: onUserTasksClick,
             badge: pendingTasksCount > 0 ? pendingTasksCount : undefined,
             color: "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white",
+            component: "button" as const,
+        },
+        {
+            icon: Hammer,
+            label: "Builder Mode",
+            onClick: () => setBuilderMode(!isBuilderMode),
+            color: isBuilderMode
+                ? "bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white"
+                : "bg-slate-500 hover:bg-slate-600 dark:bg-slate-700 dark:hover:bg-slate-800 text-white",
             component: "button" as const,
         },
         {
@@ -156,7 +163,7 @@ export function SpeedDial({
                                         {item.component === "settings" ? (
                                             <SettingsDialog
                                                 debugMode={debugMode}
-                                                toggleDebugMode={toggleDebugMode}
+                                                toggleDebugMode={() => setDebugMode(!debugMode)}
                                                 trigger={
                                                     <Button
                                                         size="icon"

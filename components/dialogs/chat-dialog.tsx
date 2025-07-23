@@ -4,40 +4,44 @@ import { Chat } from '../chat/chat';
 import { useChatStore } from '@/lib/store/chat-store';
 import { ChatSidebar } from '../layout/chat-sidebar';
 import { motion } from 'framer-motion';
-import FileManager from '../file-manager/file-manager';
-import type { Id } from '@/convex/_generated/dataModel';
-import { Users, User, MessageSquare } from 'lucide-react';
+import { Users, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useChatParticipantData } from '@/hooks/use-chat-participant-data';
 import { EmployeeData } from '@/lib/types';
+import { useAppStore } from '@/lib/store/app-store';
+import { useMicroAppStore } from '@/lib/store/micro-app-store';
+import { useCallback } from 'react';
 
 const SIDEBAR_WIDTH_REM = '16rem';
 
-interface ChatDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  chatParticipant: {
-    type: 'employee' | 'team';
-    employeeId: Id<"employees">;
-    teamId: Id<"teams">;
-  } | null;
-}
-
-export default function ChatDialog({
-  isOpen,
-  onOpenChange,
-  chatParticipant,
-}: ChatDialogProps) {
-
+export default function ChatDialog() {
   const { threadId, currentMode } = useChatStore();
   const { open: isSidebarOpen } = useSidebar();
 
-  // Use our optimized hook that gets data from already-loaded office data
-  const { employeeData, teamData, teamMembers, isLoading: isLoadingData } = useChatParticipantData(chatParticipant);
+  const {
+    activeChatParticipant,
+    setActiveChatParticipant,
+    isChatModalOpen,
+    setIsChatModalOpen,
+  } = useAppStore();
+  const { setCurrentMicroApp } = useMicroAppStore();
 
-  if (!chatParticipant || !threadId) {
+  // Use our optimized hook that gets data from already-loaded office data
+  const { employeeData, teamData, teamMembers, isLoading: isLoadingData } = useChatParticipantData(activeChatParticipant);
+
+  // Handle chat modal close
+  const handleChatModalClose = useCallback((isOpen: boolean) => {
+    setIsChatModalOpen(isOpen);
+    if (!isOpen) {
+      // Clear selections when modal closes
+      setActiveChatParticipant(null);
+      setCurrentMicroApp(null);
+    }
+  }, [setIsChatModalOpen, setActiveChatParticipant, setCurrentMicroApp]);
+
+  if (!activeChatParticipant || !threadId) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isChatModalOpen} onOpenChange={handleChatModalClose}>
         <DialogContent>
           <div>Loading...</div>
         </DialogContent>
@@ -46,18 +50,18 @@ export default function ChatDialog({
   }
 
   // We already have the IDs we need from the store
-  const mainParticipantId = chatParticipant.employeeId;
-  const teamId = chatParticipant.teamId;
+  const mainParticipantId = activeChatParticipant.employeeId;
+  const teamId = activeChatParticipant.teamId;
 
   // Get display data
-  const displayData = chatParticipant.type === 'employee'
+  const displayData = activeChatParticipant.type === 'employee'
     ? employeeData
-    : chatParticipant.type === 'team'
+    : activeChatParticipant.type === 'team'
       ? teamData
       : null;
 
   // Chat mode context
-  const isTeamChat = chatParticipant.type === 'team';
+  const isTeamChat = activeChatParticipant.type === 'team';
   const chatModeInfo = isTeamChat
     ? {
       icon: <Users className="h-4 w-4" />,
@@ -76,7 +80,7 @@ export default function ChatDialog({
 
   // Always render the Dialog to maintain consistent structure
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isChatModalOpen} onOpenChange={handleChatModalClose}>
       <DialogContent className="min-w-[85vw] max-w-[85vw] h-[85vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <div className="flex items-center gap-3">

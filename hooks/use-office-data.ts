@@ -2,26 +2,27 @@ import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { EmployeeData, TeamData, DeskLayoutData } from '@/lib/types';
 import { useMemo } from 'react';
-import { getDeskPosition, getDeskRotation, getEmployeePositionAtDesk } from '@/lib/office/layout-utils';
+import { getAbsoluteDeskPosition, getDeskPosition, getDeskRotation, getEmployeePositionAtDesk } from '@/lib/office/layout-utils';
 
 export function useOfficeData() {
-    // Fetch all data from backend
-    const teams = useQuery(api.teams.getAllTeams);
-    const employees = useQuery(api.employees.getAllEmployees);
+    const companyData = useQuery(api.companies.getCompany, { fetchTeam: true, fetchEmployees: true });
 
     // Transform data to match frontend types
     const transformedData = useMemo(() => {
-        if (!teams || !employees) {
-            return { teams: [], employees: [], desks: [], isLoading: true };
+        if (!companyData || !companyData.company || !companyData.teams || !companyData.employees) {
+            return { company: null, teams: [], employees: [], desks: [], isLoading: true };
         }
 
-        // Create team data with employees and supervisor
+        const { company, teams, employees } = companyData;
+
+        // Transform team data
         const teamData: TeamData[] = teams.map(team => {
             const teamEmployees = employees.filter(emp => emp.teamId === team._id);
             const supervisor = teamEmployees.find(emp => emp.isSupervisor);
 
             return {
                 ...team,
+                id: team._id, // For backward compatibility
                 employees: teamEmployees.map(emp => emp._id),
                 supervisorId: supervisor?._id,
             };
@@ -34,7 +35,7 @@ export function useOfficeData() {
             // Calculate position based on desk index and team cluster position
             let position: [number, number, number];
             if (employee.deskIndex !== undefined && team?.clusterPosition) {
-                const deskPosition = getDeskPosition(
+                const deskPosition = getAbsoluteDeskPosition(
                     team.clusterPosition,
                     employee.deskIndex,
                     team.deskCount || 1
@@ -70,7 +71,18 @@ export function useOfficeData() {
         teams.forEach(team => {
             if (team.clusterPosition && team.deskCount) {
                 for (let i = 0; i < team.deskCount; i++) {
-                    const position = getDeskPosition(team.clusterPosition, i, team.deskCount);
+                    let position: [number, number, number];
+
+                    // CEO desk needs absolute positioning (not wrapped in TeamCluster)
+                    // Team desks need relative positioning (wrapped in TeamCluster)
+                    if (team.name === 'CEO' || team.deskCount === 1) {
+                        // CEO desk - use absolute position
+                        position = getAbsoluteDeskPosition(team.clusterPosition, i, team.deskCount);
+                    } else {
+                        // Team desks - use relative position
+                        position = getDeskPosition(team.clusterPosition, i, team.deskCount);
+                    }
+
                     const rotation = getDeskRotation(i, team.deskCount);
 
                     deskData.push({
@@ -84,12 +96,13 @@ export function useOfficeData() {
         });
 
         return {
+            company,
             teams: teamData,
             employees: employeeData,
             desks: deskData,
             isLoading: false,
         };
-    }, [teams, employees]);
+    }, [companyData]);
 
     return transformedData;
 } 

@@ -96,7 +96,7 @@ export const seedEmployees = action({
         if (!userId) throw new Error("Not authenticated");
 
         // Check if employees already exist
-        const existingEmployees: (Doc<"employees"> & { team: Doc<"teams"> })[] = await ctx.runQuery(api.employees.getAllEmployees);
+        const existingEmployees: (Doc<"employees"> & { team: Doc<"teams"> })[] = await ctx.runQuery(api.employees.getAllEmployees, { companyId });
         if (existingEmployees.length > 0) {
             console.log("Employees already seeded");
             return {
@@ -107,12 +107,12 @@ export const seedEmployees = action({
         }
 
         // First, ensure teams are seeded
-        const teams: Doc<"teams">[] = await ctx.runQuery(api.teams.getAllTeams);
+        const teams: Doc<"teams">[] = await ctx.runQuery(api.teams.getAllTeams, { companyId });
         if (teams.length === 0) {
             await ctx.runMutation(api.teams.seedTeams, {
                 companyId: companyId,
             });
-            const newTeams = await ctx.runQuery(api.teams.getAllTeams);
+            const newTeams = await ctx.runQuery(api.teams.getAllTeams, { companyId });
             teams.push(...newTeams);
         }
 
@@ -215,14 +215,16 @@ export const updateEmployee = mutation({
 });
 
 export const getAllEmployees = query({
-    args: {},
-    handler: async (ctx): Promise<(Doc<"employees"> & { team: Doc<"teams"> })[]> => {
+    args: {
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { companyId }): Promise<(Doc<"employees"> & { team: Doc<"teams"> })[]> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
         const employees = await ctx.db
             .query("employees")
-            .filter((q) => q.eq(q.field("userId"), userId))
+            .filter((q) => q.eq(q.field("companyId"), companyId))
             .collect();
 
         // Join with team data

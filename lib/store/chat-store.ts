@@ -1,7 +1,10 @@
 "use client";
 
-import { create, type StateCreator } from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useAction, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useCallback } from 'react';
 
 type ScrollFlag = ScrollBehavior | false;
 
@@ -85,3 +88,30 @@ export const useChatStore = create<ChatState>()(
     }
   )
 );
+
+// Hook for thread management actions
+export function useChatActions() {
+  const { setThreadId } = useChatStore();
+  const createThread = useMutation(api.chat.createThread);
+  const getLatestThreadByChatOwnerId = useAction(api.chat.getLatestThreadByChatOwnerId);
+
+  const getLatestThreadId = useCallback(async (chatOwnerId: string, chatType: "employee" | "team" = "employee") => {
+    const latestThread = await getLatestThreadByChatOwnerId({ chatOwnerId });
+    if (latestThread?.threadId) {
+      return latestThread.threadId;
+    }
+
+    // Create a new thread if it doesn't exist
+    const { threadId: newThreadId } = await createThread({
+      chatType,
+      chatOwnerId,
+    });
+
+    return newThreadId;
+  }, [getLatestThreadByChatOwnerId, createThread]);
+
+  return {
+    getLatestThreadId,
+    setThreadId,
+  };
+}

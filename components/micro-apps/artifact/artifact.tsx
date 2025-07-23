@@ -116,8 +116,14 @@ export function PureArtifact({
 
   const [isToolbarVisible, setIsToolbarVisible] = useState(false);
 
-  const { width: windowWidth } = useWindowSize();
+  const { width: windowWidth, height: windowHeight } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
+
+  // Detect if screen is vertical (taller than wide)
+  const isVerticalScreen = windowHeight && windowWidth ? windowHeight > windowWidth : false;
+
+  // Use vertical layout for vertical screens, horizontal for others
+  const useVerticalLayout = isVerticalScreen && !isMobile;
 
   console.log(artifact?.kind)
   const artifactDefinition = artifactDefinitions.find(
@@ -145,77 +151,14 @@ export function PureArtifact({
         <motion.div
           key="artifact"
           data-testid="artifact"
-          className="flex flex-row h-[85dvh] w-[85dvw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 overflow-hidden rounded-lg shadow-2xl bg-background"
+          className={`flex ${useVerticalLayout ? 'flex-col' : 'flex-row'} h-[85dvh] w-[85dvw] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 overflow-hidden rounded-lg shadow-2xl bg-background`}
           initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { delay: 0.4 } }}
         >
-          {/* Chat sidebar */}
-          {!isMobile && (
-            <motion.div
-              className="relative w-[450px] bg-muted dark:bg-background h-full shrink-0"
-              initial={{ opacity: 0, x: 10, scale: 1 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                scale: 1,
-                transition: {
-                  delay: 0.2,
-                  type: 'spring',
-                  stiffness: 200,
-                  damping: 30,
-                },
-              }}
-              exit={{
-                opacity: 0,
-                x: 0,
-                scale: 1,
-                transition: { duration: 0 },
-              }}
-            >
-              <AnimatePresence>
-                {!isCurrentVersion && (
-                  <motion.div
-                    className="left-0 absolute h-full w-[400px] top-0 bg-zinc-900/50 z-50"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-col h-full justify-between items-center">
-                <MicroAppMessages
-                  chatId={chatId}
-                  status={status}
-                  votes={votes}
-                  messages={messages}
-                  isReadonly={isReadonly}
-                />
-
-                <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
-                  <MultimodalInput
-                    chatId={chatId}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    status={status}
-                    stop={stop}
-                    attachments={attachments}
-                    setAttachments={setAttachments}
-                    messages={messages}
-                    append={append}
-                    className="bg-background dark:bg-muted"
-                    selectedVisibilityType={selectedVisibilityType}
-                  />
-                </form>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Main content with preserved animations */}
+          {/* Main content with preserved animations - render first in vertical layout */}
           <motion.div
-            className="relative flex-1 dark:bg-muted bg-background h-full flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
+            className={`relative ${useVerticalLayout ? 'h-[65%] w-full' : 'flex-1'} dark:bg-muted bg-background flex flex-col ${useVerticalLayout ? '' : 'md:border-l'} ${useVerticalLayout ? 'border-b' : ''} dark:border-zinc-700 border-zinc-200`}
             initial={{
               opacity: 1,
               x: boundingBox.left,
@@ -228,7 +171,7 @@ export function PureArtifact({
               opacity: 1,
               x: 0,
               y: 0,
-              height: '100%',
+              height: useVerticalLayout ? '65%' : '100%',
               width: '100%',
               borderRadius: 0,
               transition: {
@@ -318,6 +261,71 @@ export function PureArtifact({
               )}
             </AnimatePresence>
           </motion.div>
+
+          {/* Chat sidebar */}
+          {!isMobile && (
+            <motion.div
+              className={`relative ${useVerticalLayout ? 'h-[35%] w-full' : 'w-[450px] h-full'} bg-muted dark:bg-background shrink-0`}
+              initial={{ opacity: 0, x: useVerticalLayout ? 0 : 10, y: useVerticalLayout ? 10 : 0, scale: 1 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                y: 0,
+                scale: 1,
+                transition: {
+                  delay: 0.2,
+                  type: 'spring',
+                  stiffness: 200,
+                  damping: 30,
+                },
+              }}
+              exit={{
+                opacity: 0,
+                x: 0,
+                y: 0,
+                scale: 1,
+                transition: { duration: 0 },
+              }}
+            >
+              <AnimatePresence>
+                {!isCurrentVersion && (
+                  <motion.div
+                    className={`absolute ${useVerticalLayout ? 'w-full h-full' : 'h-full w-[400px]'} top-0 left-0 bg-zinc-900/50 z-50`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  />
+                )}
+              </AnimatePresence>
+
+              <div className="flex flex-col h-full justify-between items-center">
+                <MicroAppMessages
+                  chatId={chatId}
+                  status={status}
+                  votes={votes}
+                  messages={messages}
+                  isReadonly={isReadonly}
+                />
+
+                <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
+                  <MultimodalInput
+                    chatId={chatId}
+                    input={input}
+                    setInput={setInput}
+                    handleSubmit={handleSubmit}
+                    status={status}
+                    stop={stop}
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+                    messages={messages}
+                    append={append}
+                    className="bg-background dark:bg-muted"
+                    selectedVisibilityType={selectedVisibilityType}
+                  />
+                </form>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

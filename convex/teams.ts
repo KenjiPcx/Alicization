@@ -74,23 +74,25 @@ export const createTeam = internalMutation({
 
 export const getTeams = internalQuery({
     args: {
-        userId: v.id("users"),
+        companyId: v.id("companies"),
     },
-    handler: async (ctx, { userId }): Promise<Doc<"teams">[]> => {
+    handler: async (ctx, { companyId }): Promise<Doc<"teams">[]> => {
         return await ctx.db
             .query("teams")
-            .filter((q) => q.eq(q.field("userId"), userId))
+            .filter((q) => q.eq(q.field("companyId"), companyId))
             .collect();
     },
 });
 
 export const getAllTeams = query({
-    args: {},
-    handler: async (ctx): Promise<Doc<"teams">[]> => {
+    args: {
+        companyId: v.id("companies"),
+    },
+    handler: async (ctx, { companyId }): Promise<Doc<"teams">[]> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("Not authenticated");
 
-        return await ctx.runQuery(internal.teams.getTeams, { userId });
+        return await ctx.runQuery(internal.teams.getTeams, { companyId });
     },
 });
 

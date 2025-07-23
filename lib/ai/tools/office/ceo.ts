@@ -42,18 +42,20 @@ export const useCeoToolsPrompt = dedent`
 /**
  * View all teams in the office
  */
-export const viewTeams = createTool({
+export const viewTeams = ({
+    ctx,
+    companyId,
+}: ResolveToolProps) => tool({
     description: "View all teams in the office",
-    args: z.object({}),
-    handler: async (ctx): Promise<{
+    parameters: z.object({}),
+    execute: async (args, { toolCallId }): Promise<{
         success: boolean;
         message: string;
         teams?: Team[];
     }> => {
         return withToolErrorHandling(
             async () => {
-                if (!ctx.userId) throw new Error("User ID is required");
-                const teams = await ctx.runQuery(internal.teams.getTeams, { userId: ctx.userId as Id<"users"> });
+                const teams = await ctx.runQuery(internal.teams.getTeams, { companyId });
                 return { teams };
             },
             {
@@ -159,29 +161,25 @@ export const resolveCreateTeamTool = ({
 /**
  * Get company details
  */
-export const getCompanyDetails = createTool({
+export const getCompanyDetails = ({
+    ctx,
+    userId,
+    companyId,
+}: ResolveToolProps) => tool({
     description: "Get the company details including vision, mission, values, and goals",
-    args: z.object({
-        fetchTeam: z.boolean().optional().describe("Whether to fetch the team details"),
-    }),
-    handler: async (ctx, args): Promise<{
+    parameters: z.object({}),
+    execute: async (args, { toolCallId }): Promise<{
         success: boolean;
         message: string;
-        company?: Company;
+        company?: Company | null;
+        teams?: Team[];
     }> => {
         return withToolErrorHandling(
             async () => {
-                if (!ctx.userId) throw new Error("User ID is required");
-                const company = await ctx.runQuery(api.companies.getCompany, {
-                    userId: ctx.userId as Id<"users">,
-                    fetchTeam: args.fetchTeam,
-                });
+                const companyData = await ctx.runQuery(internal.companies.internalGetCompany, { userId, fetchTeam: true, fetchEmployees: true });
+                const { company, teams } = companyData;
 
-                if (!company) {
-                    throw new Error("No company found. Please create a company first.");
-                }
-
-                return { company };
+                return { company, teams };
             },
             {
                 operation: "Company details retrieval",
@@ -189,7 +187,7 @@ export const getCompanyDetails = createTool({
             },
             (result) => ({
                 message: "Company details retrieved successfully",
-                company: result.company
+                ...result
             })
         );
     },

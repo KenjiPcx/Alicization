@@ -30,6 +30,7 @@ import type * as http from "../http.js";
 import type * as interpreter from "../interpreter.js";
 import type * as kpis from "../kpis.js";
 import type * as memories from "../memories.js";
+import type * as officeObjects from "../officeObjects.js";
 import type * as onboarding from "../onboarding.js";
 import type * as seed from "../seed.js";
 import type * as setup from "../setup.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   interpreter: typeof interpreter;
   kpis: typeof kpis;
   memories: typeof memories;
+  officeObjects: typeof officeObjects;
   onboarding: typeof onboarding;
   seed: typeof seed;
   setup: typeof setup;

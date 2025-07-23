@@ -1,4 +1,4 @@
-// Utility function to calculate desk position for an employee
+// Utility function to calculate desk position relative to cluster center
 export function getDeskPosition(
     clusterPosition: number[],
     deskIndex: number,
@@ -10,19 +10,34 @@ export function getDeskPosition(
     const deskSpacingZ = DESK_DEPTH + 1.5;
     const desksPerRow = 3;
 
-    // Special case for single desk (CEO) - center it
+    // Special case for single desk (CEO) - center it at origin
     if (totalDesks === 1) {
-        return [clusterPosition[0], 0, clusterPosition[2]];
+        return [0, 0, 0];
     }
 
     const row = Math.floor(deskIndex / desksPerRow);
     const col = deskIndex % desksPerRow;
 
-    const x = clusterPosition[0] + (col - (desksPerRow - 1) / 2) * deskSpacingX;
+    // Return positions relative to cluster center (0,0,0)
+    const x = (col - (desksPerRow - 1) / 2) * deskSpacingX;
     const y = 0;
-    const z = clusterPosition[2] + (row === 0 ? -deskSpacingZ / 2 : deskSpacingZ / 2);
+    const z = (row === 0 ? -deskSpacingZ / 2 : deskSpacingZ / 2);
 
     return [x, y, z];
+}
+
+// Utility function to get absolute desk position in world space
+export function getAbsoluteDeskPosition(
+    clusterPosition: number[],
+    deskIndex: number,
+    totalDesks: number
+): [number, number, number] {
+    const relativePosition = getDeskPosition(clusterPosition, deskIndex, totalDesks);
+    return [
+        clusterPosition[0] + relativePosition[0],
+        clusterPosition[1] + relativePosition[1],
+        clusterPosition[2] + relativePosition[2]
+    ];
 }
 
 // Get desk rotation for an employee

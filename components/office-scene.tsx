@@ -1,9 +1,11 @@
 'use client';
 
 import { Box, OrbitControls } from '@react-three/drei';
-import { useMemo, memo, useRef, useEffect, createRef } from 'react';
+import { useMemo, memo, useRef, useEffect, createRef, useCallback } from 'react';
 import type * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
+import { useAppStore } from '@/lib/store/app-store';
+import { useChatActions } from '@/lib/store/chat-store';
 
 import type { EmployeeData, DeskLayoutData, TeamData } from '@/lib/types';
 import Plant from './objects/plant';
@@ -21,10 +23,13 @@ import {
     CEO_OFFICE_WALLS,
     HALF_FLOOR,
 } from '@/constants';
-import { initializeGrid } from '@/lib/pathfinding/a-star-pathfinding';
-import { AStarGridHelper } from './debug/a-star-grid-helper';
+import { initializeGrid, getGridData } from '@/lib/pathfinding/a-star-pathfinding';
+import { SmartGrid } from './debug/unified-grid-helper';
 import { DestinationDebugger } from './debug/destination-debugger';
 import type { StatusType } from './navigation/status-indicator';
+import { Id } from '@/convex/_generated/dataModel';
+
+
 
 // Sample status messages
 const SAMPLE_MESSAGES = [
@@ -78,27 +83,60 @@ function assignRandomStatuses(employees: EmployeeData[]): EmployeeData[] {
 }
 
 interface SceneContentsProps {
-    handleEmployeeClick: (employee: Omit<EmployeeData, 'companyId'>) => void;
-    handleTeamClick: (team: TeamData) => void;
-    debugMode: boolean;
     teams: TeamData[];
     employees: EmployeeData[];
     desks: DeskLayoutData[];
+    companyId?: Id<"companies">; // Add companyId for drag-and-drop functionality
 }
 
 function SceneContents({
-    handleEmployeeClick,
-    handleTeamClick,
-    debugMode,
     teams,
     employees,
     desks,
+    companyId,
 }: SceneContentsProps) {
+    const { isBuilderMode, debugMode, setIsChatModalOpen, setActiveChatParticipant } = useAppStore();
+    const { getLatestThreadId, setThreadId } = useChatActions();
+
+    const orbitControlsRef = useRef<any>(null);
     const floorRef = useRef<THREE.Mesh>(null);
     const pantryRef = useRef<THREE.Group>(null);
     const bookshelfRef = useRef<THREE.Group>(null);
     const couchRef = useRef<THREE.Group>(null);
     const ceoDeskRef = useRef<THREE.Group>(null);
+
+    const handleEmployeeClick = useCallback(
+        async (employee: Omit<EmployeeData, 'companyId'>) => {
+            setActiveChatParticipant({
+                type: 'employee',
+                employeeId: employee._id as Id<"employees">,
+                teamId: employee.teamId as Id<"teams">
+            });
+            setThreadId(await getLatestThreadId(employee._id, "employee"));
+            setIsChatModalOpen(true);
+        },
+        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
+    );
+
+    const handleTeamClick = useCallback(
+        async (team: TeamData) => {
+            // Use supervisor as the employee ID for team chats
+            if (!team.supervisorId) {
+                console.error('Team has no supervisor:', team);
+                return;
+            }
+
+            setActiveChatParticipant({
+                type: 'team',
+                employeeId: team.supervisorId as Id<"employees">,
+                teamId: team._id as Id<"teams">
+            });
+            // Use team ID as chatOwnerId to distinguish from direct supervisor chats
+            setThreadId(await getLatestThreadId(team._id, "team"));
+            setIsChatModalOpen(true);
+        },
+        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
+    );
 
     const desksByTeam = useMemo(() => {
         const grouped: Record<string, Array<DeskLayoutData>> = {};
@@ -170,6 +208,23 @@ function SceneContents({
         return () => clearInterval(checkRefsInterval);
     }, [desksByTeam]);
 
+    // Reset camera when builder mode changes
+    useEffect(() => {
+        if (orbitControlsRef.current && isBuilderMode) {
+            // Set top-down view for builder mode
+            orbitControlsRef.current.object.position.set(0, 50, 0);
+            orbitControlsRef.current.object.lookAt(0, 0, 0);
+            orbitControlsRef.current.object.updateProjectionMatrix();
+            orbitControlsRef.current.update();
+        } else if (orbitControlsRef.current && !isBuilderMode) {
+            // Reset to standard perspective view
+            orbitControlsRef.current.object.position.set(0, 25, 30);
+            orbitControlsRef.current.object.lookAt(0, 0, 0);
+            orbitControlsRef.current.object.updateProjectionMatrix();
+            orbitControlsRef.current.update();
+        }
+    }, [isBuilderMode]);
+
     const employeesForScene = useMemo(() => {
         // Assign random statuses to some employees
         const employeesWithStatus = assignRandomStatuses(employees);
@@ -183,8 +238,6 @@ function SceneContents({
         () => desks.find((d) => d.team === 'CEO'),
         [desks],
     );
-
-    // console.log("Rendering SceneContents", { debugMode });
 
     return (
         <>
@@ -204,7 +257,15 @@ function SceneContents({
             <pointLight position={[-10, 10, -10]} intensity={0.3} />
             <pointLight position={[10, 10, 10]} intensity={0.3} />
 
-            <OrbitControls />
+            <OrbitControls
+                ref={orbitControlsRef}
+                enabled={true} // Always enabled
+                enableRotate={true} // Always allow rotation
+                enablePan={true} // Always allow panning
+                enableZoom={true} // Always allow zoom
+                maxPolarAngle={isBuilderMode ? Math.PI / 3 : Math.PI} // Limit rotation in builder mode
+                minPolarAngle={isBuilderMode ? 0 : 0} // Allow looking straight down in builder mode
+            />
 
             <Box
                 ref={floorRef}
@@ -259,6 +320,8 @@ function SceneContents({
                         team={teamsByName[teamName]}
                         desks={teamDesks}
                         handleTeamClick={handleTeamClick}
+                        companyId={companyId}
+                        isDragEnabled={isBuilderMode}
                     />
                 </group>
             ))}
@@ -287,8 +350,14 @@ function SceneContents({
                 />
             ))}
 
-            {PLANT_POSITIONS.map((pos) => (
-                <Plant key={`plant-${pos.join(',')}`} position={pos} />
+            {PLANT_POSITIONS.map((pos, index) => (
+                <Plant
+                    key={`plant-${pos.join(',')}`}
+                    position={pos}
+                    objectId={`plant-${index}`}
+                    companyId={companyId as any}
+                    isDragEnabled={isBuilderMode && !!companyId}
+                />
             ))}
             {CEO_OFFICE_WALLS.map((wall) => (
                 <Box
@@ -305,40 +374,46 @@ function SceneContents({
                 </Box>
             ))}
             <group ref={pantryRef} name="obstacle-pantryGroup">
-                <Pantry position={[0, 0, -HALF_FLOOR + 1]} />
+                <Pantry
+                    position={[0, 0, -HALF_FLOOR + 1]}
+                    objectId="pantry-main"
+                    companyId={companyId as any}
+                    isDragEnabled={isBuilderMode && !!companyId}
+                />
             </group>
             <group ref={bookshelfRef} name="obstacle-bookshelfGroup">
                 <Bookshelf
                     position={[-10.25, 0, -HALF_FLOOR + 0.4 / 2]}
                     rotationY={0}
+                    objectId="bookshelf-main"
+                    companyId={companyId as any}
+                    isDragEnabled={isBuilderMode && !!companyId}
                 />
             </group>
             <group ref={couchRef} name="obstacle-couchGroup">
-                <Couch position={[10.25, 0, -HALF_FLOOR + 1.0 / 2]} rotationY={0} />
+                <Couch
+                    position={[10.25, 0, -HALF_FLOOR + 1.0 / 2]}
+                    rotationY={0}
+                    objectId="couch-main"
+                    companyId={companyId as any}
+                    isDragEnabled={isBuilderMode && !!companyId}
+                />
             </group>
 
-            {debugMode && <AStarGridHelper />}
+            <SmartGrid />
             {debugMode && <DestinationDebugger />}
         </>
     );
 }
 
 const OfficeScene = memo((props: SceneContentsProps) => {
-    console.log('Rendering OfficeScene Wrapper');
-
-    // Default to debug mode enabled if not explicitly provided
-    const enhancedProps = {
-        ...props,
-        debugMode: props.debugMode !== undefined ? props.debugMode : true,
-    };
-
     return (
         <Canvas
             shadows
             camera={{ position: [0, 25, 30], fov: 50 }}
             style={{ background: '#d0e0f0' }}
         >
-            <SceneContents {...enhancedProps} />
+            <SceneContents {...props} />
         </Canvas>
     );
 });

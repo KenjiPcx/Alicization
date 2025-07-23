@@ -29,6 +29,17 @@ export type ScopeAndId = {
 export type KPI = Doc<"kpis">;
 export type Memory = Doc<"memories">;
 export type Task = Doc<"tasks">;
+export type FurniturePosition = Doc<"furniturePositions">;
+export type DraggableObject = FurniturePosition | {
+    objectType: "team-cluster";
+    objectId: Id<"teams">;
+};
+
+export type CompanyData = {
+    company: Doc<"companies"> | null;
+    teams: Doc<"teams">[];
+    employees: Doc<"employees">[];
+}
 
 // Compound types
 export type FullEmployee = Employee & {

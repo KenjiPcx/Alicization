@@ -8,28 +8,20 @@ import {
   // SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarProvider,
   useSidebar, // Provides the 'open' state
 } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { cn, generateUUID } from '@/lib/utils'; // Assuming this path is correct for cn
+import { cn } from '@/lib/utils'; // Assuming this path is correct for cn
 import { useChatStore } from '@/lib/store/chat-store';
-import { ChevronDown } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { api } from '@/convex/_generated/api';
 import { useMutation } from 'convex/react';
-import { useOfficeStore } from '@/lib/store/office-store';
+import { useAppStore } from '@/lib/store/app-store';
 import { useOnboarding } from '@/hooks/use-onboarding';
 
 export function ChatSidebar() {
   const { setOpenMobile, open } = useSidebar();
   const { setThreadId, currentMode, setCurrentMode, initialVisibilityType } = useChatStore();
-  const { activeChatParticipant } = useOfficeStore();
+  const { activeChatParticipant } = useAppStore();
   const { resetOnboarding } = useOnboarding();
   const createThread = useMutation(api.chat.createThread);
 

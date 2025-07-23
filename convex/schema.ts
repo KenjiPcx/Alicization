@@ -139,6 +139,65 @@ export const applicationTables = {
     .index("by_companyId", ["companyId"])
     .index("by_employeeId", ["employeeId"]),
 
+  // Define different types of 3D objects that can be rendered in the office
+  meshTypes: defineTable({
+    name: v.string(), // "plant", "couch", "team-cluster", "bookshelf", etc.
+    category: v.union(
+      v.literal("furniture"),
+      v.literal("cluster"),
+      v.literal("decoration"),
+      v.literal("equipment"),
+    ),
+    displayName: v.string(), // "Office Plant", "Team Desk Cluster", etc.
+    description: v.optional(v.string()),
+    defaultScale: v.optional(v.array(v.number())), // [x, y, z] default scale
+    defaultRotation: v.optional(v.array(v.number())), // [x, y, z] default rotation
+    isDraggable: v.boolean(), // Can this object type be moved?
+    metadata: v.optional(v.object({
+      // Extensible metadata for different object types
+      deskCount: v.optional(v.number()), // For team clusters
+      color: v.optional(v.string()), // Default color
+      material: v.optional(v.string()), // Material type
+    })),
+  }).index("by_name", ["name"])
+    .index("by_category", ["category"]),
+
+  // Store positions and properties for all draggable objects in the office
+  officeObjects: defineTable({
+    companyId: v.id("companies"),
+    meshType: v.string(), // References meshTypes.name
+    identifier: v.string(), // Unique identifier like "team-engineering", "plant-lobby-1", etc.
+    position: v.array(v.number()), // [x, y, z] world position
+    rotation: v.optional(v.array(v.number())), // [x, y, z] rotation in radians
+    scale: v.optional(v.array(v.number())), // [x, y, z] scale multiplier
+    metadata: v.optional(v.object({
+      // Object-specific metadata
+      teamId: v.optional(v.id("teams")), // For team-cluster type
+      color: v.optional(v.string()), // Custom color override
+    })),
+    createdAt: v.optional(v.number()), // TODO: Remove this field
+    updatedAt: v.optional(v.number()), // TODO: Remove this field
+  }).index("by_companyId", ["companyId"])
+    .index("by_meshType", ["meshType"])
+    .index("by_identifier", ["identifier"])
+    .index("by_companyId_meshType", ["companyId", "meshType"]),
+
+  // Store positions for moveable furniture objects in the office
+  furniturePositions: defineTable({
+    companyId: v.id("companies"),
+    objectType: v.union(
+      v.literal("plant"),
+      v.literal("couch"),
+      v.literal("bookshelf"),
+      v.literal("pantry"),
+    ),
+    identifier: v.optional(v.string()), // Simple identifier like "plant-0", "couch-main" for easy lookup
+    position: v.array(v.number()), // [x, y, z]
+    rotation: v.optional(v.array(v.number())), // [x, y, z] rotation in radians
+  }).index("by_companyId", ["companyId"])
+    .index("by_objectType", ["objectType"])
+    .index("by_identifier", ["identifier"]),
+
   // Store extra metadata for a chat beyond the thread managed by the agent package
   chats: defineTable({
     userId: v.id("users"), // User can see all their AI owned chats

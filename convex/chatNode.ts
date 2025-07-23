@@ -156,8 +156,6 @@ export const streamMessage = internalAction({
                 })
         );
 
-        console.log("MCP toolsets clients", mcpToolSetsClients);
-
         // Get all tools from all MCP clients
         const allMcpTools = await Promise.all(
             mcpToolSetsClients.map(client => client.tools())
@@ -165,9 +163,6 @@ export const streamMessage = internalAction({
 
         // Merge all tools into a single object
         const mergedMcpTools = Object.assign({}, ...allMcpTools);
-
-        console.log("All MCP tools count:", allMcpTools.map(tools => Object.keys(tools).length));
-        console.log("Merged MCP tools keys:", Object.keys(mergedMcpTools));
 
         const baseOptions = {
             system: systemPrompt({
@@ -194,6 +189,7 @@ export const streamMessage = internalAction({
                     role: "user",
                     content,
                 }],
+                toolCallStreaming: true,
                 onFinish: async () => {
                     // Close all MCP toolsets
                     await Promise.all(mcpToolSetsClients.map(client => client.close()));
@@ -206,6 +202,7 @@ export const streamMessage = internalAction({
             result = await thread.streamText({
                 ...baseOptions,
                 promptMessageId,
+                toolCallStreaming: true,
             }, {
                 saveStreamDeltas: { chunking: "line", throttleMs: 500 },
             });

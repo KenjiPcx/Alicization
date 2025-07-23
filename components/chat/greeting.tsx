@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { getRandomEmployeeGreeting } from './employee-greetings';
 import { useMemo } from 'react';
 import { useChatStore } from '@/lib/store/chat-store';
-import { useOfficeStore } from '@/lib/store/office-store';
+import { useAppStore } from '@/lib/store/app-store';
 import { getRandomTeamGreeting } from './team-greetings';
 
 export const Greeting = () => {
   const { threadId } = useChatStore();
-  const { activeChatParticipant } = useOfficeStore();
+  const { activeChatParticipant } = useAppStore();
   const greeting = useMemo(() => {
     if (activeChatParticipant?.type === 'team') {
       return getRandomTeamGreeting();

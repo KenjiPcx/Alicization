@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import type { Id } from '@/convex/_generated/dataModel';
 
 interface AppState {
     // Hydration state
@@ -11,6 +12,33 @@ interface AppState {
     // Global modal state
     isChatModalOpen: boolean;
     setIsChatModalOpen: (isOpen: boolean) => void;
+
+    isUserTasksModalOpen: boolean;
+    setIsUserTasksModalOpen: (isOpen: boolean) => void;
+
+    // Chat participant selection (closely related to isChatModalOpen)
+    activeChatParticipant: {
+        type: 'employee' | 'team';
+        employeeId: Id<"employees">;
+        teamId: Id<"teams">;
+    } | null;
+    setActiveChatParticipant: (participant: {
+        type: 'employee' | 'team';
+        employeeId: Id<"employees">;
+        teamId: Id<"teams">;
+    } | null) => void;
+
+    // App settings
+    debugMode: boolean;
+    setDebugMode: (debugMode: boolean) => void;
+
+    // Builder mode state
+    isBuilderMode: boolean;
+    setBuilderMode: (isBuilderMode: boolean) => void;
+
+    // Grid display settings (prevent duplicate grids)
+    gridDisplayMode: 'none' | 'debug' | 'builder' | 'both';
+    setGridDisplayMode: (mode: 'none' | 'debug' | 'builder' | 'both') => void;
 
     // Global user state
     userMetadata: {
@@ -26,6 +54,21 @@ export const useAppStore = create<AppState>()(
 
         isChatModalOpen: false,
         setIsChatModalOpen: (isOpen: boolean) => set({ isChatModalOpen: isOpen }),
+
+        isUserTasksModalOpen: false,
+        setIsUserTasksModalOpen: (isOpen: boolean) => set({ isUserTasksModalOpen: isOpen }),
+
+        activeChatParticipant: null,
+        setActiveChatParticipant: (participant) => set({ activeChatParticipant: participant }),
+
+        debugMode: false,
+        setDebugMode: (debugMode: boolean) => set({ debugMode }),
+
+        isBuilderMode: false,
+        setBuilderMode: (isBuilderMode: boolean) => set({ isBuilderMode }),
+
+        gridDisplayMode: 'none',
+        setGridDisplayMode: (mode: 'none' | 'debug' | 'builder' | 'both') => set({ gridDisplayMode: mode }),
 
         userMetadata: null,
         setUserMetadata: (userMetadata) => set({ userMetadata }),
