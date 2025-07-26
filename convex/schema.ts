@@ -182,22 +182,6 @@ export const applicationTables = {
     .index("by_identifier", ["identifier"])
     .index("by_companyId_meshType", ["companyId", "meshType"]),
 
-  // Store positions for moveable furniture objects in the office
-  furniturePositions: defineTable({
-    companyId: v.id("companies"),
-    objectType: v.union(
-      v.literal("plant"),
-      v.literal("couch"),
-      v.literal("bookshelf"),
-      v.literal("pantry"),
-    ),
-    identifier: v.optional(v.string()), // Simple identifier like "plant-0", "couch-main" for easy lookup
-    position: v.array(v.number()), // [x, y, z]
-    rotation: v.optional(v.array(v.number())), // [x, y, z] rotation in radians
-  }).index("by_companyId", ["companyId"])
-    .index("by_objectType", ["objectType"])
-    .index("by_identifier", ["identifier"]),
-
   // Store extra metadata for a chat beyond the thread managed by the agent package
   chats: defineTable({
     userId: v.id("users"), // User can see all their AI owned chats

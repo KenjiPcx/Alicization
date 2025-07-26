@@ -1,17 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
 import { Box, Cylinder } from "@react-three/drei";
-import * as THREE from 'three';
 import { DraggableObjectWrapper } from './draggable-object';
-import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 
 interface PantryProps {
-    position: THREE.Vector3Tuple;
-    rotationY?: number;
-    objectId?: string;
+    objectId: Id<"officeObjects">;
+    position?: [number, number, number];
+    rotation?: [number, number, number];
     companyId?: Id<"companies">;
-    isDragEnabled?: boolean;
 }
 
 // Dimensions
@@ -34,76 +29,25 @@ const MICROWAVE_COLOR = "#333333"; // Dark Grey
 const JUG_COLOR = "#ADD8E6"; // Light Blue
 
 export default function Pantry({
+    objectId,
     position,
-    rotationY = 0,
-    objectId = `pantry-${position.join(',')}`,
+    rotation,
     companyId,
-    isDragEnabled = true
 }: PantryProps) {
     const fridgePositionX = COUNTER_LENGTH / 2 + FRIDGE_WIDTH / 2; // Place fridge at the positive X end
     const counterTopY = COUNTER_HEIGHT;
     const counterCenterZ = -COUNTER_DEPTH / 2; // Mid-depth of the counter in local space
-    const [officeObjectId, setOfficeObjectId] = useState<Id<"officeObjects"> | null>(null);
-
-    // Mutations and queries
-    const getOrCreateOfficeObject = useMutation(api.officeObjects.getOrCreateOfficeObject);
-    const updateOfficeObjectPosition = useMutation(api.officeObjects.updateOfficeObjectPosition);
-    const savedObject = useQuery(
-        api.officeObjects.getOfficeObject,
-        officeObjectId ? { id: officeObjectId } : "skip"
-    );
-
-    // Initialize office object on mount
-    useEffect(() => {
-        if (companyId && !officeObjectId) {
-            getOrCreateOfficeObject({
-                companyId,
-                meshType: 'pantry',
-                identifier: objectId,
-                defaultPosition: position,
-                defaultRotation: [0, rotationY, 0],
-            }).then(id => {
-                setOfficeObjectId(id);
-            }).catch(error => {
-                console.error('Failed to initialize pantry:', error);
-            });
-        }
-    }, [companyId, objectId, position, rotationY, officeObjectId, getOrCreateOfficeObject]);
-
-    // Handle drag end - save new position to database
-    const handleDragEnd = useCallback(async (newPosition: THREE.Vector3) => {
-        if (!officeObjectId) {
-            console.warn('No office object ID available for pantry');
-            return;
-        }
-
-        try {
-            await updateOfficeObjectPosition({
-                id: officeObjectId,
-                position: [newPosition.x, newPosition.y, newPosition.z],
-                rotation: [0, rotationY, 0], // Keep original rotation for now
-            });
-            console.log(`Updated pantry ${objectId} position to:`, newPosition);
-        } catch (error) {
-            console.error('Failed to update pantry position:', error);
-        }
-    }, [officeObjectId, objectId, rotationY, updateOfficeObjectPosition]);
-
-    // Use saved position if available, otherwise use provided position
-    const initialPosition = savedObject?.position
-        ? new THREE.Vector3(savedObject.position[0], savedObject.position[1], savedObject.position[2])
-        : new THREE.Vector3(position[0], position[1], position[2]);
 
     return (
         <DraggableObjectWrapper
             objectType="furniture"
             objectId={objectId}
-            onDragEnd={officeObjectId ? handleDragEnd : undefined}
-            initialPosition={initialPosition}
-            isDragEnabled={isDragEnabled && !!officeObjectId}
             showHoverEffect={true}
+            companyId={companyId}
+            initialPosition={position}
+            initialRotation={rotation}
         >
-            <group rotation-y={rotationY}>
+            <group rotation={rotation}>
                 {/* Main Counter - White */}
                 <Box
                     args={[COUNTER_LENGTH, COUNTER_HEIGHT, COUNTER_DEPTH]}

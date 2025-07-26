@@ -1,35 +1,33 @@
 'use client';
 
 import { Box, OrbitControls } from '@react-three/drei';
-import { useMemo, memo, useRef, useEffect, createRef, useCallback, useState } from 'react';
+import { useMemo, memo, useRef, useEffect, createRef, useCallback } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { useAppStore } from '@/lib/store/app-store';
 import { useChatActions } from '@/lib/store/chat-store';
-
-import type { EmployeeData, DeskLayoutData, TeamData } from '@/lib/types';
-import Plant from './objects/plant';
-import Couch from './objects/couch';
+import { useQuery } from 'convex/react';
+import type { EmployeeData, DeskLayoutData, TeamData, OfficeObject } from '@/lib/types';
 import { Employee } from './objects/employee';
 import Desk from './objects/desk';
 import TeamCluster from './objects/team-cluster';
+import Plant from './objects/plant';
+import Couch from './objects/couch';
 import Bookshelf from './objects/bookshelf';
 import Pantry from './objects/pantry';
 import {
     WALL_THICKNESS,
     WALL_HEIGHT,
     FLOOR_SIZE,
-    PLANT_POSITIONS,
-    CEO_OFFICE_WALLS,
     HALF_FLOOR,
 } from '@/constants';
-import { initializeGrid, getGridData } from '@/lib/pathfinding/a-star-pathfinding';
+import { initializeGrid } from '@/lib/pathfinding/a-star-pathfinding';
 import { SmartGrid } from './debug/unified-grid-helper';
 import { DestinationDebugger } from './debug/destination-debugger';
 import type { StatusType } from './navigation/status-indicator';
 import { Id } from '@/convex/_generated/dataModel';
-
-
+import { api } from '@/convex/_generated/api';
+import GlassWall from './objects/glass-wall';
 
 // Sample status messages
 const SAMPLE_MESSAGES = [
@@ -89,24 +87,30 @@ interface SceneContentsProps {
     companyId?: Id<"companies">; // Add companyId for drag-and-drop functionality
 }
 
-function SceneContents({
+const SceneContents = ({
     teams,
     employees,
     desks,
     companyId,
-}: SceneContentsProps) {
+}: SceneContentsProps) => {
     const { isBuilderMode, debugMode, setIsChatModalOpen, setActiveChatParticipant, isAnimatingCamera, setAnimatingCamera, isDragging } = useAppStore();
     const { getLatestThreadId, setThreadId } = useChatActions();
+
+    // Load all office objects from database
+    const allOfficeObjects = useQuery(
+        api.officeObjects.getOfficeObjects,
+        companyId ? { companyId } : "skip"
+    );
 
     // Use animation state to prevent scene updates during transitions
     const sceneBuilderMode = isAnimatingCamera ? false : isBuilderMode;
 
     const orbitControlsRef = useRef<any>(null);
     const floorRef = useRef<THREE.Mesh>(null);
-    const pantryRef = useRef<THREE.Group>(null);
-    const bookshelfRef = useRef<THREE.Group>(null);
-    const couchRef = useRef<THREE.Group>(null);
     const ceoDeskRef = useRef<THREE.Group>(null);
+
+    // Create refs for office objects - we'll collect these for obstacle detection
+    const officeObjectRefs = useRef<Map<string, React.RefObject<THREE.Group | null>>>(new Map());
 
     const handleEmployeeClick = useCallback(
         async (employee: Omit<EmployeeData, 'companyId'>) => {
@@ -153,63 +157,151 @@ function SceneContents({
         return grouped;
     }, [desks]);
 
-    // Create a map of team names to team data for easy lookup
-    const teamsByName = useMemo(() => {
-        const teamMap: Record<string, TeamData> = {};
-        for (const team of teams) {
-            teamMap[team.name] = team;
-        }
-        return teamMap;
-    }, [teams]);
+    const officeObjectIdsString = useMemo(() => {
+        if (!allOfficeObjects) return '';
+        return allOfficeObjects.map(obj => obj._id).join(',');
+    }, [allOfficeObjects])
 
-    const teamClusterRefs = useRef<React.RefObject<THREE.Group | null>[]>([]);
-    useMemo(() => {
-        teamClusterRefs.current = Object.keys(desksByTeam).map(() =>
-            createRef<THREE.Group>(),
-        );
-    }, [desksByTeam]);
+    // Render office objects with refs for obstacle collection
+    // Only renders when new objects are added to the scene
+    const officeObjectsRendered = useMemo(() => {
+        if (!allOfficeObjects) return null;
+        return allOfficeObjects.map(obj => {
+            // Create or get ref for this object
+            if (!officeObjectRefs.current.has(obj._id)) {
+                officeObjectRefs.current.set(obj._id, createRef<THREE.Group>());
+            }
+            const objRef = officeObjectRefs.current.get(obj._id)!;
 
+            switch (obj.meshType) {
+                case 'plant':
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-plant-${obj._id}`}>
+                            <Plant
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                                companyId={companyId}
+                            />
+                        </group>
+                    );
+
+                case 'couch':
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-couch-${obj._id}`}>
+                            <Couch
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                                companyId={companyId}
+                            />
+                        </group>
+                    );
+
+                case 'bookshelf':
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-bookshelf-${obj._id}`}>
+                            <Bookshelf
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                                companyId={companyId}
+                            />
+                        </group>
+                    );
+
+                case 'pantry':
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-pantry-${obj._id}`}>
+                            <Pantry
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                                companyId={companyId}
+                            />
+                        </group>
+                    );
+
+                case 'team-cluster':
+                    // Team clusters need special handling with teams/desks data
+                    const team = teams.find(t => t._id === obj.metadata?.teamId);
+                    const teamDesks = desks.filter(d => d.team === team?.name);
+
+                    if (!team) return null;
+
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-cluster-${team.name}`}>
+                            <TeamCluster
+                                team={team}
+                                desks={teamDesks}
+                                handleTeamClick={handleTeamClick}
+                                companyId={companyId}
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                            />
+                        </group>
+                    );
+
+                case 'glass-wall':
+                    console.log("Rendering glass wall Kenji", obj.position)
+                    return (
+                        <group key={obj._id} ref={objRef} name={`obstacle-glass-wall-${obj._id}`}>
+                            <GlassWall
+                                objectId={obj._id}
+                                position={obj.position as [number, number, number]}
+                                rotation={obj.rotation as [number, number, number]}
+                                companyId={companyId}
+                            />
+                        </group>
+                    )
+
+                default:
+                    console.warn(`Unknown meshType: ${obj.meshType}`);
+                    return null;
+            }
+        });
+    }, [officeObjectIdsString, teams, desks, handleTeamClick, companyId]);
+
+    // Updated obstacle collection using office object refs
     useEffect(() => {
         const checkRefsInterval = setInterval(() => {
+            console.log("Checking refs Kenji")
             const obstacles: THREE.Object3D[] = [];
-            if (pantryRef.current) obstacles.push(pantryRef.current);
-            if (bookshelfRef.current) obstacles.push(bookshelfRef.current);
-            if (couchRef.current) obstacles.push(couchRef.current);
+
+            // Add CEO desk if available
             if (ceoDeskRef.current) obstacles.push(ceoDeskRef.current);
 
-            for (const ref of teamClusterRefs.current) {
-                if (ref?.current) {
-                    obstacles.push(ref.current);
+            // Add office objects (plants, couches, bookshelves, pantries, team clusters)
+            for (const objRef of officeObjectRefs.current.values()) {
+                if (objRef.current) {
+                    obstacles.push(objRef.current);
                 }
             }
 
-            const expectedStaticRefCount = 3;
-            const expectedClusterCount = Object.keys(desksByTeam).length;
-            let currentStaticCount = 0;
-            if (pantryRef.current) currentStaticCount++;
-            if (bookshelfRef.current) currentStaticCount++;
-            if (couchRef.current) currentStaticCount++;
-            if (ceoDeskRef.current) currentStaticCount++;
-            const currentClusterCount = teamClusterRefs.current.filter(
-                (ref) => ref?.current,
-            ).length;
+            // Calculate expected counts
+            const expectedOfficeObjectCount = allOfficeObjects?.length || 0;
+
+            let currentCeoDesk = ceoDeskRef.current ? 1 : 0;
+            const currentOfficeObjectCount = Array.from(officeObjectRefs.current.values()).filter(ref => ref.current).length;
 
             if (
-                currentStaticCount >= expectedStaticRefCount &&
-                currentClusterCount === expectedClusterCount
+                currentCeoDesk >= 1 &&
+                currentOfficeObjectCount === expectedOfficeObjectCount &&
+                expectedOfficeObjectCount > 0 // Only initialize if we have objects to work with
             ) {
                 clearInterval(checkRefsInterval);
-                console.log('All Obstacle refs available, initializing A* grid...');
+                console.log('All obstacle refs available, initializing A* grid...');
                 console.log(
                     'Obstacles passed:',
-                    obstacles.map((o) => o.name || 'Unnamed Cluster'),
+                    obstacles.map((o) => o.name || 'Unnamed Obstacle'),
                 );
                 initializeGrid(FLOOR_SIZE, obstacles, 2, 3);
             }
         }, 100);
 
         return () => clearInterval(checkRefsInterval);
-    }, [desksByTeam]);
+    }, [desksByTeam, officeObjectsRendered]);
 
     // Camera animation when builder mode changes
     useEffect(() => {
@@ -287,34 +379,8 @@ function SceneContents({
         [desks],
     );
 
-    return (
-        <>
-            <ambientLight intensity={0.7} />
-            <directionalLight
-                position={[15, 20, 10]}
-                intensity={1.5}
-                castShadow
-                shadow-mapSize-width={sceneBuilderMode ? 1024 : 2048} // Reduce shadow quality in builder mode
-                shadow-mapSize-height={sceneBuilderMode ? 1024 : 2048}
-                shadow-camera-far={50}
-                shadow-camera-left={-HALF_FLOOR - 5}
-                shadow-camera-right={HALF_FLOOR + 5}
-                shadow-camera-top={HALF_FLOOR + 5}
-                shadow-camera-bottom={-HALF_FLOOR - 5}
-            />
-            <pointLight position={[-10, 10, -10]} intensity={0.3} />
-            <pointLight position={[10, 10, 10]} intensity={0.3} />
-
-            <OrbitControls
-                ref={orbitControlsRef}
-                enabled={!isDragging} // Disable controls while dragging an object
-                enableRotate={!isDragging} // Always allow rotation
-                enablePan={!isDragging} // Always allow panning
-                enableZoom={true} // Always allow zoom
-                maxPolarAngle={sceneBuilderMode ? Math.PI / 3 : Math.PI} // Limit rotation in builder mode
-                minPolarAngle={sceneBuilderMode ? 0 : 0} // Allow looking straight down in builder mode
-            />
-
+    const OfficeContainer = useMemo(() => {
+        return <>
             <Box
                 ref={floorRef}
                 args={[FLOOR_SIZE, WALL_THICKNESS, FLOOR_SIZE]}
@@ -358,7 +424,40 @@ function SceneContents({
                 <meshStandardMaterial color="beige" />
             </Box>
 
-            {Object.entries(desksByTeam).map(([teamName, teamDesks], index) => (
+        </>
+    }, [])
+
+    return (
+        <>
+            <ambientLight intensity={0.7} />
+            <directionalLight
+                position={[0, 20, 5]}
+                intensity={1.5}
+                castShadow
+                shadow-mapSize-width={sceneBuilderMode ? 1024 : 2048} // Reduce shadow quality in builder mode
+                shadow-mapSize-height={sceneBuilderMode ? 1024 : 2048}
+                shadow-camera-far={50}
+                shadow-camera-left={-HALF_FLOOR - 5}
+                shadow-camera-right={HALF_FLOOR + 5}
+                shadow-camera-top={HALF_FLOOR + 5}
+                shadow-camera-bottom={-HALF_FLOOR - 5}
+            />
+            <pointLight position={[-10, 10, -10]} intensity={0.3} />
+            <pointLight position={[10, 10, 10]} intensity={0.3} />
+
+            <OrbitControls
+                ref={orbitControlsRef}
+                enabled={!isDragging} // Disable controls while dragging an object
+                enableRotate={!isDragging} // Always allow rotation
+                enablePan={!isDragging} // Always allow panning
+                enableZoom={true} // Always allow zoom
+                maxPolarAngle={sceneBuilderMode ? Math.PI / 3 : Math.PI} // Limit rotation in builder mode
+                minPolarAngle={sceneBuilderMode ? 0 : 0} // Allow looking straight down in builder mode
+            />
+
+            {OfficeContainer}
+
+            {/* {Object.entries(desksByTeam).map(([teamName, teamDesks], index) => (
                 <group
                     key={teamName}
                     ref={teamClusterRefs.current[index]}
@@ -369,10 +468,9 @@ function SceneContents({
                         desks={teamDesks}
                         handleTeamClick={handleTeamClick}
                         companyId={companyId}
-                        isDragEnabled={sceneBuilderMode}
                     />
                 </group>
-            ))}
+            ))} */}
 
             {ceoDeskData && (
                 <group ref={ceoDeskRef} name="obstacle-ceoDeskGroup">
@@ -399,55 +497,8 @@ function SceneContents({
                 />
             ))}
 
-            {PLANT_POSITIONS.map((pos, index) => (
-                <Plant
-                    key={`plant-${pos.join(',')}`}
-                    position={pos}
-                    objectId={`plant-${index}`}
-                    companyId={companyId as any}
-                    isDragEnabled={sceneBuilderMode && !!companyId}
-                />
-            ))}
-            {CEO_OFFICE_WALLS.map((wall) => (
-                <Box
-                    key={`ceo-wall-${wall.position.join(',')}`}
-                    args={wall.args as [number, number, number]}
-                    position={wall.position}
-                >
-                    <meshStandardMaterial
-                        color="lightblue"
-                        opacity={0.3}
-                        transparent
-                        depthWrite={false}
-                    />
-                </Box>
-            ))}
-            <group ref={pantryRef} name="obstacle-pantryGroup">
-                <Pantry
-                    position={[0, 0, -HALF_FLOOR + 1]}
-                    objectId="pantry-main"
-                    companyId={companyId as any}
-                    isDragEnabled={sceneBuilderMode && !!companyId}
-                />
-            </group>
-            <group ref={bookshelfRef} name="obstacle-bookshelfGroup">
-                <Bookshelf
-                    position={[-10.25, 0, -HALF_FLOOR + 0.4 / 2]}
-                    rotationY={0}
-                    objectId="bookshelf-main"
-                    companyId={companyId as any}
-                    isDragEnabled={sceneBuilderMode && !!companyId}
-                />
-            </group>
-            <group ref={couchRef} name="obstacle-couchGroup">
-                <Couch
-                    position={[10.25, 0, -HALF_FLOOR + 1.0 / 2]}
-                    rotationY={0}
-                    objectId="couch-main"
-                    companyId={companyId as any}
-                    isDragEnabled={sceneBuilderMode && !!companyId}
-                />
-            </group>
+            {/* Render office objects with refs for obstacle collection */}
+            {officeObjectsRendered}
 
             <SmartGrid debugMode={debugMode} isBuilderMode={sceneBuilderMode} />
             {debugMode && <DestinationDebugger />}

@@ -5,7 +5,10 @@ import { useMemo } from 'react';
 import { getAbsoluteDeskPosition, getDeskPosition, getDeskRotation, getEmployeePositionAtDesk } from '@/lib/office/layout-utils';
 
 export function useOfficeData() {
-    const companyData = useQuery(api.companies.getCompany, { fetchTeam: true, fetchEmployees: true });
+    const companyData = useQuery(api.companies.getCompany, { 
+        fetchTeams: true, 
+        fetchEmployees: true 
+    });
 
     // Transform data to match frontend types
     const transformedData = useMemo(() => {

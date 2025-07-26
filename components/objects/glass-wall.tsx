@@ -1,21 +1,22 @@
-import { Cylinder, Sphere } from "@react-three/drei";
 import { DraggableObjectWrapper } from './draggable-object';
 import type { Id } from '@/convex/_generated/dataModel';
 
-interface PlantProps {
+interface GlassWallProps {
     objectId: Id<"officeObjects">;
     position?: [number, number, number];
     rotation?: [number, number, number];
     companyId?: Id<"companies">;
+    dimensions?: [number, number, number]; // [width, height, depth]
 }
 
-// Simple Plant Component
-export default function Plant({
+// Glass Wall Component
+export default function GlassWall({
     objectId,
     position,
     rotation,
     companyId,
-}: PlantProps) {
+    dimensions = [4, 3, 0.25], // Default dimensions: 4 units wide, 3 units tall, 0.2 units thick
+}: GlassWallProps) {
     return (
         <DraggableObjectWrapper
             objectType="furniture"
@@ -26,14 +27,15 @@ export default function Plant({
             initialRotation={rotation}
         >
             <group>
-                {/* Pot */}
-                <Cylinder args={[0.3, 0.35, 0.5, 16]} position={[0, 0.25, 0]} castShadow>
-                    <meshStandardMaterial color="#8B4513" /> {/* SaddleBrown */}
-                </Cylinder>
-                {/* Foliage */}
-                <Sphere args={[0.5, 16, 16]} position={[0, 0.5 + 0.3, 0]} castShadow>
-                    <meshStandardMaterial color="#228B22" /> {/* ForestGreen */}
-                </Sphere>
+                <mesh castShadow receiveShadow>
+                    <boxGeometry args={dimensions} />
+                    <meshStandardMaterial
+                        color="lightblue"
+                        opacity={0.3}
+                        transparent
+                        depthWrite={false}
+                    />
+                </mesh>
             </group>
         </DraggableObjectWrapper>
     );
