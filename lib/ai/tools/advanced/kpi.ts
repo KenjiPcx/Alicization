@@ -280,7 +280,7 @@ export const resolveCompanyScope = async ({
 }: ResolveToolProps): Promise<ScopeAndId> => {
     const companyData = await ctx.runQuery(internal.companies.internalGetCompany, {
         userId,
-        fetchTeam: false,
+        fetchTeams: false,
         fetchEmployees: false
     });
     if (!companyData || !companyData.company) {

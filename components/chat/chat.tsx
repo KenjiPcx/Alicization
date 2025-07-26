@@ -12,6 +12,7 @@ import { useChatStore } from '@/lib/store/chat-store';
 import type { MessageDoc } from '@convex-dev/agent';
 import type { Id } from '@/convex/_generated/dataModel';
 import { MicroAppContainer } from '../micro-apps/office/micro-app-container';
+import { MicroAppsSpeedDial } from './micro-apps-speed-dial';
 
 const PureChat = ({
   threadId,
@@ -63,7 +64,6 @@ const PureChat = ({
   const uiMessages = useMemo(() => toUIMessages(messages), [messages]);
 
   useEffect(() => {
-    console.log("messages", messages);
     const latestStatus = messages[messages.length - 1]?.status;
     if (latestStatus) {
       if (latestStatus === 'success' || latestStatus === 'failed') {
@@ -76,7 +76,7 @@ const PureChat = ({
 
   return (
     <>
-      <div className={`ml-4 flex flex-col min-w-0 bg-background h-full w-full ${chatMode === 'team' ? 'chat-mode-team' : 'chat-mode-direct'
+      <div className={`ml-4 flex flex-col min-w-0 bg-background h-full w-full relative ${chatMode === 'team' ? 'chat-mode-team' : 'chat-mode-direct'
         }`}>
         <ChatHeader
           threadId={threadId}
@@ -123,6 +123,12 @@ const PureChat = ({
             />
           )}
         </form>
+
+        {/* Micro Apps Speed Dial - positioned within the chat container */}
+        <MicroAppsSpeedDial
+          mainParticipantId={mainParticipantId}
+          chatId={threadId}
+        />
       </div>
 
       <MicroAppContainer

@@ -37,7 +37,7 @@ export function useOnboarding() {
             setIsLoading(true);
 
             // Create company with user-provided data
-            const company = await createCompanyMutation({
+            const companyId = await createCompanyMutation({
                 name: companyData.name,
                 description: companyData.description,
                 vision: companyData.vision || "Company vision",
@@ -46,12 +46,12 @@ export function useOnboarding() {
 
             // Get or create management team
             const managementTeamId = await getOrCreateManagementTeam({
-                companyId: company,
+                companyId,
             });
 
             // Create CEO with selected data
             const ceoId = await getOrCreateCEO({
-                companyId: company,
+                companyId,
                 name: ceoData.name,
                 jobDescription: `Chief Executive Officer - ${ceoData.background}`,
                 gender: ceoData.gender,
@@ -79,13 +79,14 @@ export function useOnboarding() {
                 type: "employee",
                 employeeId: ceoId as Id<"employees">,
                 teamId: managementTeamId as Id<"teams">,
+                companyId,
             });
 
             console.log("Chat modal opened");
             // Complete onboarding
             await completeOnboarding();
 
-            return { company, managementTeamId, ceoId, threadId };
+            return { companyId, managementTeamId, ceoId, threadId };
         } catch (error) {
             console.error('Failed to create company with CEO:', error);
             throw error;

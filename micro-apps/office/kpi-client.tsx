@@ -4,7 +4,7 @@ import { ScopeAndId } from '@/lib/types';
 
 interface KPIClientMicroUIProps {
   title: string;
-  scopeAndId: ScopeAndId;
+  scopeAndId: ScopeAndId | null;
 }
 
 export default function KPIClientMicroUI({ title, scopeAndId }: KPIClientMicroUIProps) {

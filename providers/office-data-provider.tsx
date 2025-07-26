@@ -1,13 +1,29 @@
+'use client';
+
+import React, { createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import type { EmployeeData, TeamData, DeskLayoutData } from '@/lib/types';
-import { useMemo } from 'react';
+import type { EmployeeData, TeamData, DeskLayoutData, CompanyData } from '@/lib/types';
 import { getAbsoluteDeskPosition, getDeskPosition, getDeskRotation, getEmployeePositionAtDesk } from '@/lib/office/layout-utils';
 
-export function useOfficeData() {
-    const companyData = useQuery(api.companies.getCompany, { 
-        fetchTeams: true, 
-        fetchEmployees: true 
+interface OfficeDataContextType {
+    company: CompanyData['company'];
+    teams: TeamData[];
+    employees: EmployeeData[];
+    desks: DeskLayoutData[];
+    isLoading: boolean;
+}
+
+const OfficeDataContext = createContext<OfficeDataContextType | undefined>(undefined);
+
+interface OfficeDataProviderProps {
+    children: React.ReactNode;
+}
+
+export function OfficeDataProvider({ children }: OfficeDataProviderProps) {
+    const companyData = useQuery(api.companies.getCompany, {
+        fetchTeams: true,
+        fetchEmployees: true
     });
 
     // Transform data to match frontend types
@@ -17,7 +33,6 @@ export function useOfficeData() {
         }
 
         const { company, teams, employees } = companyData;
-        console.log(employees, "employeeskenji")
 
         // Transform team data
         const teamData: TeamData[] = teams.map(team => {
@@ -107,5 +122,17 @@ export function useOfficeData() {
         };
     }, [companyData]);
 
-    return transformedData;
+    return (
+        <OfficeDataContext.Provider value={transformedData}>
+            {children}
+        </OfficeDataContext.Provider>
+    );
+}
+
+export function useOfficeDataContext(): OfficeDataContextType {
+    const context = useContext(OfficeDataContext);
+    if (context === undefined) {
+        throw new Error('useOfficeDataContext must be used within an OfficeDataProvider');
+    }
+    return context;
 } 

@@ -380,3 +380,13 @@ export const getEmployeesByCompany = query({
         return enrichedEmployees;
     },
 });
+
+export const getEmployeeMicroApps = query({
+    args: {
+        employeeId: v.id("employees"),
+    },
+    handler: async (ctx, { employeeId }) => {
+        const employee = await ctx.db.get(employeeId);
+        if (!employee) return null;
+    },
+});

@@ -16,21 +16,16 @@ interface EmployeeConfigProps {
 import {
     User,
     MapPin,
-    Calendar,
-    Star,
-    Trophy,
-    Briefcase,
-    Users,
-    Zap,
-    Brain,
-    ChevronRight,
-    Shield,
     Crown,
     Settings,
-    Globe
+    Globe,
+    Shield,
+    Brain,
+    Users,
+    Zap
 } from 'lucide-react';
 
-export default function EmployeeConfig({ title, employeeId }: EmployeeConfigProps) {
+export default function EmployeeConfig({ employeeId }: EmployeeConfigProps) {
     // Fetch employee data with skills and tools
     const employeeData = useQuery(api.employees.getEmployeeById,
         employeeId ? { employeeId, includeImages: true } : "skip"

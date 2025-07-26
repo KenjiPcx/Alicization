@@ -9,33 +9,37 @@ interface OpenOfficeMicroAppToolProps {
 }
 
 /**
+ * Returns the available micro apps for a given role
+ * @param role - The role of the employee
+ * @returns The available micro apps for the given role
+ */
+export const getAvailableApps = (role?: Doc<"employees">["builtInRole"]) => {
+    switch (role) {
+        case "ceo":
+            return ["kpi-dashboard", "company-config", "employee-config", "employee-drive", "company-toolset-config", "employee-directory-config"] as const;
+        case "cto":
+            return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
+        case "cmo":
+            return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
+        case "cso":
+            return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
+        case "chro":
+            return ["kpi-dashboard", "employee-config", "employee-drive", "employee-directory-config"] as const;
+        case "cfo":
+            return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
+        case "coo":
+            return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
+        default: // employee
+            return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
+    }
+};
+
+/**
  * Creates a tool that lets the agent open up a micro app for viewing and interacting with specific data dashboards
  * @param kpiScopeAndId - The scope and ID of the data dashboard to open
  * @returns 
  */
 export const createOpenOfficeMicroAppTool = ({ kpiScopeAndId, role }: OpenOfficeMicroAppToolProps) => {
-    // Define available micro apps based on role
-    const getAvailableApps = (role?: Doc<"employees">["builtInRole"]) => {
-        switch (role) {
-            case "ceo":
-                return ["kpi-dashboard", "company-config", "employee-config", "employee-drive", "company-toolset-config", "employee-directory-config"] as const;
-            case "cto":
-                return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
-            case "cmo":
-                return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
-            case "cso":
-                return ["kpi-dashboard", "employee-config", "employee-drive", "company-toolset-config"] as const;
-            case "chro":
-                return ["kpi-dashboard", "employee-config", "employee-drive", "employee-directory-config"] as const;
-            case "cfo":
-                return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
-            case "coo":
-                return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
-            default: // employee
-                return ["kpi-dashboard", "employee-config", "employee-drive"] as const;
-        }
-    };
-
     const availableApps = getAvailableApps(role);
 
     return tool({

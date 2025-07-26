@@ -1,8 +1,275 @@
 # Alicization - AI Office Simulation
 
+## Recent Progress: Object Rotation Button System
+
+### Overview
+Implemented a comprehensive object rotation system that allows users to precisely rotate office objects in builder mode using intuitive 90-degree increment buttons. Objects can be clicked to show rotation controls with visual feedback and database persistence.
+
+### Features
+
+#### Interactive Rotation Controls
+**Click to Activate**: Click any object in builder mode to show/hide rotation controls
+**90-Degree Button Controls**: Two-button interface for precise left/right 90° rotations
+**Gaming Aesthetics**: Red/green gradient buttons with hover effects and glow styling
+**Visual Indicators**: Green edges, larger ground ring, and center dot when controls are active
+**Orbit Control Prevention**: Automatically disables camera controls during rotation like dragging
+**Current Angle Display**: Shows current rotation angle with highlighted degree readout
+**Auto-hide Behavior**: Controls automatically hide when dragging, leaving builder mode, or clicking outside
+
+#### Database Integration
+**Optimistic Updates**: Immediate visual rotation with async database sync
+**Error Handling**: Reverts to previous rotation on database errors
+**Persistence**: All rotations saved and restored across sessions
+**Existing Infrastructure**: Uses existing `updateOfficeObjectPosition` mutation
+
+#### Technical Implementation
+**State Management**: Added `isShowingRotationControls` state following drag system patterns
+**Orbit Control Integration**: Reuses existing `isDragging` state to prevent camera controls during rotation
+**Event Handling**: Click detection with proper event propagation control  
+**Enhanced UI**: Large, prominent slider with gaming aesthetics and gradient styling
+**Visual Indicators**: Green theme for rotation mode with enhanced ground indicators
+**HTML Overlay**: Uses `@react-three/drei` Html component for smooth UI integration
+
+### Code Changes
+
+**Enhanced DraggableObjectWrapper**:
+- Added rotation state management and event handlers
+- Implemented `handleRotate90` for 90-degree incremental rotations
+- Added click detection with `handleObjectClick`
+- Integrated Html overlay for button controls
+- Added visual rotation indicators (ground ring, green edges)
+
+**Features**:
+- Simple two-button interface for 90-degree left/right rotations
+- Gaming-style button design with red/green color coding and hover effects
+- Precise 90-degree increments for clean object alignment
+- Orbit control prevention during rotation (reuses isDragging state)
+- Enhanced visual feedback with larger ground indicators and center dot
+- Current rotation angle display with highlighted degree readout
+- Smooth Three.js rotation application with optimistic updates
+- Database sync with proper error handling
+- Auto-hide on mode changes and outside clicks
+
+### Benefits
+
+- **Simple & Intuitive**: Two-button interface is easy to understand and use
+- **Precise Alignment**: 90-degree increments ensure clean object positioning
+- **Gaming Aesthetics**: Professional button design with visual feedback
+- **Orbit Control Prevention**: Clean interaction without camera interference
+- **Visual Feedback**: Clear indicators showing rotation mode and current angle
+- **Consistent Pattern**: Follows same conventions as position/drag system
+- **Database Persistence**: All rotations saved and restored reliably
+- **Performance**: Optimistic updates for smooth user experience
+- **Error Resilient**: Proper error handling and state reversion
+
+This feature completes the object manipulation system alongside dragging, providing users with full control over object positioning and orientation in builder mode through simple, precise 90-degree rotation controls.
+
+## Previous Progress: Drag Logic Refactoring
+
+### Overview
+Completed a major refactoring of the office objects drag and drop system by extracting repetitive database logic from individual components into a centralized `DraggableObjectWrapper`. This eliminated significant code duplication and simplified the architecture.
+
+### Problem Solved
+**Before**: Each object component (Plant, Couch, Bookshelf, Pantry, TeamCluster) contained identical database logic:
+- State management for `officeObjectId`
+- Database operations: `getOrCreateOfficeObject`, `updateOfficeObjectPosition`, `getOfficeObject`  
+- Initialization effects to create/get office objects
+- Drag end handlers to save positions
+- Position management (using saved position if available)
+
+This resulted in ~50 lines of repetitive code in each component.
+
+### Solution Implemented
+**Centralized Database Logic**: Moved all database operations into `DraggableObjectWrapper`:
+- Added database-related props: `companyId`, `meshType`, `defaultPosition`, `defaultRotation`, `metadata`
+- Integrated Convex mutations and queries directly in the wrapper
+- Handles initialization, position saving, and state management internally
+- Manages saved position loading and fallback to default positions
+
+**Simplified Component Interface**: Object components now focus purely on rendering:
+- Removed all database imports and hooks
+- Eliminated state management and effect hooks
+- Cleaned component props to only pass necessary data to wrapper
+- Reduced component size by 50-70% (Plant: 94→35 lines, Couch: 105→45 lines)
+
+### Technical Changes
+
+**Enhanced DraggableObjectWrapper**:
+```typescript
+interface DraggableObjectProps {
+    // Original props
+    children: React.ReactNode;
+    objectType: 'team-cluster' | 'furniture';
+    objectId: string;
+    isDragEnabled?: boolean;
+    showHoverEffect?: boolean;
+    
+    // New database-related props
+    companyId?: Id<"companies">;
+    meshType?: string;
+    defaultPosition?: [number, number, number];
+    defaultRotation?: [number, number, number];
+    metadata?: {
+        teamId?: Id<"teams">;
+        color?: string;
+    };
+}
+```
+
+**Simplified Component Pattern**:
+```typescript
+// Before: 94 lines with database logic
+export default function Plant({ position, objectId, companyId, isDragEnabled }: PlantProps) {
+    // 50+ lines of database logic...
+    
+    return (
+        <DraggableObjectWrapper objectType="furniture" objectId={objectId} onDragEnd={handleDragEnd}>
+            {/* rendering logic */}
+        </DraggableObjectWrapper>
+    );
+}
+
+// After: 35 lines, pure rendering
+export default function Plant({ position, objectId, companyId, isDragEnabled }: PlantProps) {
+    return (
+        <DraggableObjectWrapper
+            objectType="furniture"
+            objectId={objectId}
+            companyId={companyId}
+            meshType="plant"
+            defaultPosition={position}
+            defaultRotation={[0, 0, 0]}
+        >
+            {/* rendering logic only */}
+        </DraggableObjectWrapper>
+    );
+}
+```
+
+### Components Updated
+- **Plant**: 94 → 35 lines (-59 lines)
+- **Couch**: 105 → 45 lines (-60 lines)  
+- **Bookshelf**: 137 → 70 lines (-67 lines)
+- **Pantry**: 161 → 70 lines (-91 lines)
+- **TeamCluster**: 147 → 70 lines (-77 lines)
+
+**Total Code Reduction**: ~354 lines removed from components, centralized into wrapper
+
+### Benefits
+
+- **DRY Principle**: Eliminated massive code duplication across components
+- **Maintainability**: Database logic changes only need to happen in one place
+- **Consistency**: All objects now handle database operations identically
+- **Debugging**: Centralized logic makes issues easier to track and fix
+- **Performance**: More efficient with shared database operations
+- **Scalability**: Adding new draggable objects requires minimal boilerplate
+- **Type Safety**: Consistent interface for all object database operations
+
+### Database Integration
+The wrapper now handles the complete database lifecycle:
+1. **Initialization**: Creates office object in database on first mount
+2. **Position Loading**: Loads saved position from database or uses default
+3. **Drag Persistence**: Saves new positions to database on drag end
+4. **Error Handling**: Comprehensive error logging for all database operations
+5. **Conditional Rendering**: Only enables drag when database object is ready
+
+### Future Improvements
+- Consider extracting database logic into a custom hook for even cleaner separation
+- Add rotation persistence to the centralized system
+- Implement bulk position updates for performance optimization
+- Add undo/redo functionality at the wrapper level
+
+This refactoring represents a significant architectural improvement that makes the codebase more maintainable and easier to extend with new draggable objects.
+
 ## High Level Architecture
 
 Alicization is a multi-agent AI office simulation where users can create AI employees, organize them into teams, and assign them tasks. The system supports complex workflows with human-in-the-loop collaboration.
+
+## Recent Progress: Object Rotation System
+
+### Overview
+Implemented a comprehensive object rotation system for builder mode that allows users to rotate office objects (furniture, walls, decorations) by 90-degree increments. Objects can be clicked to show action buttons, including a rotation button for precise positioning.
+
+### Features
+
+#### Object Rotation Capabilities
+**Supported Objects**:
+- Plants, Couches, Bookshelves, Pantries
+- CEO Office Walls (now draggable and rotatable)
+- All furniture objects with database persistence
+
+**Rotation Mechanics**:
+- Click objects in builder mode to show action buttons
+- Rotation button rotates objects 90 degrees around Y-axis
+- Immediate visual feedback with database persistence
+- Supports cumulative rotations (multiple 90-degree increments)
+
+#### Enhanced DraggableObjectWrapper
+**New Props**:
+- `onRotate?: (newRotation: THREE.Euler) => void` - Rotation callback
+- `initialRotation?: THREE.Euler` - Starting rotation from database
+- Action button system integrated with builder mode
+
+**Visual Feedback**:
+- Green edges when action buttons are shown
+- Yellow edges during dragging
+- White edges on hover
+- HTML overlay buttons with backdrop blur styling
+
+#### Database Integration
+**Schema Support**:
+- `rotation: v.optional(v.array(v.number()))` field in officeObjects table
+- Stores [x, y, z] rotation in radians
+- `updateOfficeObjectPosition` mutation handles both position and rotation
+
+**Position Management**:
+- Removed hardcoded positions from office scene
+- All objects now load positions/rotations from database
+- Fallback to provided position props for initialization
+- Automatic database entry creation on first load
+
+#### CEO Office Walls Enhancement
+**New CeoOfficeWall Component**:
+- Follows same database-driven pattern as other objects
+- Supports dragging and rotation in builder mode
+- Transparent blue material with proper lighting
+- Individual wall management with unique object IDs
+
+### Technical Implementation
+
+**File Changes**:
+```
+components/objects/
+├── ceo-office-wall.tsx          # New draggable wall component
+├── draggable-object.tsx         # Enhanced with rotation support
+├── plant.tsx                    # Added rotation functionality
+├── couch.tsx                    # Added rotation functionality
+├── bookshelf.tsx                # Added rotation functionality
+└── pantry.tsx                   # Added rotation functionality
+
+components/office-scene.tsx       # Removed hardcoded positions
+```
+
+**Object Interaction Flow**:
+1. Click object in builder mode → Show action buttons
+2. Click rotate button → Rotate 90° visually + save to database
+3. Click elsewhere → Hide action buttons
+4. Drag object → Standard drag behavior + save position
+
+**Database Persistence**:
+- Rotation values stored as Euler angles in radians
+- Position and rotation updated atomically
+- Efficient queries with proper indexing
+- Fallback handling for legacy objects without rotation data
+
+### Benefits
+
+- **Precise Positioning**: 90-degree rotations for clean object alignment
+- **Intuitive Interface**: Click-to-show actions familiar from design tools
+- **Database Persistence**: All rotations saved and restored across sessions
+- **Performance**: Visual updates immediate, database saves asynchronous
+- **Extensible**: Easy to add more actions (scale, duplicate, delete)
+- **Builder Mode Integration**: Only shows in builder mode for clean UX
 
 ## Recent Progress: Game-like HUD System
 
@@ -655,6 +922,11 @@ These roles provide specific permissions and access to specialized micro apps an
 - Assign IT role to an employee and test Company Toolset Config micro app
 - Seed built-in toolsets for existing companies
 - Test MCP toolset integration
+
+### Completed
+- ✅ **Drag Logic Refactoring**: Extracted database operations from individual object components into centralized DraggableObjectWrapper
+- ✅ **Code Deduplication**: Removed ~354 lines of repetitive code across 5 components
+- ✅ **Architecture Improvement**: Simplified component interface and improved maintainability
 
 ### Future Features
 - Skill performance tracking and optimization

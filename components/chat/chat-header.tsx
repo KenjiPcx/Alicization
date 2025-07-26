@@ -10,7 +10,9 @@ import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { type VisibilityType, VisibilitySelector } from './visibility-selector';
 import { useChatStore } from '@/lib/store/chat-store';
-import { generateUUID } from '@/lib/utils';
+import { useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useAppStore } from '@/lib/store/app-store';
 
 function PureChatHeader({
   threadId,
@@ -24,9 +26,10 @@ function PureChatHeader({
   isReadonly: boolean;
 }) {
   const { open } = useSidebar();
-  const { setThreadId } = useChatStore();
-
+  const { setThreadId, initialVisibilityType } = useChatStore();
   const { width: windowWidth } = useWindowSize();
+  const { activeChatParticipant } = useAppStore();
+  const createThread = useMutation(api.chat.createThread);
 
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 z-10">
@@ -38,8 +41,20 @@ function PureChatHeader({
             <Button
               variant="outline"
               className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-              onClick={() => {
-                setThreadId(generateUUID());
+              onClick={async () => {
+                if (!activeChatParticipant) return;
+
+                // Use the correct chat owner ID based on the chat type
+                const chatOwnerId = activeChatParticipant.type === 'team'
+                  ? activeChatParticipant.teamId
+                  : activeChatParticipant.employeeId;
+
+                const { threadId } = await createThread({
+                  chatOwnerId,
+                  chatType: activeChatParticipant.type,
+                  visibility: initialVisibilityType,
+                });
+                setThreadId(threadId);
               }}
             >
               <PlusIcon />

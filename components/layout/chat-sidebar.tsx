@@ -16,13 +16,11 @@ import { useChatStore } from '@/lib/store/chat-store';
 import { api } from '@/convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { useAppStore } from '@/lib/store/app-store';
-import { useOnboarding } from '@/hooks/use-onboarding';
 
 export function ChatSidebar() {
   const { setOpenMobile, open } = useSidebar();
-  const { setThreadId, currentMode, setCurrentMode, initialVisibilityType } = useChatStore();
+  const { setThreadId, currentMode, initialVisibilityType } = useChatStore();
   const { activeChatParticipant } = useAppStore();
-  const { resetOnboarding } = useOnboarding();
   const createThread = useMutation(api.chat.createThread);
 
   return (

@@ -1,3 +1,4 @@
+import { Id } from '@/convex/_generated/dataModel';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -6,6 +7,15 @@ export interface BoundingBox {
     left: number;
     width: number;
     height: number;
+}
+
+export interface MicroAppData {
+    title: string;
+    microAppType: string;
+    toolCallId?: string;
+    employeeId?: Id<"employees">;
+    teamId?: Id<"teams">;
+    companyId?: Id<"companies">;
 }
 
 // Create a simple store using Zustand
@@ -17,7 +27,7 @@ interface MicroAppState {
 
     // Track the type of micro UI (artifact vs office)
     microAppType: 'artifact' | 'office' | null;
-    microAppData: any; // For office micro apps
+    microAppData: MicroAppData | null; // For office micro apps
 
     // Metadata storage
     metadata: Record<string, any>; // microAppId -> metadata
@@ -26,7 +36,7 @@ interface MicroAppState {
     setVisible: (visible: boolean) => void;
     setBoundingBox: (boundingBox: BoundingBox) => void;
     openArtifactMicroApp: (id: string, boundingBox: BoundingBox) => void;
-    openOfficeMicroApp: (id: string, boundingBox: BoundingBox, microAppType: string, data: any, title: string) => void;
+    openOfficeMicroApp: (id: string, boundingBox: BoundingBox, data: MicroAppData) => void;
     closeMicroApp: () => void;
 
     // Metadata functions
@@ -62,16 +72,12 @@ export const useMicroAppStore = create<MicroAppState>()(
                 microAppData: null,
             }),
 
-            openOfficeMicroApp: (id, boundingBox, microAppType, data, title) => set({
+            openOfficeMicroApp: (id, boundingBox, data) => set({
                 toolCallId: id,
                 isVisible: true,
                 boundingBox,
                 microAppType: 'office',
-                microAppData: {
-                    microAppType,
-                    data,
-                    title,
-                },
+                microAppData: data
             }),
 
             closeMicroApp: () => set({

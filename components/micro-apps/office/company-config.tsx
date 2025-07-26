@@ -32,7 +32,11 @@ export default function CompanyConfig({ title }: CompanyConfigProps) {
     const [editData, setEditData] = useState<Partial<Company>>({});
 
     // Get company data
-    const company = useQuery(api.companies.getCompany, user?._id ? { userId: user._id } : "skip");
+    const companyData = useQuery(api.companies.getCompany, {
+        fetchTeams: false,
+        fetchEmployees: false,
+    });
+    const company = companyData?.company;
 
     // Update company mutation
     const updateCompany = useMutation(api.companies.updateCompany);

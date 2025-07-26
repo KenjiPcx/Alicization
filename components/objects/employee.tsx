@@ -19,31 +19,26 @@ import StatusIndicator from "../navigation/status-indicator";
 import type { StatusType } from "../navigation/status-indicator";
 import { getRandomItem } from "@/lib/utils";
 
-interface EmployeeProps extends Omit<EmployeeData, 'initialPosition'> {
+interface EmployeeProps {
+    _id: string;
+    name: string;
     position: [number, number, number];
-    onClick: (employee: Omit<EmployeeData, 'companyId'>) => void;
-    floorSize: number; // Keep floorSize for bounds checks maybe?
-    debugMode?: boolean; // Add optional debugMode prop
+    isBusy?: boolean;
+    isCEO?: boolean;
+    gender?: string;
+    onClick: () => void;
+    debugMode?: boolean;
+    status?: StatusType;
+    statusMessage?: string;
 }
 
 const Employee = memo(function Employee({
     _id: id,
-    _creationTime,
-    userId,
-    teamId,
     name,
-    jobTitle,
-    jobDescription,
-    gender,
-    background,
-    personality,
-    isSupervisor,
-    deskIndex,
     position,
     isBusy,
     isCEO,
-    team,
-    deskId,
+    gender,
     onClick,
     debugMode = false,
     status = 'none' as StatusType,
@@ -237,29 +232,8 @@ const Employee = memo(function Employee({
 
     const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
         event.stopPropagation();
-        // Pass complete EmployeeData object
-        onClick({
-            _id: id,
-            _creationTime,
-            userId,
-            teamId,
-            name,
-            jobTitle,
-            jobDescription,
-            gender,
-            background,
-            personality,
-            status,
-            statusMessage,
-            isSupervisor,
-            isCEO,
-            deskIndex,
-            initialPosition: initialPositionRef.current.toArray() as [number, number, number],
-            isBusy,
-            team,
-            deskId
-        });
-    }, [id, _creationTime, userId, teamId, name, jobTitle, jobDescription, gender, background, personality, status, statusMessage, isSupervisor, isCEO, deskIndex, isBusy, team, deskId, onClick]);
+        onClick();
+    }, [onClick]);
 
     const handlePointerOver = useCallback((event: ThreeEvent<PointerEvent>) => {
         event.stopPropagation();

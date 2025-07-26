@@ -13,7 +13,7 @@ import { ScopeAndId, KPI } from '@/lib/types';
 
 interface KPIDashboardProps {
     title: string;
-    scopeAndId: ScopeAndId;
+    scopeAndId: ScopeAndId | null;
 }
 
 export default function KPIDashboard({ title }: KPIDashboardProps) {
@@ -22,8 +22,12 @@ export default function KPIDashboard({ title }: KPIDashboardProps) {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     // Get company ID from user
-    const company = useQuery(api.companies.getCompany, user?._id ? { userId: user._id } : "skip");
-
+    const companyData = useQuery(api.companies.getCompany, { 
+        fetchEmployees: false, 
+        fetchTeams: false 
+    });
+    const company = companyData?.company;
+    
     // Get KPIs for the company
     const kpis = useQuery(
         api.kpis.getKPIs,

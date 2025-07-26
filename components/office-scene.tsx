@@ -113,11 +113,13 @@ const SceneContents = ({
     const officeObjectRefs = useRef<Map<string, React.RefObject<THREE.Group | null>>>(new Map());
 
     const handleEmployeeClick = useCallback(
-        async (employee: Omit<EmployeeData, 'companyId'>) => {
+        async (employee: EmployeeData) => {
             setActiveChatParticipant({
                 type: 'employee',
+                companyId: employee.companyId as Id<"companies">,
                 employeeId: employee._id as Id<"employees">,
-                teamId: employee.teamId as Id<"teams">
+                teamId: employee.teamId as Id<"teams">,
+                builtInRole: employee.builtInRole
             });
             setThreadId(await getLatestThreadId(employee._id, "employee"));
             setIsChatModalOpen(true);
@@ -133,16 +135,21 @@ const SceneContents = ({
                 return;
             }
 
+            // Find the supervisor's builtInRole from employees array
+            const supervisor = employees.find(emp => emp._id === team.supervisorId);
+
             setActiveChatParticipant({
                 type: 'team',
+                companyId: team.companyId as Id<"companies">,
                 employeeId: team.supervisorId as Id<"employees">,
-                teamId: team._id as Id<"teams">
+                teamId: team._id as Id<"teams">,
+                builtInRole: supervisor?.builtInRole || null
             });
             // Use team ID as chatOwnerId to distinguish from direct supervisor chats
             setThreadId(await getLatestThreadId(team._id, "team"));
             setIsChatModalOpen(true);
         },
-        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId],
+        [setActiveChatParticipant, setIsChatModalOpen, getLatestThreadId, setThreadId, employees],
     );
 
     const desksByTeam = useMemo(() => {
@@ -457,21 +464,6 @@ const SceneContents = ({
 
             {OfficeContainer}
 
-            {/* {Object.entries(desksByTeam).map(([teamName, teamDesks], index) => (
-                <group
-                    key={teamName}
-                    ref={teamClusterRefs.current[index]}
-                    name={`obstacle-cluster-${teamName}`}
-                >
-                    <TeamCluster
-                        team={teamsByName[teamName]}
-                        desks={teamDesks}
-                        handleTeamClick={handleTeamClick}
-                        companyId={companyId}
-                    />
-                </group>
-            ))} */}
-
             {ceoDeskData && (
                 <group ref={ceoDeskRef} name="obstacle-ceoDeskGroup">
                     <Desk
@@ -488,9 +480,13 @@ const SceneContents = ({
             {!sceneBuilderMode && employeesForScene.map((emp) => (
                 <Employee
                     key={emp._id}
-                    {...emp}
-                    onClick={handleEmployeeClick}
-                    floorSize={FLOOR_SIZE}
+                    _id={emp._id}
+                    name={emp.name}
+                    position={emp.initialPosition}
+                    isBusy={emp.isBusy}
+                    isCEO={emp.isCEO}
+                    gender={emp.gender}
+                    onClick={() => handleEmployeeClick(emp)}
                     debugMode={debugMode}
                     status={(emp.status || 'none') as StatusType}
                     statusMessage={emp.statusMessage}

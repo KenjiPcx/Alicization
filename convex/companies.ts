@@ -11,26 +11,30 @@ import { CompanyData } from "@/lib/types";
  */
 export const getCompany = query({
     args: v.object({
-        fetchTeam: v.optional(v.boolean()),
+        fetchTeams: v.optional(v.boolean()),
         fetchEmployees: v.optional(v.boolean()),
     }),
-    handler: async (ctx, { fetchTeam, fetchEmployees }): Promise<CompanyData> => {
+    handler: async (ctx, { fetchTeams, fetchEmployees }): Promise<CompanyData> => {
         const userId = await getAuthUserId(ctx);
         if (!userId) {
             throw new Error("User not found");
         }
 
-        return await ctx.runQuery(internal.companies.internalGetCompany, { userId, fetchTeam, fetchEmployees });
+        return await ctx.runQuery(internal.companies.internalGetCompany, {
+            userId,
+            fetchTeams,
+            fetchEmployees
+        });
     },
 });
 
 export const internalGetCompany = internalQuery({
     args: v.object({
         userId: v.id("users"),
-        fetchTeam: v.optional(v.boolean()),
+        fetchTeams: v.optional(v.boolean()),
         fetchEmployees: v.optional(v.boolean()),
     }),
-    handler: async (ctx, { userId, fetchTeam, fetchEmployees }): Promise<CompanyData> => {
+    handler: async (ctx, { userId, fetchTeams, fetchEmployees }): Promise<CompanyData> => {
         const company = await ctx.db
             .query("companies")
             .filter((q) => q.eq(q.field("userId"), userId))
@@ -40,7 +44,7 @@ export const internalGetCompany = internalQuery({
             return { company: null, teams: [], employees: [] };
         }
 
-        const teams = fetchTeam
+        const teams = fetchTeams
             ? await ctx.db.query("teams")
                 .filter((q) => q.eq(q.field("companyId"), company._id))
                 .collect()

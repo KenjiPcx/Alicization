@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useOfficeData } from "@/hooks/use-office-data";
+import { useOfficeDataContext } from "@/providers/office-data-provider";
 
 interface CenterHUDProps {
     className?: string;
@@ -11,7 +11,7 @@ interface CenterHUDProps {
 
 export function CenterHUD({ className }: CenterHUDProps) {
     // Get the current user and company
-    const { company } = useOfficeData();
+    const { company } = useOfficeDataContext();
 
     // TODO: Replace with real data from your backend
     const levelStats = {

@@ -17,18 +17,11 @@ import EmployeeConfigMicroUI from '@/micro-apps/office/hr-config';
 import EmployeeDriveMicroUI from '@/micro-apps/office/employee-drive';
 import CompanyToolsetConfig from '@/components/micro-apps/office/company-toolset-config';
 import HREmployeeManagement from '@/components/micro-apps/office/hr-employee-management';
-import { Id } from '@/convex/_generated/dataModel';
+import { MicroAppData } from '@/lib/store/micro-app-store';
 
 interface OfficeMicroAppProps {
   microAppType: string;
-  microAppData: {
-    microAppType: string;
-    toolCallId: string;
-    companyId: Id<"companies">;
-    teamId?: Id<"teams">;
-    employeeId?: Id<"employees">;
-  };
-  title: string;
+  microAppData: MicroAppData;
   chatId: string;
   input: string;
   setInput: UseChatHelpers['setInput'];
@@ -47,7 +40,6 @@ interface OfficeMicroAppProps {
 export function OfficeMicroApp({
   microAppType,
   microAppData,
-  title,
   chatId,
   input,
   setInput,
@@ -62,6 +54,7 @@ export function OfficeMicroApp({
   isReadonly,
   selectedVisibilityType,
 }: OfficeMicroAppProps) {
+  const title = microAppData.title;
   const { isVisible, boundingBox, closeMicroApp } = useMicroApp();
   const { width: windowWidth, height: windowHeight } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
@@ -76,7 +69,7 @@ export function OfficeMicroApp({
     switch (microAppType) {
       case 'kpi-dashboard':
         // Determine the proper scope and ID based on available data
-        let scopeAndId: ScopeAndId;
+        let scopeAndId: ScopeAndId | null = null;
         if (microAppData.employeeId) {
           scopeAndId = {
             scope: "employee" as const,
@@ -87,7 +80,7 @@ export function OfficeMicroApp({
             scope: "team" as const,
             teamId: microAppData.teamId,
           };
-        } else {
+        } else if (microAppData.companyId) {
           scopeAndId = {
             scope: "company" as const,
             companyId: microAppData.companyId,

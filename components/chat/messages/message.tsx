@@ -141,9 +141,6 @@ const PurePreviewMessage = ({
               }
 
               if (type === 'text') {
-                if (part.text.includes("undefined")) {
-                  console.log("part.text check for the undefined one here", part.text);
-                }
                 if (mode === 'view') {
                   return (
                     <div key={key} className="flex flex-row gap-2 items-start">
@@ -433,9 +430,6 @@ export const PreviewMessage = memo(
     const nextMsg = nextProps.message;
 
     if (prevMsg.id !== nextMsg.id) return false;
-    console.log("prevMsg.parts", prevMsg.parts, "Length", prevMsg.parts?.length);
-    console.log("nextMsg.parts", nextMsg.parts, "Length", nextMsg.parts?.length);
-    console.log("equal", equal(prevMsg.parts, nextMsg.parts), prevMsg.parts?.length, nextMsg.parts?.length);
 
     if (prevMsg.parts?.length !== nextMsg.parts?.length) return false;
     if (!equal(prevMsg.parts, nextMsg.parts)) return false;

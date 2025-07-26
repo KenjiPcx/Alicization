@@ -9,5 +9,9 @@ interface EmployeeConfigMicroUIProps {
 }
 
 export default function EmployeeConfigMicroUI({ title, toolCallId, employeeId }: EmployeeConfigMicroUIProps) {
-  return <EmployeeConfig title={title} toolCallId={toolCallId} employeeId={employeeId} />;
+  return <EmployeeConfig
+    title={title}
+    toolCallId={toolCallId}
+    employeeId={employeeId}
+  />;
 }

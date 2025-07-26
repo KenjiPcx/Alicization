@@ -7,11 +7,12 @@ import OfficeSimulation from "@/components/office-simulation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { useOnboarding } from '@/hooks/use-onboarding';
-import { SpeedDial } from "@/components/hud/speed-dial";
+import { OfficeMenu } from "@/components/hud/office-menu";
 import { StatsHUD } from "@/components/hud/stats-hud";
 import { CenterHUD } from "@/components/hud/center-hud";
 import { UserTasksModal } from "@/components/hud/user-tasks-modal";
 import { useAppStore } from "@/lib/store/app-store";
+import { OfficeDataProvider } from "@/providers/office-data-provider";
 
 export default function HomePage() {
   const { showOnboarding, isLoadingStatus } = useOnboarding();
@@ -25,34 +26,36 @@ export default function HomePage() {
 
   return (
     <main className="w-[100dvw] h-[100dvh] relative">
-      <SidebarProvider defaultOpen={false}>
-        <SidebarInset>
-          <OfficeSimulation />
-        </SidebarInset>
-      </SidebarProvider>
+      <OfficeDataProvider>
+        <SidebarProvider defaultOpen={false}>
+          <SidebarInset>
+            <OfficeSimulation />
+          </SidebarInset>
+        </SidebarProvider>
 
-      {/* Game-like HUD Components */}
-      <SpeedDial
-        onUserTasksClick={() => setIsUserTasksModalOpen(true)}
-        pendingTasksCount={pendingTasks?.length || 0}
-      />
-
-      <StatsHUD />
-
-      <CenterHUD />
-
-      {/* Modals */}
-      <UserTasksModal
-        isOpen={isUserTasksModalOpen}
-        onOpenChange={setIsUserTasksModalOpen}
-      />
-
-      {/* Only show onboarding modal when status is loaded */}
-      {!isLoadingStatus && (
-        <OnboardingModal
-          open={showOnboarding}
+        {/* Game-like HUD Components */}
+        <OfficeMenu
+          onUserTasksClick={() => setIsUserTasksModalOpen(true)}
+          pendingTasksCount={pendingTasks?.length || 0}
         />
-      )}
+
+        <StatsHUD />
+
+        <CenterHUD />
+
+        {/* Modals */}
+        <UserTasksModal
+          isOpen={isUserTasksModalOpen}
+          onOpenChange={setIsUserTasksModalOpen}
+        />
+
+        {/* Only show onboarding modal when status is loaded */}
+        {!isLoadingStatus && (
+          <OnboardingModal
+            open={showOnboarding}
+          />
+        )}
+      </OfficeDataProvider>
     </main>
   );
 }

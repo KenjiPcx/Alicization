@@ -176,7 +176,11 @@ export const getCompanyDetails = ({
     }> => {
         return withToolErrorHandling(
             async () => {
-                const companyData = await ctx.runQuery(internal.companies.internalGetCompany, { userId, fetchTeam: true, fetchEmployees: true });
+                const companyData = await ctx.runQuery(internal.companies.internalGetCompany, { 
+                    userId, 
+                    fetchTeams: true, 
+                    fetchEmployees: true 
+                });
                 const { company, teams } = companyData;
 
                 return { company, teams };

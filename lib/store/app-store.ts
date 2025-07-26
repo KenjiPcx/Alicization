@@ -21,11 +21,15 @@ interface AppState {
         type: 'employee' | 'team';
         employeeId: Id<"employees">;
         teamId: Id<"teams">;
+        companyId: Id<"companies">;
+        builtInRole?: string | null; // Add employee role to avoid extra queries
     } | null;
     setActiveChatParticipant: (participant: {
         type: 'employee' | 'team';
         employeeId: Id<"employees">;
         teamId: Id<"teams">;
+        companyId: Id<"companies">;
+        builtInRole?: string | null;
     } | null) => void;
 
     // App settings

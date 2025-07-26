@@ -32,8 +32,7 @@ export function MicroAppContainer(props: MicroAppContainerProps) {
     return (
       <OfficeMicroApp
         microAppType={microAppData.microAppType}
-        microAppData={microAppData.data}
-        title={microAppData.title}
+        microAppData={microAppData}
         {...props}
       />
     );

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useOfficeData } from './use-office-data';
+import { useOfficeDataContext } from '@/providers/office-data-provider';
 import type { Id } from '@/convex/_generated/dataModel';
 
 interface ChatParticipant {
@@ -9,7 +9,7 @@ interface ChatParticipant {
 }
 
 export function useChatParticipantData(chatParticipant: ChatParticipant | null) {
-    const { employees, teams, isLoading } = useOfficeData();
+    const { employees, teams, isLoading } = useOfficeDataContext();
 
     const participantData = useMemo(() => {
         if (!chatParticipant || isLoading) {

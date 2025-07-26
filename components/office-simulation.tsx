@@ -4,7 +4,7 @@ import ChatDialog from './dialogs/chat-dialog';
 import { useAppStore } from '@/lib/store/app-store';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { useOfficeData } from '@/hooks/use-office-data';
+import { useOfficeDataContext } from '@/providers/office-data-provider';
 
 // Main Office Simulation Component
 export default function OfficeSimulation() {
@@ -19,7 +19,7 @@ export default function OfficeSimulation() {
     }, [userMetadata, setUserMetadata]);
 
     // Fetch office data from database (reactive!)
-    const { company, teams, employees, desks, isLoading } = useOfficeData();
+    const { company, teams, employees, desks, isLoading } = useOfficeDataContext();
 
     // Get company ID from the first team (all teams should have same companyId)
     const companyId = company?._id;
