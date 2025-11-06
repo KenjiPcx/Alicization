@@ -7,7 +7,7 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 
 interface SuggestedActionsProps {
-  chatId: string;
+  threadId: string;
   append: UseChatHelpers['append'];
   selectedVisibilityType: VisibilityType;
 }
@@ -76,7 +76,7 @@ function PureSuggestedActions({
 export const SuggestedActions = memo(
   PureSuggestedActions,
   (prevProps, nextProps) => {
-    if (prevProps.chatId !== nextProps.chatId) return false;
+    if (prevProps.threadId !== nextProps.threadId) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
 

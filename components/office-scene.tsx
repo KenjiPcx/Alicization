@@ -1,20 +1,20 @@
 'use client';
 
 import { Box, OrbitControls } from '@react-three/drei';
-import { useMemo, memo, useRef, useEffect, createRef, useCallback } from 'react';
+import { useMemo, memo, useRef, useEffect, createRef, useCallback, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { useAppStore } from '@/lib/store/app-store';
 import { useChatActions } from '@/lib/store/chat-store';
 import { useQuery } from 'convex/react';
 import type { EmployeeData, DeskLayoutData, TeamData, OfficeObject } from '@/lib/types';
-import { Employee } from './objects/employee';
-import Desk from './objects/desk';
-import TeamCluster from './objects/team-cluster';
-import Plant from './objects/plant';
-import Couch from './objects/couch';
-import Bookshelf from './objects/bookshelf';
-import Pantry from './objects/pantry';
+import { Employee } from './office-objects/employee';
+import Desk from './office-objects/desk';
+import TeamCluster from './office-objects/team-cluster';
+import Plant from './office-objects/plant';
+import Couch from './office-objects/couch';
+import Bookshelf from './office-objects/bookshelf';
+import Pantry from './office-objects/pantry';
 import {
     WALL_THICKNESS,
     WALL_HEIGHT,
@@ -27,7 +27,39 @@ import { DestinationDebugger } from './debug/destination-debugger';
 import type { StatusType } from './navigation/status-indicator';
 import { Id } from '@/convex/_generated/dataModel';
 import { api } from '@/convex/_generated/api';
-import GlassWall from './objects/glass-wall';
+import GlassWall from './office-objects/glass-wall';
+
+// Helper to convert CSS color variable to THREE.Color
+function getCSSColor(variable: string): THREE.Color {
+    if (typeof window === 'undefined') return new THREE.Color('#cccccc');
+
+    const root = document.documentElement;
+    const value = getComputedStyle(root).getPropertyValue(variable).trim();
+
+    // Parse oklch format: oklch(L C H)
+    if (value.startsWith('oklch')) {
+        const match = value.match(/oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/);
+        if (match) {
+            const [, l, c, h] = match;
+            // Convert OKLCH to RGB (approximate conversion)
+            // For simplicity, we'll use a basic conversion
+            // In production, you'd want a proper color space conversion library
+            const lightness = parseFloat(l);
+            const chroma = parseFloat(c);
+            const hue = parseFloat(h);
+
+            // Simple approximation: convert to HSL-like values
+            const s = chroma * 100;
+            const hslH = hue;
+            const hslL = lightness * 100;
+
+            return new THREE.Color().setHSL(hslH / 360, s / 100, hslL / 100);
+        }
+    }
+
+    // Fallback to direct color value if not oklch
+    return new THREE.Color(value || '#cccccc');
+}
 
 // Sample status messages
 const SAMPLE_MESSAGES = [
@@ -95,6 +127,18 @@ const SceneContents = ({
 }: SceneContentsProps) => {
     const { isBuilderMode, debugMode, setIsChatModalOpen, setActiveChatParticipant, isAnimatingCamera, setAnimatingCamera, isDragging } = useAppStore();
     const { getLatestThreadId, setThreadId } = useChatActions();
+
+    // Get theme colors for walls and floor
+    const [floorColor, setFloorColor] = useState<THREE.Color>(new THREE.Color('#f5f5f5'));
+    const [wallColor, setWallColor] = useState<THREE.Color>(new THREE.Color('#e5e5e5'));
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            // Use card color for floor to match HUD components
+            setFloorColor(getCSSColor('--card'));
+            setWallColor(getCSSColor('--card'));
+        }
+    }, []);
 
     // Load all office objects from database
     const allOfficeObjects = useQuery(
@@ -395,7 +439,7 @@ const SceneContents = ({
                 receiveShadow
                 name="floor"
             >
-                <meshStandardMaterial color="lightgrey" />
+                <meshStandardMaterial color={floorColor} />
             </Box>
 
             <Box
@@ -404,7 +448,7 @@ const SceneContents = ({
                 castShadow
                 receiveShadow
             >
-                <meshStandardMaterial color="beige" />
+                <meshStandardMaterial color={wallColor} />
             </Box>
             <Box
                 args={[FLOOR_SIZE, WALL_HEIGHT, WALL_THICKNESS]}
@@ -412,7 +456,7 @@ const SceneContents = ({
                 castShadow
                 receiveShadow
             >
-                <meshStandardMaterial color="beige" />
+                <meshStandardMaterial color={wallColor} />
             </Box>
             <Box
                 args={[WALL_THICKNESS, WALL_HEIGHT, FLOOR_SIZE + WALL_THICKNESS]}
@@ -420,7 +464,7 @@ const SceneContents = ({
                 castShadow
                 receiveShadow
             >
-                <meshStandardMaterial color="beige" />
+                <meshStandardMaterial color={wallColor} />
             </Box>
             <Box
                 args={[WALL_THICKNESS, WALL_HEIGHT, FLOOR_SIZE + WALL_THICKNESS]}
@@ -428,20 +472,44 @@ const SceneContents = ({
                 castShadow
                 receiveShadow
             >
-                <meshStandardMaterial color="beige" />
+                <meshStandardMaterial color={wallColor} />
             </Box>
 
         </>
-    }, [])
+    }, [floorColor, wallColor])
+
+    // Detect if we're in dark mode for lighting adjustments
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const root = document.documentElement;
+            setIsDarkMode(root.classList.contains('dark'));
+
+            const observer = new MutationObserver(() => {
+                setIsDarkMode(root.classList.contains('dark'));
+            });
+
+            observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+            return () => observer.disconnect();
+        }
+    }, []);
 
     return (
         <>
-            <ambientLight intensity={0.7} />
+            {/* Ambient lighting - warmer at both times for luxury feel */}
+            <ambientLight
+                intensity={isDarkMode ? 0.4 : 0.6}
+                color={isDarkMode ? '#fff5e6' : '#fef3e2'}
+            />
+
+            {/* Main directional light - golden morning or soft night */}
             <directionalLight
                 position={[0, 20, 5]}
-                intensity={1.5}
+                intensity={isDarkMode ? 0.8 : 1.3}
+                color={isDarkMode ? '#ffd89b' : '#ffeaa7'}
                 castShadow
-                shadow-mapSize-width={sceneBuilderMode ? 1024 : 2048} // Reduce shadow quality in builder mode
+                shadow-mapSize-width={sceneBuilderMode ? 1024 : 2048}
                 shadow-mapSize-height={sceneBuilderMode ? 1024 : 2048}
                 shadow-camera-far={50}
                 shadow-camera-left={-HALF_FLOOR - 5}
@@ -449,8 +517,18 @@ const SceneContents = ({
                 shadow-camera-top={HALF_FLOOR + 5}
                 shadow-camera-bottom={-HALF_FLOOR - 5}
             />
-            <pointLight position={[-10, 10, -10]} intensity={0.3} />
-            <pointLight position={[10, 10, 10]} intensity={0.3} />
+
+            {/* Accent point lights - warm glow for luxury ambiance */}
+            <pointLight
+                position={[-10, 10, -10]}
+                intensity={isDarkMode ? 0.6 : 0.4}
+                color={isDarkMode ? '#ffb347' : '#ffd89b'}
+            />
+            <pointLight
+                position={[10, 10, 10]}
+                intensity={isDarkMode ? 0.6 : 0.4}
+                color={isDarkMode ? '#ffb347' : '#ffd89b'}
+            />
 
             <OrbitControls
                 ref={orbitControlsRef}
@@ -503,11 +581,43 @@ const SceneContents = ({
 }
 
 const OfficeScene = memo((props: SceneContentsProps) => {
+    const [bgColor, setBgColor] = useState('#d0e0f0');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const root = document.documentElement;
+            const isDark = root.classList.contains('dark');
+
+            // Day/Night sky colors for the office
+            if (isDark) {
+                // Luxurious night office - deep warm charcoal with subtle amber glow
+                setBgColor('#1a1612');
+            } else {
+                // New York morning - soft golden hour with peachy undertones
+                setBgColor('#e8dcc4');
+            }
+
+            // Listen for theme changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        const isDark = root.classList.contains('dark');
+                        setBgColor(isDark ? '#1a1612' : '#e8dcc4');
+                    }
+                });
+            });
+
+            observer.observe(root, { attributes: true });
+
+            return () => observer.disconnect();
+        }
+    }, []);
+
     return (
         <Canvas
             shadows
             camera={{ position: [0, 25, 30], fov: 50 }}
-            style={{ background: '#d0e0f0' }}
+            style={{ background: bgColor, transition: 'background 0.3s ease' }}
         >
             <SceneContents {...props} />
         </Canvas>

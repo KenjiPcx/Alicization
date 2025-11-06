@@ -3,10 +3,10 @@ import { useScrollToBottom } from './use-scroll-to-bottom';
 import type { MessageDoc } from '@convex-dev/agent';
 
 export function useMessages({
-  chatId,
+  threadId,
   status,
 }: {
-  chatId: string;
+  threadId: string;
   status: "ready" | "submitted" | MessageDoc["status"];
 }) {
   const {
@@ -21,11 +21,11 @@ export function useMessages({
   const [hasSentMessage, setHasSentMessage] = useState(false);
 
   useEffect(() => {
-    if (chatId) {
+    if (threadId) {
       scrollToBottom('instant');
       setHasSentMessage(false);
     }
-  }, [chatId, scrollToBottom]);
+  }, [threadId, scrollToBottom]);
 
   useEffect(() => {
     if (status === 'submitted') {

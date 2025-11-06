@@ -38,7 +38,7 @@ import {
 } from './tool-previews';
 
 const PurePreviewMessage = ({
-  chatId,
+  threadId,
   message,
   vote,
   isLoading,
@@ -48,7 +48,7 @@ const PurePreviewMessage = ({
   requiresScrollPadding,
   isLatestMessage
 }: {
-  chatId: string;
+  threadId: string;
   message: UIMessage;
   vote: Vote | undefined;
   isLoading: boolean;
@@ -245,19 +245,19 @@ const PurePreviewMessage = ({
                               args={args}
                               toolCallId={toolCallId}
                               toolName={toolName}
-                              threadId={chatId}
+                              threadId={threadId}
                             />;
                           case 'setMemory':
                             return <MemorySetPreview
                               args={args}
                               toolCallId={toolCallId}
-                              threadId={chatId}
+                              threadId={threadId}
                             />;
                           case 'searchMemories':
                             return <MemorySearchPreview
                               args={args}
                               toolCallId={toolCallId}
-                              threadId={chatId}
+                              threadId={threadId}
                             />;
                           case 'useInterpreter':
                             return <InterpreterPreview
@@ -342,21 +342,21 @@ const PurePreviewMessage = ({
                               args={{}}
                               toolCallId={toolCallId}
                               toolName={toolName}
-                              threadId={chatId}
+                              threadId={threadId}
                               result={result}
                             />;
                           case 'setMemory':
                             return <MemorySetPreview
                               args={{}}
                               toolCallId={toolCallId}
-                              threadId={chatId}
+                              threadId={threadId}
                               result={result}
                             />;
                           case 'searchMemories':
                             return <MemorySearchPreview
                               args={args}
                               toolCallId={toolCallId}
-                              threadId={chatId}
+                              threadId={threadId}
                               result={result}
                             />;
                           case 'useInterpreter':
@@ -405,7 +405,7 @@ const PurePreviewMessage = ({
             {!isReadonly && (
               <MessageActions
                 key={`action-${message.id}`}
-                chatId={chatId}
+                threadId={threadId}
                 message={message}
                 vote={vote}
                 isLoading={isLoading}

@@ -12,7 +12,7 @@ import type { MessageDoc } from '@convex-dev/agent';
 import { PaginationStatus } from 'convex/react';
 
 interface MessagesProps {
-  chatId: string;
+  threadId: string;
   status: "ready" | "submitted" | MessageDoc["status"];
   votes: Array<Vote> | undefined;
   messages: Array<UIMessage>;
@@ -24,7 +24,7 @@ interface MessagesProps {
 }
 
 function PureMessages({
-  chatId,
+  threadId,
   status,
   votes,
   messages,
@@ -41,7 +41,7 @@ function PureMessages({
     onViewportLeave,
     hasSentMessage,
   } = useMessages({
-    chatId,
+    threadId,
     status,
   });
 
@@ -79,7 +79,7 @@ function PureMessages({
       {messages.map((message, index) => (
         <PreviewMessage
           key={message.id}
-          chatId={chatId}
+          threadId={threadId}
           message={message}
           isLoading={status === 'pending' && messages.length - 1 === index}
           vote={

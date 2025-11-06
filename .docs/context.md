@@ -1,6 +1,87 @@
 # Alicization - AI Office Simulation
 
-## Recent Progress: Object Rotation Button System
+## Recent Progress: Message Queue System Foundation
+
+### Overview
+Implemented the foundation for a message queue system that allows queuing requests when LLMs are busy processing other requests in the same thread. The system uses a simple database table and provides basic CRUD operations with a todo-list style UI component.
+
+### Features
+
+#### Database Schema
+**Simplified Design**: Minimal fields focused on essential functionality
+- `threadId`: Which conversation the request belongs to
+- `title`: Brief description of the request
+- `content`: Full message content
+- `sender`: User or employee name who sent the message
+- `createdAt`: For FIFO ordering
+
+**Efficient Indexing**: 
+- `by_threadId`: Get all requests for a specific conversation
+- `by_createdAt`: FIFO processing across all threads
+
+#### Queue Operations
+**Basic CRUD Functions** (`convex/queue.ts`):
+- `addToQueue`: Add new request to queue
+- `getQueuedRequests`: Get all queued requests for a thread
+- `getNextRequest`: Get oldest request across all threads for processing
+- `removeFromQueue`: Remove completed request
+- `getQueueCount`: Get count for UI indicators
+
+#### UI Component
+**Todo-list Style Display** (`components/chat/queued-requests.tsx`):
+- Shows above multimodal input when queue has items
+- Numbered list with sender information
+- Truncated content preview with full title
+- Scrollable container for multiple items
+- Clean, minimal design that integrates with chat interface
+
+### Technical Implementation
+
+**File Structure**:
+```
+convex/schema.ts           # Added queuedRequests table
+convex/queue.ts           # CRUD operations for queue management
+components/chat/queued-requests.tsx  # UI component for display
+```
+
+**Integration Ready**:
+- Schema supports FIFO processing
+- Component ready to integrate above multimodal input
+- Operations ready for workflow integration in `onCompleteChatWorkflow`
+
+### Benefits
+
+- **Simple & Focused**: Minimal fields, no over-engineering
+- **FIFO Processing**: Proper ordering for fair request handling
+- **Clean UI**: Todo-list style that fits chat interface
+- **Extensible**: Foundation ready for workflow integration
+- **Performance**: Efficient queries with proper indexing
+
+### Integration Complete
+
+**UI Integration**: QueuedRequests component now displays above multimodal input
+- Shows numbered list of queued messages with sender info
+- Scrollable container for multiple items
+- Auto-hides when queue is empty
+
+**Workflow Integration**: Enhanced `onCompleteChatWorkflow` to process queue
+- Checks for queued requests when workflows complete
+- Processes first queued request in FIFO order
+- Removes processed items from queue
+- Kicks off new workflow to handle queued message
+
+**Database Functions**: Added internal functions for workflow integration
+- `internalGetChatByThreadId`: Get chat context by threadId
+- `internalGetQueuedRequests`: Internal queue queries
+- `internalRemoveFromQueue`: Internal queue cleanup
+
+### Next Steps
+
+- Test queue functionality end-to-end
+- Add UI indicators for queue status in input area
+- Implement queue checking in chat message flow (detect when to queue vs process immediately)
+
+## Previous Progress: Object Rotation Button System
 
 ### Overview
 Implemented a comprehensive object rotation system that allows users to precisely rotate office objects in builder mode using intuitive 90-degree increment buttons. Objects can be clicked to show rotation controls with visual feedback and database persistence.

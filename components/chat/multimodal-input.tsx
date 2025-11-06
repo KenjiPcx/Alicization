@@ -30,9 +30,10 @@ import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { MessageDoc } from '@convex-dev/agent';
+import { QueuedRequests } from './queued-requests';
 
 function PureMultimodalInput({
-  chatId,
+  threadId,
   input,
   setInput,
   status,
@@ -45,7 +46,7 @@ function PureMultimodalInput({
   className,
   selectedVisibilityType,
 }: {
-  chatId: string;
+  threadId: string;
   input: UseChatHelpers['input'];
   setInput: UseChatHelpers['setInput'];
   status: "ready" | "submitted" | MessageDoc["status"];
@@ -223,10 +224,12 @@ function PureMultimodalInput({
         uploadQueue.length === 0 && (
           <SuggestedActions
             append={append}
-            chatId={chatId}
+            threadId={threadId}
             selectedVisibilityType={selectedVisibilityType}
           />
         )}
+
+      <QueuedRequests threadId={threadId} />
 
       <input
         type="file"

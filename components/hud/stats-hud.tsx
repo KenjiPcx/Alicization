@@ -136,7 +136,7 @@ export function StatsHUD({ className }: StatsHUDProps) {
                             exit={{ opacity: 0, scale: 0.9 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <Card className="p-2 bg-background/95 backdrop-blur-sm border-2 border-primary/20 cursor-pointer">
+                            <Card className="p-2 bg-card/95 backdrop-blur-sm border border-border cursor-pointer shadow-lg">
                                 <div className="grid grid-cols-3 gap-2">
                                     {compactStats.map((stat, index) => (
                                         <div key={index} className="flex items-center justify-center gap-1">
@@ -160,7 +160,7 @@ export function StatsHUD({ className }: StatsHUDProps) {
                             className="space-y-3"
                         >
                             {/* Main Stats Grid */}
-                            <Card className="p-4 bg-background/95 backdrop-blur-sm border-2 border-primary/20">
+                            <Card className="p-4 bg-card/95 backdrop-blur-sm border border-border shadow-lg">
                                 <div className="grid grid-cols-2 gap-3">
                                     {expandedStatItems.map((stat, index) => (
                                         <div
@@ -187,17 +187,17 @@ export function StatsHUD({ className }: StatsHUDProps) {
                             </Card>
 
                             {/* Performance Indicators */}
-                            <Card className="p-3 bg-background/95 backdrop-blur-sm border border-primary/20">
+                            <Card className="p-3 bg-card/95 backdrop-blur-sm border border-border shadow-lg">
                                 <div className="space-y-2">
                                     {/* Efficiency */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Zap className="h-3 w-3 text-yellow-500" />
-                                            <span className="text-xs font-medium">Efficiency</span>
+                                            <span className="text-xs font-medium text-foreground">Efficiency</span>
                                         </div>
                                         <Badge
                                             variant="outline"
-                                            className={cn("text-xs", getEfficiencyColor(stats.efficiency))}
+                                            className={cn("text-xs border-border", getEfficiencyColor(stats.efficiency))}
                                         >
                                             {stats.efficiency}%
                                         </Badge>
@@ -207,9 +207,9 @@ export function StatsHUD({ className }: StatsHUDProps) {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-3 w-3 text-green-500" />
-                                            <span className="text-xs font-medium">Uptime</span>
+                                            <span className="text-xs font-medium text-foreground">Uptime</span>
                                         </div>
-                                        <Badge variant="outline" className="text-xs text-green-500">
+                                        <Badge variant="outline" className="text-xs text-green-500 border-border">
                                             {stats.uptime}
                                         </Badge>
                                     </div>

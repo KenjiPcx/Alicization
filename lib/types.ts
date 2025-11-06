@@ -2,7 +2,7 @@ import type { StatusType } from "@/components/navigation/status-indicator";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 // Base Convex types
-export type User = Doc<"users">;
+export type User = Doc<"usersMetadata">;
 export type Employee = Doc<"employees">;
 export type Team = Doc<"teams">;
 export type Tool = Doc<"tools">;
@@ -77,3 +77,9 @@ export type DeskLayoutData = {
 }
 
 export type Toolset = Doc<"toolsets">
+
+export type Attachment = {
+    name: string;
+    url: string;
+    contentType: string;
+};

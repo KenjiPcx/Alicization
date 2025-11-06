@@ -11,12 +11,12 @@ export default function OfficeSimulation() {
     const { setUserMetadata } = useAppStore();
 
     // Fetch user metadata for onboarding and user type management
-    const userMetadata = useQuery(api.usage.getCurrentUserMetadata);
-    useEffect(() => {
-        if (userMetadata) {
-            setUserMetadata({ userType: userMetadata.type });
-        }
-    }, [userMetadata, setUserMetadata]);
+    // const userMetadata = useQuery(api.usage.getCurrentUserMetadata);
+    // useEffect(() => {
+    //     if (userMetadata) {
+    //         setUserMetadata({ userType: userMetadata.type });
+    //     }
+    // }, [userMetadata, setUserMetadata]);
 
     // Fetch office data from database (reactive!)
     const { company, teams, employees, desks, isLoading } = useOfficeDataContext();

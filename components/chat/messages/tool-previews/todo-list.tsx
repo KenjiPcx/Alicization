@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PlannerToolResult } from "@/lib/ai/tools/advanced/planner";
+import { PlannerToolResult } from "@/convex/chat_system/tools/advanced/planner";
 
 interface TodoListPreviewProps {
     args: {

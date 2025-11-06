@@ -5,9 +5,9 @@ import { ModeToggle } from "../layout/mode-toggle";
 import { Button } from "../ui/button";
 import { useState } from "react";
 import { useConvexAuth } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 
 interface SettingsDialogProps {
     debugMode: boolean;
@@ -18,13 +18,11 @@ interface SettingsDialogProps {
 export default function SettingsDialog({ debugMode, toggleDebugMode, trigger }: SettingsDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
     const { isAuthenticated } = useConvexAuth();
-    const { signOut } = useAuthActions();
+    const { signOut } = useAuth();
     const router = useRouter();
 
     const handleSignOut = async () => {
         await signOut();
-        router.push("/signin");
-        setIsOpen(false);
     };
 
     return (

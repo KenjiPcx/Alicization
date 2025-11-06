@@ -23,6 +23,6 @@
       "@/*": ["../*"]
     }
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "chat_system/artifactGenerators", "chat_system/artifacts.ts", "job_system/backgroundJobStatuses.ts", "office_system/companies.ts", "knowledge_base/companyFileNode.ts", "knowledge_base/companyFiles.ts", "knowledge_base/tags.ts", "office_system/skills.ts", "chat_system/tasks.ts", "office_system/employees.ts", "file.ts", "chat_system/interpreter.ts", "office_system/kpis.ts", "knowledge_base/memories.ts", "office_system/toolsets.ts", "user_system/userTasks.ts", "chat_system/votes.ts", "office_objects/office_objects.ts", "onboarding.ts", "seed.ts", "chat_system/workflow", "chat_system/node", "../archive/lib", "chat_system/chat.ts"],
   "exclude": ["./_generated"]
 }

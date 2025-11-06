@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { SpeedDial, type SpeedDialItem } from "@/components/ui/speed-dial";
 import { useMicroApp } from "@/lib/store/micro-app-store";
 import { useAppStore } from "@/lib/store/app-store";
-import { getAvailableApps } from "@/lib/ai/tools/advanced/office-micro-app";
+// import { getAvailableApps } from "@/archive/tools/advanced/office-micro-app";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
     BarChart3,
@@ -53,56 +53,56 @@ export function MicroAppsSpeedDial({
     const { activeChatParticipant } = useAppStore();
 
     // Get available micro apps based on employee role from app store
-    const availableApps = useMemo(() => {
-        if (!activeChatParticipant?.builtInRole) return [];
-        return getAvailableApps(activeChatParticipant.builtInRole as any);
-    }, [activeChatParticipant?.builtInRole]);
+    // const availableApps = useMemo(() => {
+    //     if (!activeChatParticipant?.builtInRole) return [];
+    //     return getAvailableApps(activeChatParticipant.builtInRole as any);
+    // }, [activeChatParticipant?.builtInRole]);
 
-    // Create speed dial items from available micro apps
-    const speedDialItems: SpeedDialItem[] = useMemo(() => {
-        return availableApps.map((appType) => {
-            const Icon = microAppIcons[appType];
-            const label = microAppLabels[appType];
+    // // Create speed dial items from available micro apps
+    // const speedDialItems: SpeedDialItem[] = useMemo(() => {
+    //     return availableApps.map((appType) => {
+    //         const Icon = microAppIcons[appType];
+    //         const label = microAppLabels[appType];
 
-            return {
-                id: appType,
-                icon: Icon,
-                label,
-                color: microAppColor,
-                onClick: () => {
-                    // Calculate bounding box for micro app positioning
-                    const boundingBox = {
-                        top: 100,
-                        left: 50,
-                        width: window.innerWidth - 100,
-                        height: window.innerHeight - 200,
-                    };
+    //         return {
+    //             id: appType,
+    //             icon: Icon,
+    //             label,
+    //             color: microAppColor,
+    //             onClick: () => {
+    //                 // Calculate bounding box for micro app positioning
+    //                 const boundingBox = {
+    //                     top: 100,
+    //                     left: 50,
+    //                     width: window.innerWidth - 100,
+    //                     height: window.innerHeight - 200,
+    //                 };
 
-                    // Open the micro app
-                    openOfficeMicroApp(
-                        `micro-app-${appType}-${Date.now()}`, // unique ID
-                        boundingBox,
-                        {
-                            microAppType: appType,
-                            title: label,
-                            companyId: activeChatParticipant?.companyId,
-                            teamId: activeChatParticipant?.teamId,
-                            employeeId: activeChatParticipant?.employeeId,
-                        }
-                    );
-                },
-            };
-        });
-    }, [availableApps, chatId, openOfficeMicroApp]);
+    //                 // Open the micro app
+    //                 openOfficeMicroApp(
+    //                     `micro-app-${appType}-${Date.now()}`, // unique ID
+    //                     boundingBox,
+    //                     {
+    //                         microAppType: appType,
+    //                         title: label,
+    //                         companyId: activeChatParticipant?.companyId,
+    //                         teamId: activeChatParticipant?.teamId,
+    //                         employeeId: activeChatParticipant?.employeeId,
+    //                     }
+    //                 );
+    //             },
+    //         };
+    //     });
+    // }, [availableApps, chatId, openOfficeMicroApp]);
 
     // Don't render if no apps available or chat participant not loaded
-    if (!activeChatParticipant?.builtInRole || speedDialItems.length === 0) {
-        return null;
-    }
+    // if (!activeChatParticipant?.builtInRole || speedDialItems.length === 0) {
+    //     return null;
+    // }
 
     return (
         <SpeedDial
-            items={speedDialItems}
+            items={[]}
             position="bottom-right"
             direction="vertical"
             triggerIcon={Grid3X3}

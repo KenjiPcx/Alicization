@@ -2,8 +2,13 @@
  * Type-safe utility functions for Convex operations
  */
 
-import type { MutationCtx } from "./_generated/server";
-import type { Doc, Id, TableNames } from "./_generated/dataModel";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+
+
+export async function getAuthUserId(ctx: QueryCtx | MutationCtx | ActionCtx): Promise<string | undefined> {
+    return (await ctx.auth.getUserIdentity())?.subject;
+}
 
 /**
  * Filter out undefined values from an object, useful for partial updates

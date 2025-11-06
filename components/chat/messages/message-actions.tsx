@@ -20,12 +20,12 @@ import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 
 export function PureMessageActions({
-  chatId,
+  threadId,
   message,
   vote,
   isLoading,
 }: {
-  chatId: string;
+  threadId: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
@@ -75,7 +75,7 @@ export function PureMessageActions({
               variant="outline"
               onClick={async () => {
                 const upvote = addVote({
-                  threadId: chatId,
+                  threadId: threadId,
                   messageId: message.id,
                   isUpvoted: true,
                 });
@@ -104,7 +104,7 @@ export function PureMessageActions({
               disabled={vote && !vote.isUpvoted}
               onClick={async () => {
                 const downvote = addVote({
-                  threadId: chatId,
+                  threadId: threadId,
                   messageId: message.id,
                   isUpvoted: false,
                 });

@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { storeFile } from "@convex-dev/agent";
 import { action } from "./_generated/server";
 import { components } from "./_generated/api";
@@ -13,7 +12,7 @@ export const uploadFile = action({
         sha256: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
+        const userId = (await ctx.auth.getUserIdentity())?.subject;
         if (!userId) {
             throw new Error("Unauthorized");
         }
@@ -25,8 +24,10 @@ export const uploadFile = action({
             ctx,
             components.agent,
             new Blob([args.bytes], { type: args.mimeType }),
-            args.filename,
-            args.sha256,
+            {
+                filename: args.filename,
+                sha256: args.sha256,
+            }
         );
         return { fileId, url };
     },
